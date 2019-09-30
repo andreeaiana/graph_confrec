@@ -92,7 +92,7 @@ class FileParser:
                         "process_line": "_process_line_books_conferences",
                         "persistent_file": os.path.join(
                                 self.path_persistent,
-                                "books_conferences.pkl"),
+                                "old_books_conferences.pkl"),
                         "persistent_variable": {},
                         "dataset_format": "ntriples"
                         },
@@ -221,6 +221,14 @@ class FileParser:
                         "persistent_variable": {},
                         "dataset_format": "json"
                         },
+                "isbn_books": {
+                        "filename": os.path.join(self.path_raw, books_file),
+                        "process_line": "_process_line_isbn_books",
+                        "persistent_file": os.path.join(self.path_persistent,
+                                                        "isbn_books.pkl"),
+                        "persistent_variable": {},
+                        "dataset_format": "json"
+                        },
                 "books_year": {
                         "filename": os.path.join(self.path_raw, books_file),
                         "process_line": "_process_line_books_year",
@@ -322,6 +330,15 @@ class FileParser:
                         "process_line": "_process_line_chapters_authors",
                         "persistent_file": os.path.join(
                                 self.path_persistent, "chapters_authors.pkl"),
+                        "persistent_variable": {},
+                        "dataset_format": "json"
+                        },
+                "chapters_authors_name": {
+                        "filename": os.path.join(self.path_raw, chapters_file),
+                        "process_line": "_process_line_chapters_authors_name",
+                        "persistent_file": os.path.join(
+                                self.path_persistent,
+                                "chapters_authors_name.pkl"),
                         "persistent_variable": {},
                         "dataset_format": "json"
                         },
@@ -432,7 +449,7 @@ class FileParser:
         self.timer.toc()
         print("Finished processing file.\n\n")
 
-# Processes implementations
+    # Processes implementations
     def _process_line_old_books(self, line, results):
         line = line.rstrip(" .\n").split(maxsplit=2)
         if line[1] == nt_has_conference:
@@ -446,7 +463,7 @@ class FileParser:
             if line[0].startswith(nt_book):
                 new_book_id = "sg:pub." + line[2].split(".com/")[-1].rsplit(
                         ">")[0]
-                results[line[0]] == new_book_id
+                results[line[0]] = new_book_id
 
     def _process_line_books_conferences(self, line, results):
         line = line.rstrip(" .\n").split(maxsplit=2)
@@ -527,6 +544,12 @@ class FileParser:
         if "name" in line.keys():
             results[line["id"]] = line["name"]
 
+    def _process_line_isbn_books(self, line, results):
+        if "isbn" in line.keys():
+            isbn_list = line["isbn"]
+            for isbn in isbn_list:
+                results[isbn] = line["id"]
+
     def _process_line_books_year(self, line, results):
         if "datePublished" in line.keys():
             year = line["datePublished"].split("-")[0]
@@ -534,7 +557,7 @@ class FileParser:
 
     def _process_line_books_language(self, line, results):
         if "inLanguage" in line.keys():
-            results[line["id"]] = line["inLanguage"]
+            results[line["id"]] = line["inLanguage"][0]
 
     def _process_line_books_abstract(self, line, results):
         if "description" in line.keys():
@@ -552,7 +575,7 @@ class FileParser:
                 family_name = authors[i]["familyName"] if "familyName" \
                             in authors[i].keys() else ""
                 given_name = authors[i]["givenName"] if "givenName" \
-                            in authors[i].keys() else ""
+                    in authors[i].keys() else ""
                 author_names.append(family_name + " " + given_name)
             results[line["id"]] = author_names
 
@@ -594,7 +617,7 @@ class FileParser:
             if "datePublished" in line.keys():
                 year = line["datePublished"].split("-")[0]
                 if year in years:
-                    results[line["id"]] = line["inLanguage"]
+                    results[line["id"]] = line["inLanguage"][0]
 
     def _process_line_chapters_abstract(self, line, results):
         if "description" in line.keys():
@@ -609,9 +632,25 @@ class FileParser:
                 year = line["datePublished"].split("-")[0]
                 if year in years:
                     authors = line["author"]
-                    authors_id = [authors[i]["id"] for i in range(
-                            len(authors))]
+                    authors_id = [authors[i]["id"] for i in
+                                  range(len(authors)) if "id" in
+                                  authors[i].keys()]
                     results[line["id"]] = authors_id
+
+    def _process_line_chapters_authors_name(self, line, results):
+        if "author" in line.keys():
+            if "datePublished" in line.keys():
+                year = line["datePublished"].split("-")[0]
+                if year in years:
+                    authors = line["author"]
+                    author_names = list()
+                    for i in range(len(authors)):
+                        family_name = authors[i]["familyName"] if \
+                            "familyName" in authors[i].keys() else ""
+                        given_name = authors[i]["givenName"] if "givenName" \
+                            in authors[i].keys() else ""
+                        author_names.append(family_name + " " + given_name)
+                    results[line["id"]] = author_names
 
     def _process_line_chapters_citations(self, line, results):
         if "citation" in line.keys():
@@ -635,4 +674,7 @@ class FileParser:
             if "datePublished" in line.keys():
                 year = line["datePublished"].split("-")[0]
                 if year in years:
-                    results[line["id"]] = line["isPartOf"]["isbn"]
+                    book = line["isPartOf"]
+                    if "isbn" in book.keys():
+                        isbn_list = book["isbn"]
+                        results[line["id"]] = isbn_list
