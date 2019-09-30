@@ -108,7 +108,7 @@ class DatasetsParser:
     def _process_data_chapters_scigraph_citations(self):
         df_chapters_citations = pd.DataFrame(
                 list(self.parser.get_data("chapters_citations").items()),
-                columns=["chapter_id", "citations"]
+                columns=["chapter", "citations"]
                 )
         chapters_count = len(df_chapters_citations)
         with tqdm(desc="Processing citations", total=chapters_count,
