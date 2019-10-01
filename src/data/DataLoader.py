@@ -4,6 +4,10 @@ Created on Tue Sep 24 11:58:43 2019
 
 @author: Andreea
 """
+import os
+import pandas as pd
+from FileParser import FileParser
+from DatasetsParser import DatasetsParser
 
 """
     Class for loading the data needed by the models.
@@ -40,10 +44,6 @@ Created on Tue Sep 24 11:58:43 2019
             ).abstracts().contributions().conferences().conferenceseries()
 """
 
-import os
-import pandas as pd
-from FileParser import FileParser
-from DatasetsParser import DatasetsParser
 
 class DataLoader:
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -62,7 +62,7 @@ class DataLoader:
         elif not hasattr(self, "years"):
             raise AttributeError("Years needed.")
 
-        df_chapters_books = self.dt_parser.get_data("chapters_book_ids")
+        df_chapters_books = self.dt_parser.get_data("chapters_books")
         df_chapters_books.rename(
                 columns={"chapter": "chapter", "book_id": "book"},
                 inplace=True)
@@ -155,7 +155,7 @@ class DataLoader:
             df_conferences = pd.DataFrame(self.parser.get_data("conferences"),
                                           columns=["conference"])
         elif "chapter" in self.data.keys():
-            df_conferences = self.dt_parser.get_data("book_ids_conferences")
+            df_conferences = self.dt_parser.get_data("books_conferences")
         else:
             raise KeyError("Needs papers.")
 
@@ -196,6 +196,14 @@ class DataLoader:
         df = pd.merge(df, df_conferences_year, how="left",
                       on=["conference", "conference"])
 
+        df.conference_acronym = df.conference_acronym.str[1:-1]
+        df.conference_name = df.conference_name.str[1:-1]
+        df.conference_city = df.conference_city.str[1:-1]
+        df.conference_country = df.conference_country.str[1:-1]
+        df.conference_datestart = df.conference_datestart.str[1:11]
+        df.conference_dateend = df.conference_dateend.str[1:11]
+        df.conference_year = df.conference_year.str[1:5]
+
         if hasattr(self, "data"):
             self.data = pd.merge(self.data, df, how="left",
                                  on=["book", "book"])
@@ -223,6 +231,7 @@ class DataLoader:
                 columns=["conferenceseries", "conferenceseries_name"])
         df = pd.merge(df_conferenceseries, df_conferenceseries_name,
                       how="left", on=["conferenceseries", "conferenceseries"])
+        df.conferenceseries_name = df.conferenceseries_name.str[1:-1]
 
         if hasattr(self, "data"):
             self.data = pd.merge(self.data, df, how="left",
@@ -234,23 +243,25 @@ class DataLoader:
 
     # Get training data
     def training_data(self, years=None):
-        if not years == None:
+        if years is not None:
             years = years
         else:
-            years = ["2008", "2009", "2010", "2011", "2012", "2013", "2014"]
+            years = self.parser.years.copy()
+            years.remove("2015")
+            years.remove("2016")
         return self.papers(years).conferences().conferenceseries()
 
     # Get validation data
     def validation_data(self, years=None):
-        if not years == None:
+        if years is not None:
             years = years
         else:
             years = ["2015"]
-        return self.papers("2015").conferences().conferenceseries()
+        return self.papers(years).conferences().conferenceseries()
 
     # Get test data
     def test_data(self, years=None):
-        if not years == None:
+        if years is not None:
             years = years
         else:
             years = ["2016"]
@@ -287,7 +298,7 @@ class DataLoader:
                                "conferenceseries"]]
         return self
 
-     # Get validation data with abstracts
+    # Get validation data with abstracts
     def validation_data_with_abstracts(self, years=None):
         self.validation_data(years).abstracts()
         self.data = self.data[["chapter_abstract", "conferenceseries"]].copy()
@@ -317,7 +328,6 @@ class DataLoader:
         self.data = self.data[["chapter_abstract", "citations",
                                "conferenceseries"]]
         return self
-
 
     # Get test data with abstracts
     def test_data_with_abstracts(self, years=None):
@@ -349,7 +359,6 @@ class DataLoader:
         self.data = self.data[["chapter_abstract", "citations",
                                "conferenceseries"]]
         return self
-
 
     # Get test data with abstracts ready for evaluation
     def evaluation_data_with_abstracts(self, years=None):

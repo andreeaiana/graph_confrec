@@ -27,20 +27,20 @@ class DatasetsParser:
         self.persistent = {}
         self.timer = Timer()
         self.processes = {
-                "chapters_book_ids": {
-                        "process_data": "_process_data_chapters_book_ids",
+                "chapters_books": {
+                        "process_data": "_process_data_chapters_books",
                         "persistent_file": os.path.join(
-                                self.path, "chapters_book_ids.pkl")
+                                self.path, "chapters_books.pkl")
                         },
                 "chapters_scigraph_citations": {
                         "process_data": "_process_data_chapters_scigraph_citations",
                         "persistent_file": os.path.join(
                                 self.path, "chapters_scigraph_citations.pkl")
                         },
-                "book_ids_conferences": {
-                        "process_data": "_process_data_books_ids_conferences",
+                "books_conferences": {
+                        "process_data": "_process_data_books_conferences",
                         "persistent_file": os.path.join(
-                                self.path, "book_ids_conferences.pkl")
+                                self.path, "books_conferences.pkl")
                         }
                 }
 
@@ -78,32 +78,35 @@ class DatasetsParser:
         return results
 
     # processes implementation
-    def _process_data_chapters_book_ids(self):
+    def _process_data_chapters_books(self):
         # Load datasets
-        df_chapters_books = pd.DataFrame(
-                list(self.parser.get_data("chapters_books").items()),
-                columns=["chapter", "books_isbn"])
+        df_chapters_books_isbns = pd.DataFrame(
+                list(self.parser.get_data("chapters_books_isbns").items()),
+                columns=["chapter", "books_isbns"])
         df_isbn_book_ids = pd.DataFrame(
                 list(self.parser.get_data("isbn_books").items()),
                 columns=["isbn", "book"])
 
         # Process datasets
-        df_chapters_books[["isbn1", "isbn2"]] = pd.DataFrame(
-                df_chapters_books["books_isbn"].tolist(),
-                index=df_chapters_books.index)
-        df_chapters_books.drop(columns=["books_isbn"], axis=1, inplace=True)
-        df_chapters_isbn1 = pd.merge(df_chapters_books[["chapter", "isbn1"]],
-                                     df_isbn_book_ids, how="inner",
-                                     left_on=["isbn1"], right_on=["isbn"])
+        df_chapters_books_isbns[["isbn1", "isbn2"]] = pd.DataFrame(
+                df_chapters_books_isbns["books_isbns"].tolist(),
+                index=df_chapters_books_isbns.index)
+        df_chapters_books_isbns.drop(columns=["books_isbns"], axis=1,
+                                     inplace=True)
+        df_chapters_isbn1 = pd.merge(
+                df_chapters_books_isbns[["chapter", "isbn1"]],
+                df_isbn_book_ids, how="inner",
+                left_on=["isbn1"], right_on=["isbn"])
         df_chapters_isbn1.drop(columns=["isbn1", "isbn"], inplace=True)
-        df_chapters_isbn2 = pd.merge(df_chapters_books[["chapter", "isbn2"]],
-                                     df_isbn_book_ids, how="inner",
-                                     left_on=["isbn2"], right_on=["isbn"])
+        df_chapters_isbn2 = pd.merge(
+                df_chapters_books_isbns[["chapter", "isbn2"]],
+                df_isbn_book_ids, how="inner",
+                left_on=["isbn2"], right_on=["isbn"])
         df_chapters_isbn2.drop(columns=["isbn2", "isbn"], inplace=True)
-        df_chapters_book_ids = df_chapters_isbn1.append(df_chapters_isbn2,
-                                                        ignore_index=True)
-        df_chapters_book_ids.drop_duplicates(inplace=True)
-        return df_chapters_book_ids
+        df_chapters_books = df_chapters_isbn1.append(df_chapters_isbn2,
+                                                     ignore_index=True)
+        df_chapters_books.drop_duplicates(inplace=True)
+        return df_chapters_books
 
     def _process_data_chapters_scigraph_citations(self):
         df_chapters_citations = pd.DataFrame(
@@ -123,12 +126,13 @@ class DatasetsParser:
         return df_chapters_citations[
                 df_chapters_citations["citations"].notnull()]
 
-    def _process_data_books_ids_conferences(self):
+    def _process_data_books_conferences(self):
         df_old_books_new_books = pd.DataFrame(
                     list(self.parser.get_data("old_books_new_books").items()),
                     columns=["old_book", "new_book"])
         df_old_books_conferences = pd.DataFrame(
-                    list(self.parser.get_data("books_conferences").items()),
+                    list(self.parser.get_data(
+                            "old_books_conferences").items()),
                     columns=["old_book", "conference"])
         df = pd.merge(df_old_books_new_books, df_old_books_conferences,
                       how="left", on=["old_book", "old_book"])

@@ -15,7 +15,7 @@ from tqdm import tqdm
 import sys
 sys.path.insert(0, os.path.join(os.path.realpath(__file__), "..", "..",
                                 "utils"))
-#from TimerCounter import Timer
+from TimerCounter import Timer
 
 # Dataset names
 books_file = "books.tar.gz"
@@ -61,7 +61,7 @@ class FileParser:
              "2015", "2016"]
 
     def __init__(self):
-#        self.timer = Timer()
+        self.timer = Timer()
         self.persistent = {}
         self.processes = {
                 # Old datasets
@@ -373,7 +373,7 @@ class FileParser:
                 count_files))
 
         print("Start processing file.\n")
-#        self.timer.tic()
+        self.timer.tic()
         process_line_function = self.__getattribute__(process_line)
         with tqdm(desc="Processing files: ", total=count_files,
                   unit="file") as pbar:
@@ -386,7 +386,7 @@ class FileParser:
                         for line in content:
                             process_line_function(line, results)
                     pbar.update(1)
-#        self.timer.toc()
+        self.timer.toc()
         print("Finished processing file.\n\n")
 
     def _process_ntriples_file(self, filename, process_line, results):
@@ -397,7 +397,7 @@ class FileParser:
                 file_size))
 
         print("Start processing file.\n")
-#        self.timer.tic()
+        self.timer.tic()
         process_line_function = self.__getattribute__(process_line)
         with tqdm(desc="Processing file: ", total=file_size,
                   unit="bytes") as pbar:
@@ -405,7 +405,7 @@ class FileParser:
                 for line in f:
                     process_line_function(line, results)
                     pbar.update(len(line))
-#        self.timer.toc()
+        self.timer.toc()
         print("Finished processing file.\n\n")
 
     # Processes implementations
