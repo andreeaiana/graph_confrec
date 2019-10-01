@@ -15,7 +15,7 @@ from tqdm import tqdm
 import sys
 sys.path.insert(0, os.path.join(os.path.realpath(__file__), "..", "..",
                                 "utils"))
-from TimerCounter import Timer
+#from TimerCounter import Timer
 
 # Dataset names
 books_file = "books.tar.gz"
@@ -49,10 +49,6 @@ nt_conference_series = "<http://scigraph.springernature.com/things/" \
                         + "conference-series/"
 nt_name = "<http://scigraph.springernature.com/ontologies/core/name>"
 
-# Parse data only for these years
-years = ["2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015",
-         "2016", "2017", "2018"]
-
 
 class FileParser:
 
@@ -61,9 +57,11 @@ class FileParser:
     path_persistent = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                    "..", "..", "data", "interim", "parsed_data"
                                    )
+    years = ["2008", "2009", "2010", "2011", "2012", "2013", "2014",
+             "2015", "2016"]
 
     def __init__(self):
-        self.timer = Timer()
+#        self.timer = Timer()
         self.persistent = {}
         self.processes = {
                 # Old datasets
@@ -86,10 +84,10 @@ class FileParser:
                         "persistent_variable": {},
                         "dataset_format": "ntriples"
                         },
-                "books_conferences": {
+                "old_books_conferences": {
                         "filename": os.path.join(self.path_raw,
                                                  old_books_file),
-                        "process_line": "_process_line_books_conferences",
+                        "process_line": "_process_line_old_books_conferences",
                         "persistent_file": os.path.join(
                                 self.path_persistent,
                                 "old_books_conferences.pkl"),
@@ -213,14 +211,6 @@ class FileParser:
                         "persistent_variable": [],
                         "dataset_format": "json"
                         },
-                "books_title": {
-                        "filename": os.path.join(self.path_raw, books_file),
-                        "process_line": "_process_line_books_title",
-                        "persistent_file": os.path.join(self.path_persistent,
-                                                        "books_title.pkl"),
-                        "persistent_variable": {},
-                        "dataset_format": "json"
-                        },
                 "isbn_books": {
                         "filename": os.path.join(self.path_raw, books_file),
                         "process_line": "_process_line_isbn_books",
@@ -243,38 +233,6 @@ class FileParser:
                         "persistent_file": os.path.join(self.path_persistent,
                                                         "books_language.pkl"),
                         "persistent_variable": {},
-                        "dataset_format": "json"
-                        },
-                "books_abstract": {
-                        "filename": os.path.join(self.path_raw, books_file),
-                        "process_line": "_process_line_books_abstract",
-                        "persistent_file": os.path.join(self.path_persistent,
-                                                        "books_abstract.pkl"),
-                        "persistent_variable": {},
-                        "dataset_format": "json"
-                        },
-                "books_keywords": {
-                        "filename": os.path.join(self.path_raw, books_file),
-                        "process_line": "_process_line_books_keywords",
-                        "persistent_file": os.path.join(self.path_persistent,
-                                                        "books_keywords.pkl"),
-                        "persistent_variable": {},
-                        "dataset_format": "json"
-                        },
-                "books_authors": {
-                        "filename": os.path.join(self.path_raw, books_file),
-                        "process_line": "_process_line_books_authors",
-                        "persistent_file": os.path.join(self.path_persistent,
-                                                        "books_authors.pkl"),
-                        "persistent_variable": {},
-                        "dataset_format": "json"
-                        },
-                "authors": {
-                        "filename": os.path.join(self.path_raw, authors_file),
-                        "process_line": "_process_line_authors",
-                        "persistent_file": os.path.join(self.path_persistent,
-                                                        "authors.pkl"),
-                        "persistent_variable": [],
                         "dataset_format": "json"
                         },
                 "authors_name": {
@@ -359,11 +317,12 @@ class FileParser:
                         "persistent_variable": {},
                         "dataset_format": "json"
                         },
-                "chapters_books": {
+                "chapters_books_isbns": {
                         "filename": os.path.join(self.path_raw, chapters_file),
-                        "process_line": "_process_line_chapters_books",
-                        "persistent_file": os.path.join(self.path_persistent,
-                                                        "chapters_books.pkl"),
+                        "process_line": "_process_line_chapters_books_isbns",
+                        "persistent_file": os.path.join(
+                                self.path_persistent,
+                                "chapters_books_isbns.pkl"),
                         "persistent_variable": {},
                         "dataset_format": "json"
                         },
@@ -414,7 +373,7 @@ class FileParser:
                 count_files))
 
         print("Start processing file.\n")
-        self.timer.tic()
+#        self.timer.tic()
         process_line_function = self.__getattribute__(process_line)
         with tqdm(desc="Processing files: ", total=count_files,
                   unit="file") as pbar:
@@ -427,7 +386,7 @@ class FileParser:
                         for line in content:
                             process_line_function(line, results)
                     pbar.update(1)
-        self.timer.toc()
+#        self.timer.toc()
         print("Finished processing file.\n\n")
 
     def _process_ntriples_file(self, filename, process_line, results):
@@ -438,7 +397,7 @@ class FileParser:
                 file_size))
 
         print("Start processing file.\n")
-        self.timer.tic()
+#        self.timer.tic()
         process_line_function = self.__getattribute__(process_line)
         with tqdm(desc="Processing file: ", total=file_size,
                   unit="bytes") as pbar:
@@ -446,7 +405,7 @@ class FileParser:
                 for line in f:
                     process_line_function(line, results)
                     pbar.update(len(line))
-        self.timer.toc()
+#        self.timer.toc()
         print("Finished processing file.\n\n")
 
     # Processes implementations
@@ -461,11 +420,12 @@ class FileParser:
         line = line.rstrip(" .\n").split(maxsplit=2)
         if line[1] == nt_webpage:
             if line[0].startswith(nt_book):
-                new_book_id = "sg:pub." + line[2].split(".com/")[-1].rsplit(
-                        ">")[0]
-                results[line[0]] = new_book_id
+                if line[0] in self.get_data("old_books"):
+                    new_book_id = "sg:pub." + line[2].split(
+                            ".com/")[-1].rsplit(">")[0]
+                    results[line[0]] = new_book_id
 
-    def _process_line_books_conferences(self, line, results):
+    def _process_line_old_books_conferences(self, line, results):
         line = line.rstrip(" .\n").split(maxsplit=2)
         if line[1] == nt_has_conference:
             if line[0].startswith(nt_book):
@@ -537,51 +497,28 @@ class FileParser:
                 results[line[0]] = line[2]
 
     def _process_line_books(self, line, results):
+        new_books = list(self.get_data("old_books_new_books").values())
         if line["id"] not in results:
-            results.append(line["id"])
-
-    def _process_line_books_title(self, line, results):
-        if "name" in line.keys():
-            results[line["id"]] = line["name"]
+            if line["id"] in new_books:
+                results.append(line["id"])
 
     def _process_line_isbn_books(self, line, results):
         if "isbn" in line.keys():
-            isbn_list = line["isbn"]
-            for isbn in isbn_list:
-                results[isbn] = line["id"]
+            if line["id"] in self.get_data("books"):
+                isbn_list = line["isbn"]
+                for isbn in isbn_list:
+                    results[isbn] = line["id"]
 
     def _process_line_books_year(self, line, results):
         if "datePublished" in line.keys():
-            year = line["datePublished"].split("-")[0]
-            results[line["id"]] = year
+            if line["id"] in self.get_data("books"):
+                year = line["datePublished"].split("-")[0]
+                results[line["id"]] = year
 
     def _process_line_books_language(self, line, results):
         if "inLanguage" in line.keys():
-            results[line["id"]] = line["inLanguage"][0]
-
-    def _process_line_books_abstract(self, line, results):
-        if "description" in line.keys():
-            results[line["id"]] = line["description"]
-
-    def _process_line_books_keywords(self, line, results):
-        if "keywords" in line.keys():
-            results[line["id"]] = line["keywords"]
-
-    def _process_line_books_authors(self, line, results):
-        if "author" in line.keys():
-            authors = line["author"]
-            author_names = list()
-            for i in range(len(authors)):
-                family_name = authors[i]["familyName"] if "familyName" \
-                            in authors[i].keys() else ""
-                given_name = authors[i]["givenName"] if "givenName" \
-                    in authors[i].keys() else ""
-                author_names.append(family_name + " " + given_name)
-            results[line["id"]] = author_names
-
-    def _process_line_authors(self, line, results):
-        if line["id"] not in results:
-            results.append(line["id"])
+            if line["id"] in self.get_data("books"):
+                results[line["id"]] = line["inLanguage"][0]
 
     def _process_line_authors_name(self, line, results):
         family_name = line["familyName"] if "familyName" in line.keys() else ""
@@ -594,87 +531,77 @@ class FileParser:
 
     def _process_line_chapters(self, line, results):
         if line["id"] not in results:
-            if "datePublished" in line.keys():
-                year = line["datePublished"].split("-")[0]
-                if year in years:
-                    results.append(line["id"])
+            if "isPartOf" in line.keys():
+                if "datePublished" in line.keys():
+                    year = line["datePublished"].split("-")[0]
+                    if year in self.years:
+                        book = line["isPartOf"]
+                        if "isbn" in book.keys():
+                            isbn_list = book["isbn"]
+                            for isbn in isbn_list:
+                                if isbn in self.get_data("isbn_books"):
+                                    results.append(line["id"])
 
     def _process_line_chapters_title(self, line, results):
         if "name" in line.keys():
-            if "datePublished" in line.keys():
-                year = line["datePublished"].split("-")[0]
-                if year in years:
-                    results[line["id"]] = line["name"]
+            if line["id"] in self.get_data("chapters"):
+                results[line["id"]] = line["name"]
 
     def _process_line_chapters_year(self, line, results):
         if "datePublished" in line.keys():
-            year = line["datePublished"].split("-")[0]
-            if year in years:
+            if line["id"] in self.get_data("chapters"):
+                year = line["datePublished"].split("-")[0]
                 results[line["id"]] = year
 
     def _process_line_chapters_language(self, line, results):
         if "inLanguage" in line.keys():
-            if "datePublished" in line.keys():
-                year = line["datePublished"].split("-")[0]
-                if year in years:
-                    results[line["id"]] = line["inLanguage"][0]
+            if line["id"] in self.get_data("chapters"):
+                results[line["id"]] = line["inLanguage"][0]
 
     def _process_line_chapters_abstract(self, line, results):
         if "description" in line.keys():
-            if "datePublished" in line.keys():
-                year = line["datePublished"].split("-")[0]
-                if year in years:
-                    results[line["id"]] = line["description"]
+            if line["id"] in self.get_data("chapters"):
+                results[line["id"]] = line["description"]
 
     def _process_line_chapters_authors(self, line, results):
         if "author" in line.keys():
-            if "datePublished" in line.keys():
-                year = line["datePublished"].split("-")[0]
-                if year in years:
-                    authors = line["author"]
-                    authors_id = [authors[i]["id"] for i in
-                                  range(len(authors)) if "id" in
-                                  authors[i].keys()]
-                    results[line["id"]] = authors_id
+            if line["id"] in self.get_data("chapters"):
+                authors = line["author"]
+                authors_id = [authors[i]["id"] for i in
+                              range(len(authors)) if "id" in
+                              authors[i].keys()]
+                results[line["id"]] = authors_id
 
     def _process_line_chapters_authors_name(self, line, results):
         if "author" in line.keys():
-            if "datePublished" in line.keys():
-                year = line["datePublished"].split("-")[0]
-                if year in years:
-                    authors = line["author"]
-                    author_names = list()
-                    for i in range(len(authors)):
-                        family_name = authors[i]["familyName"] if \
-                            "familyName" in authors[i].keys() else ""
-                        given_name = authors[i]["givenName"] if "givenName" \
-                            in authors[i].keys() else ""
-                        author_names.append(family_name + " " + given_name)
-                    results[line["id"]] = author_names
+            if line["id"] in self.get_data("chapters"):
+                authors = line["author"]
+                author_names = list()
+                for i in range(len(authors)):
+                    family_name = authors[i]["familyName"] if \
+                        "familyName" in authors[i].keys() else ""
+                    given_name = authors[i]["givenName"] if "givenName" \
+                        in authors[i].keys() else ""
+                    author_names.append(family_name + " " + given_name)
+                results[line["id"]] = author_names
 
     def _process_line_chapters_citations(self, line, results):
         if "citation" in line.keys():
-            if "datePublished" in line.keys():
-                year = line["datePublished"].split("-")[0]
-                if year in years:
-                    citations = line["citation"]
-                    citations_id = [citations[i]["id"] for i in range(
-                            len(citations))]
-                    results[line["id"]] = citations_id
+            if line["id"] in self.get_data("chapters"):
+                citations = line["citation"]
+                citations_id = [citations[i]["id"] for i in range(
+                        len(citations))]
+                results[line["id"]] = citations_id
 
     def _process_line_chapters_keywords(self, line, results):
         if "keywords" in line.keys():
-            if "datePublished" in line.keys():
-                year = line["datePublished"].split("-")[0]
-                if year in years:
-                    results[line["id"]] = line["keywords"]
+            if line["id"] in self.get_data("chapters"):
+                results[line["id"]] = line["keywords"]
 
-    def _process_line_chapters_books(self, line, results):
+    def _process_line_chapters_books_isbns(self, line, results):
         if "isPartOf" in line.keys():
-            if "datePublished" in line.keys():
-                year = line["datePublished"].split("-")[0]
-                if year in years:
-                    book = line["isPartOf"]
-                    if "isbn" in book.keys():
-                        isbn_list = book["isbn"]
-                        results[line["id"]] = isbn_list
+            if line["id"] in self.get_data("chapters"):
+                book = line["isPartOf"]
+                if "isbn" in book.keys():
+                    isbn_list = book["isbn"]
+                    results[line["id"]] = isbn_list
