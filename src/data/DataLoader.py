@@ -270,94 +270,100 @@ class DataLoader:
     # Get training data with abstracts
     def training_data_with_abstracts(self, years=None):
         self.training_data(years).abstracts()
-        self.data = self.data[["chapter_abstract", "conferenceseries"]].copy()
+        self.data = self.data[["chapter_abstract", "conferenceseries",
+                               "chapter_title"]].copy()
         self.data.drop(
                 list(self.data[pd.isnull(self.data.chapter_abstract)].index),
                 inplace=True
                 )
         self.data = self.data.reset_index()
-        self.data = self.data[["chapter_abstract", "conferenceseries"]]
+        self.data = self.data[["chapter_abstract", "conferenceseries",
+                               "chapter_title"]]
         return self
 
     # Get training data with abstracts and citations
     def training_data_with_abstracts_citations(self, years=None):
         self.training_data(years).abstracts().citations()
-        self.data = self.data[["chapter_abstract", "citations",
-                               "conferenceseries"]].copy()
+        self.data = self.data[["chapter_abstract", "chapter_citations",
+                               "chapter_title", "conferenceseries"]].copy()
         self.data.drop(
                 list(self.data[pd.isnull(self.data.chapter_abstract)].index),
                 inplace=True
                 )
         self.data = self.data.reset_index()
         self.data.drop(
-                list(self.data[pd.isnull(self.data.citations)].index),
+                list(self.data[pd.isnull(self.data.chapter_citations)].index),
                 inplace=True
                 )
         self.data = self.data.reset_index()
-        self.data = self.data[["chapter_abstract", "citations",
-                               "conferenceseries"]]
+        self.data = self.data[["chapter_abstract", "chapter_citations",
+                               "chapter_title", "conferenceseries"]]
         return self
 
     # Get validation data with abstracts
     def validation_data_with_abstracts(self, years=None):
         self.validation_data(years).abstracts()
-        self.data = self.data[["chapter_abstract", "conferenceseries"]].copy()
+        self.data = self.data[["chapter_abstract", "conferenceseries",
+                               "chapter_title"]].copy()
         self.data.drop(
                 list(self.data[pd.isnull(self.data.chapter_abstract)].index),
                 inplace=True
                 )
         self.data = self.data.reset_index()
-        self.data = self.data[["chapter_abstract", "conferenceseries"]]
+        self.data = self.data[["chapter_abstract", "conferenceseries",
+                               "chapter_title"]]
         return self
 
     # Get validation data with abstracts and citations
     def validation_data_with_abstracts_citations(self, years=None):
         self.validation_data(years).abstracts().citations()
-        self.data = self.data[["chapter_abstract", "citations",
-                               "conferenceseries"]].copy()
+        self.data = self.data[["chapter_abstract", "chapter_citations",
+                               "chapter_title", "conferenceseries"]].copy()
         self.data.drop(
                 list(self.data[pd.isnull(self.data.chapter_abstract)].index),
                 inplace=True
                 )
         self.data = self.data.reset_index()
         self.data.drop(
-                list(self.data[pd.isnull(self.data.citations)].index),
+                list(self.data[pd.isnull(self.data.chapter_citations)].index),
                 inplace=True
                 )
         self.data = self.data.reset_index()
-        self.data = self.data[["chapter_abstract", "citations",
-                               "conferenceseries"]]
+        self.data = self.data[["chapter_abstract", "chapter_citations",
+                               "chapter_title", "conferenceseries"]]
         return self
 
     # Get test data with abstracts
     def test_data_with_abstracts(self, years=None):
         self.test_data(years).abstracts()
-        self.data = self.data[["chapter_abstract", "conferenceseries"]].copy()
+        self.data = self.data[["chapter_abstract", "conferenceseries",
+                               "chapter_title"]].copy()
         self.data.drop(
                 list(self.data[pd.isnull(self.data.chapter_abstract)].index),
                 inplace=True
                 )
         self.data = self.data.reset_index()
-        self.data = self.data[["chapter_abstract", "conferenceseries"]]
+        self.data = self.data[["chapter_abstract", "conferenceseries",
+                               "chapter_title"]]
         return self
 
     # Get test data with abstracts and citations
     def test_data_with_abstracts_citations(self, years=None):
         self.test_data(years).abstracts().citations()
-        self.data = self.data[["chapter_abstract", "citations",
-                               "conferenceseries"]].copy()
+        self.data = self.data[["chapter_abstract", "chapter_citations",
+                               "chapter_title", "conferenceseries"]].copy()
         self.data.drop(
                 list(self.data[pd.isnull(self.data.chapter_abstract)].index),
                 inplace=True
                 )
         self.data = self.data.reset_index()
         self.data.drop(
-                list(self.data[pd.isnull(self.data.citations)].index),
+                list(self.data[pd.isnull(self.data.chapter_citations)].index),
                 inplace=True
                 )
         self.data = self.data.reset_index()
-        self.data = self.data[["chapter_abstract", "citations",
-                               "conferenceseries"]]
+        self.data = self.data[["chapter_abstract", "chapter_citations",
+                               "chapter_title", "conferenceseries"]]
         return self
 
     # Get test data with abstracts ready for evaluation

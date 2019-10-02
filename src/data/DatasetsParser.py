@@ -111,20 +111,22 @@ class DatasetsParser:
     def _process_data_chapters_scigraph_citations(self):
         df_chapters_citations = pd.DataFrame(
                 list(self.parser.get_data("chapters_citations").items()),
-                columns=["chapter", "citations"]
+                columns=["chapter", "chapter_citations"]
                 )
         chapters_count = len(df_chapters_citations)
         with tqdm(desc="Processing citations", total=chapters_count,
                   unit="chapter") as pbar:
             for idx in range(chapters_count):
-                citations = df_chapters_citations.iloc[idx]["citations"]
+                citations = df_chapters_citations.iloc[idx][
+                        "chapter_citations"]
                 citations = [c for c in citations if c is not None
                              and c.startswith("sg")]
-                df_chapters_citations.iloc[idx]["citations"] = citations if \
-                    citations else np.nan
+                df_chapters_citations.iloc[
+                        idx]["chapter_citations"] = citations if citations \
+                    else np.nan
                 pbar.update(1)
         return df_chapters_citations[
-                df_chapters_citations["citations"].notnull()]
+                df_chapters_citations["chapter_citations"].notnull()]
 
     def _process_data_books_conferences(self):
         df_old_books_new_books = pd.DataFrame(
