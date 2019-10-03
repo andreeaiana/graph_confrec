@@ -35,7 +35,17 @@ class DatasetsParser:
                         "process_data": "_process_data_books_conferences",
                         "persistent_file": os.path.join(
                                 self.path, "books_conferences.pkl")
-                        }
+                        },
+                "author_id_chapters": {
+                        "process_data": "_process_data_author_id_chapters",
+                        "persistent_file": os.path.join(
+                                self.path, "author_id_chapters.pkl")
+                        },
+                "author_name_chapters": {
+                        "process_data": "_process_data_author_name_chapters",
+                        "persistent_file": os.path.join(
+                                self.path, "author_name_chapters.pkl")
+                        },
                 }
 
     def get_data(self, process):
@@ -136,3 +146,32 @@ class DatasetsParser:
         df.rename(columns={"new_book": "book", "conference": "conference"},
                   inplace=True)
         return df[df["conference"].notnull()]
+
+    def _process_data_author_id_chapters(self):
+        df_chapters_authors = pd.DataFrame(
+                list(self.parser.get_data("chapters_authors").items()),
+                columns=["chapter", "authors"])
+        contributions = []
+        for idx in range(len(df_chapters_authors)):
+            authors = [author for author in
+                       df_chapters_authors.iloc[idx]["authors"]]
+            chapter = df_chapters_authors.iloc[idx]["chapter"]
+            contributions.extend([(author, chapter) for author in authors])
+        author_id_chapters = pd.DataFrame.from_records(
+                contributions, columns=["author", "chapter"])
+        return author_id_chapters
+
+    def _process_data_author_name_chapters(self):
+        df_chapters_authors_name = pd.DataFrame(
+                list(self.parser.get_data("chapters_authors_name").items()),
+                columns=["chapter", "authors_name"])
+        contributions = []
+        for idx in range(len(df_chapters_authors_name)):
+            authors_name = [author_name for author_name in
+                            df_chapters_authors_name.iloc[idx]["authors_name"]]
+            chapter = df_chapters_authors_name.iloc[idx]["chapter"]
+            contributions.extend([(author_name, chapter) for author_name in
+                                  authors_name])
+        author_name_chapters = pd.DataFrame.from_records(
+                contributions, columns=["author_name", "chapter"])
+        return author_name_chapters
