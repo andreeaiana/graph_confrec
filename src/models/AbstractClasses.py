@@ -3,6 +3,7 @@ import pandas as pd
 
 
 class AbstractModel:
+
     def query_single(self, query):
         """Queries the model and returns a list of recommendations.
 
