@@ -236,6 +236,51 @@ class DataLoader:
 
         return self
 
+    # Add author ids
+    def authors_ids(self, years):
+        if hasattr(self, "years") and years is not None:
+            raise AttributeError("Years already set.")
+        elif years is not None:
+            self.years = years
+        elif not hasattr(self, "years"):
+            raise AttributeError("Years needed.")
+        df_author_id_chapters = self.dt_parser.get_data("author_id_chapters")
+        data = df_author_id_chapters
+
+        if hasattr(self, "data"):
+            if "chapter" in self.data.keys():
+                self.data = pd.merge(self.data, data,
+                                     how="left", on=["chapter", "chapter"])
+            else:
+                raise KeyError("Needs papers.")
+        else:
+            self.data = data
+
+        return self
+
+    # Add author names:
+    def author_names(self, years):
+        if hasattr(self, "years") and years is not None:
+            raise AttributeError("Years already set.")
+        elif years is not None:
+            self.years = years
+        elif not hasattr(self, "years"):
+            raise AttributeError("Years needed.")
+        df_author_name_chapters = self.dt_parser.get_data(
+                "author_name_chapters")
+        data = df_author_name_chapters
+
+        if hasattr(self, "data"):
+            if "chapter" in self.data.keys():
+                self.data = pd.merge(self.data, data,
+                                     how="left", on=["chapter", "chapter"])
+            else:
+                raise KeyError("Needs papers.")
+        else:
+            self.data = data
+
+        return self
+
     # Get training data
     def training_data(self, years=None):
         if years is not None:
