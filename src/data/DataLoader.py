@@ -9,7 +9,9 @@ import pandas as pd
 from FileParser import FileParser
 from DatasetsParser import DatasetsParser
 
-"""
+
+class DataLoader:
+    """
     Class for loading the data needed by the models.
     Functions return self, so calls can be concatenated.
 
@@ -42,10 +44,8 @@ from DatasetsParser import DatasetsParser
             d.papers(
             ["2015","2016"]
             ).abstracts().contributions().conferences().conferenceseries()
-"""
+    """
 
-
-class DataLoader:
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                         "..", "..", "data" "processed")
 
