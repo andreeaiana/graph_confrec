@@ -1,10 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Sep 30 11:03:29 2019
-
-@author: Andreea
-"""
-
 import os
 import pickle
 import pandas as pd

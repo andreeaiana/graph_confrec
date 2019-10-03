@@ -1,10 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu Oct  3 12:20:24 2019
-
-@author: Andreea
-"""
-
 import pandas as pd
 
 

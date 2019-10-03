@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Tue Sep 24 11:58:43 2019
-
-@author: Andreea
-"""
 import os
 import pandas as pd
 from FileParser import FileParser

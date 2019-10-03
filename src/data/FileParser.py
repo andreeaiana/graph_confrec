@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Tue Sep 24 11:57:31 2019
-
-@author: Andreea
-"""
 import io
 import os
 import gzip
