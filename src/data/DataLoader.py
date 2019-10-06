@@ -237,7 +237,7 @@ class DataLoader:
         return self
 
     # Add author ids
-    def authors_ids(self, years):
+    def author_ids(self, years=None):
         if hasattr(self, "years") and years is not None:
             raise AttributeError("Years already set.")
         elif years is not None:
@@ -259,7 +259,7 @@ class DataLoader:
         return self
 
     # Add author names:
-    def author_names(self, years):
+    def author_names(self, years=None):
         if hasattr(self, "years") and years is not None:
             raise AttributeError("Years already set.")
         elif years is not None:
