@@ -46,6 +46,11 @@ class DatasetsParser:
                         "persistent_file": os.path.join(
                                 self.path, "author_name_chapters.pkl")
                         },
+                "scigraph_citations_chapters": {
+                        "process_data": "_process_data_scigraph_citations_chapters",
+                        "persistent_file": os.path.join(
+                                self.path, "scigraph_citations_chapters.pkl")
+                        }
                 }
 
     def get_data(self, process):
@@ -175,3 +180,18 @@ class DatasetsParser:
         author_name_chapters = pd.DataFrame.from_records(
                 contributions, columns=["author_name", "chapter"])
         return author_name_chapters
+
+    def _process_data_scigraph_citations_chapters(self):
+        df_chapters_scigraph_citations = self.get_data(
+                "chapters_scigraph_citations")
+        citations = []
+        for idx in range(len(df_chapters_scigraph_citations)):
+            citation_list = [citation for citation in
+                             df_chapters_scigraph_citations.iloc[idx][
+                                     "chapter_citations"]]
+            chapter = df_chapters_scigraph_citations.iloc[idx]["chapter"]
+            citations.extend([(citation, chapter) for citation in
+                              citation_list])
+        scigraph_citations_chapter = pd.DataFrame.from_records(
+                citations, columns=["citation", "chapter"])
+        return scigraph_citations_chapter
