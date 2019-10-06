@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-
-
 class EvaluationContainer():
 
     def __init__(self, evaluations=None):
