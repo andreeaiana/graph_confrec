@@ -8,8 +8,7 @@ import tarfile
 from tqdm import tqdm
 
 import sys
-sys.path.insert(0, os.path.join(os.path.realpath(__file__), "..", "..",
-                                "utils"))
+sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "utils"))
 from TimerCounter import Timer
 
 # Dataset names
