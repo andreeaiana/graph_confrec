@@ -5,14 +5,14 @@ sys.path.insert(0, os.path.join(os.getcwd(), ".."))
 sys.path.insert(0, os.path.join(os.getcwd(), "..", "evaluations"))
 sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "data"))
 from DataLoader import DataLoader
-from AuthorsModel import AuthorsModels
+from AuthorsModel import AuthorsModel
 from EvaluationContainer import EvaluationContainer
 
 # Load training data and train model
 print("Training the model.")
 d = DataLoader()
 d.training_data().author_names()
-model = AuthorsModels(rec=10)
+model = AuthorsModel(rec=10)
 model.train(d.data)
 print("Model trained.\n")
 
