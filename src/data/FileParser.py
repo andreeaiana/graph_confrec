@@ -8,7 +8,7 @@ import tarfile
 from tqdm import tqdm
 
 import sys
-sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "utils"))
+sys.path.insert(0, os.path.join(os.getcwd(), "..", "utils"))
 from TimerCounter import Timer
 
 # Dataset names
@@ -51,8 +51,6 @@ class FileParser:
     path_persistent = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                    "..", "..", "data", "interim", "parsed_data"
                                    )
-    years = ["2008", "2009", "2010", "2011", "2012", "2013", "2014",
-             "2015", "2016"]
 
     def __init__(self):
         self.timer = Timer()
@@ -213,22 +211,6 @@ class FileParser:
                         "persistent_variable": {},
                         "dataset_format": "json"
                         },
-                "books_year": {
-                        "filename": os.path.join(self.path_raw, books_file),
-                        "process_line": "_process_line_books_year",
-                        "persistent_file": os.path.join(self.path_persistent,
-                                                        "books_year.pkl"),
-                        "persistent_variable": {},
-                        "dataset_format": "json"
-                        },
-                "books_language": {
-                        "filename": os.path.join(self.path_raw, books_file),
-                        "process_line": "_process_line_books_language",
-                        "persistent_file": os.path.join(self.path_persistent,
-                                                        "books_language.pkl"),
-                        "persistent_variable": {},
-                        "dataset_format": "json"
-                        },
                 "authors_name": {
                         "filename": os.path.join(self.path_raw, authors_file),
                         "process_line": "_process_line_authors_name",
@@ -294,12 +276,12 @@ class FileParser:
                         "persistent_variable": {},
                         "dataset_format": "json"
                         },
-                "chapters_citations": {
+                "chapters_all_citations": {
                         "filename": os.path.join(self.path_raw, chapters_file),
                         "process_line": "_process_line_chapters_citations",
                         "persistent_file": os.path.join(
                                 self.path_persistent,
-                                "chapters_citations.pkl"),
+                                "chapters_all_citations.pkl"),
                         "persistent_variable": {},
                         "dataset_format": "json"
                         },
@@ -503,17 +485,6 @@ class FileParser:
                 for isbn in isbn_list:
                     results[isbn] = line["id"]
 
-    def _process_line_books_year(self, line, results):
-        if "datePublished" in line.keys():
-            if line["id"] in self.get_data("books"):
-                year = line["datePublished"].split("-")[0]
-                results[line["id"]] = year
-
-    def _process_line_books_language(self, line, results):
-        if "inLanguage" in line.keys():
-            if line["id"] in self.get_data("books"):
-                results[line["id"]] = line["inLanguage"][0]
-
     def _process_line_authors_name(self, line, results):
         family_name = line["familyName"] if "familyName" in line.keys() else ""
         given_name = line["givenName"] if "givenName" in line.keys() else ""
@@ -524,17 +495,14 @@ class FileParser:
         results[line["id"]] = author_name
 
     def _process_line_chapters(self, line, results):
-        if line["id"] not in results:
-            if "isPartOf" in line.keys():
-                if "datePublished" in line.keys():
-                    year = line["datePublished"].split("-")[0]
-                    if year in self.years:
-                        book = line["isPartOf"]
-                        if "isbn" in book.keys():
-                            isbn_list = book["isbn"]
-                            for isbn in isbn_list:
-                                if isbn in self.get_data("isbn_books"):
-                                    results.append(line["id"])
+        if "isPartOf" in line.keys():
+            if line["id"] not in results:
+                book = line["isPartOf"]
+                if "isbn" in book.keys():
+                    isbn_list = book["isbn"]
+                    for isbn in isbn_list:
+                        if isbn in self.get_data("isbn_books"):
+                            results.append(line["id"])
 
     def _process_line_chapters_title(self, line, results):
         if "name" in line.keys():
@@ -579,7 +547,7 @@ class FileParser:
                     author_names.append(family_name + " " + given_name)
                 results[line["id"]] = author_names
 
-    def _process_line_chapters_citations(self, line, results):
+    def _process_line_chapters_all_citations(self, line, results):
         if "citation" in line.keys():
             if line["id"] in self.get_data("chapters"):
                 citations = line["citation"]
