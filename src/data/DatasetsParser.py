@@ -7,7 +7,7 @@ from tqdm import tqdm
 from FileParser import FileParser
 
 import sys
-sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "utils"))
+sys.path.insert(0, os.path.join(os.getcwd(), "..", "utils"))
 from TimerCounter import Timer
 
 
@@ -25,10 +25,17 @@ class DatasetsParser:
                         "persistent_file": os.path.join(
                                 self.path, "chapters_books.pkl")
                         },
-                "chapters_scigraph_citations": {
-                        "process_data": "_process_data_chapters_scigraph_citations",
+                "chapters_all_scigraph_citations": {
+                        "process_data": "_process_data_chapters_all_scigraph_citations",
                         "persistent_file": os.path.join(
-                                self.path, "chapters_scigraph_citations.pkl")
+                                self.path,
+                                "chapters_all_scigraph_citations.pkl")
+                        },
+                "chapters_confproc_scigraph_citations": {
+                        "process_data": "_process_data_chapters_confproc_scigraph_citations",
+                        "persistent_file": os.path.join(
+                                self.path,
+                                "chapters_confproc_scigraph_citations.pkl")
                         },
                 "books_conferences": {
                         "process_data": "_process_data_books_conferences",
@@ -45,10 +52,10 @@ class DatasetsParser:
                         "persistent_file": os.path.join(
                                 self.path, "author_name_chapters.pkl")
                         },
-                "scigraph_citations_chapters": {
-                        "process_data": "_process_data_scigraph_citations_chapters",
+                "confproc_scigraph_citations_chapters": {
+                        "process_data": "_process_data_confproc_scigraph_citations_chapters",
                         "persistent_file": os.path.join(
-                                self.path, "scigraph_citations_chapters.pkl")
+                                self.path, "confproc_scigraph_citations_chapters.pkl")
                         }
                 }
 
@@ -116,7 +123,7 @@ class DatasetsParser:
         df_chapters_books.drop_duplicates(inplace=True)
         return df_chapters_books
 
-    def _process_data_chapters_scigraph_citations(self):
+    def _process_data_chapters_all_scigraph_citations(self):
         df_chapters_citations = pd.DataFrame(
                 list(self.parser.get_data("chapters_citations").items()),
                 columns=["chapter", "chapter_citations"]
@@ -135,6 +142,26 @@ class DatasetsParser:
                 pbar.update(1)
         return df_chapters_citations[
                 df_chapters_citations["chapter_citations"].notnull()]
+
+    def _process_data_chapters_confproc_scigraph_citations(self):
+        df_scigraph_citations = self.get_data(
+                "chapters_all_scigraph_citations")
+        df_chapters = pd.DataFrame(self.parser.get_data("chapters"),
+                                   columns = ["chapter"])
+        chapters_count = len(df_scigraph_citations)
+        with tqdm(desc="Processing citations", total=chapters_count,
+                  unit="chapter") as pbar:
+            for idx in range(chapters_count):
+                scigraph_citations = df_scigraph_citations.iloc[idx][
+                        "chapter_citations"]
+                citations = [c for c in scigraph_citations if c
+                             in df_chapters.chapter]
+                df_scigraph_citations.iloc[
+                        idx]["chapter_citations"
+                           ] = citations if citations else np.nan
+                pbar.update(1)
+        return df_scigraph_citations[
+                df_scigraph_citations["chapter_citations"].notnull()]
 
     def _process_data_books_conferences(self):
         df_old_books_new_books = pd.DataFrame(
@@ -180,17 +207,18 @@ class DatasetsParser:
                 contributions, columns=["author_name", "chapter"])
         return author_name_chapters
 
-    def _process_data_scigraph_citations_chapters(self):
-        df_chapters_scigraph_citations = self.get_data(
-                "chapters_scigraph_citations")
+    def _process_data_confproc_scigraph_citations_chapters(self):
+        df_chapters_confproc_scigraph_citations = self.get_data(
+                "chapters_confproc_scigraph_citations")
         citations = []
-        for idx in range(len(df_chapters_scigraph_citations)):
+        for idx in range(len(df_chapters_confproc_scigraph_citations)):
             citation_list = [citation for citation in
-                             df_chapters_scigraph_citations.iloc[idx][
+                             df_chapters_confproc_scigraph_citations.iloc[idx][
                                      "chapter_citations"]]
-            chapter = df_chapters_scigraph_citations.iloc[idx]["chapter"]
+            chapter = df_chapters_confproc_scigraph_citations.iloc[idx][
+                    "chapter"]
             citations.extend([(citation, chapter) for citation in
                               citation_list])
-        scigraph_citations_chapter = pd.DataFrame.from_records(
+        confproc_scigraph_citations_chapter = pd.DataFrame.from_records(
                 citations, columns=["citation", "chapter"])
-        return scigraph_citations_chapter
+        return confproc_scigraph_citations_chapter
