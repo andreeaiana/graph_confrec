@@ -2,6 +2,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.join(os.getcwd(), ".."))
+sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "utils"))
 sys.path.insert(0, os.path.join(os.getcwd(), "..", "evaluations"))
 sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "data"))
 from DataLoader import DataLoader
@@ -11,14 +12,14 @@ from EvaluationContainer import EvaluationContainer
 # Load training data and train model
 print("Training the model.")
 d = DataLoader()
-d.training_data().author_names()
+d.training_data_with_abstracts_citations().author_names()
 model = AuthorsModel(rec=10)
 model.train(d.data)
 print("Model trained.\n")
 
 # Generate validation data
 d = DataLoader()
-d.validation_data().author_names()
+d.validation_data_with_abstracts_citations().author_names()
 d.data.author_name = d.data.author_name.str.decode(
         "unicode_escape").str.lower()
 
@@ -46,7 +47,7 @@ print("{}/{} recommendations are None = {}%.".format(count_none, size_query,
 
 # Generate test data
 d = DataLoader()
-d.test_data().author_names()
+d.test_data_with_abstracts_citations().author_names()
 d.data.author_name = d.data.author_name.str.decode(
         "unicode_escape").str.lower()
 
