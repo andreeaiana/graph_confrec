@@ -58,9 +58,6 @@ class DataLoader:
             raise AttributeError("Years needed.")
 
         df_chapters_books = self.dt_parser.get_data("chapters_books")
-        df_chapters_books.rename(
-                columns={"chapter": "chapter", "book_id": "book"},
-                inplace=True)
         df_chapter_title = pd.DataFrame(
                             list(self.parser.get_data(
                                     "chapters_title").items()),
@@ -83,6 +80,7 @@ class DataLoader:
         data = df
         data = data[data.chapter_year.isin(self.years)]
         data = data[data.chapter_language == "en"]
+        data = data.reset_index(drop=True)
 
         if hasattr(self, "data"):
             if "chapter" in self.data.keys():
@@ -287,6 +285,9 @@ class DataLoader:
                         list(self.parser.get_data("chapters_year").items()),
                         columns=["chapter", "chapter_year"])
         years = list(set(df_chapter_years.chapter_year))
+        years.remove("2017")
+        years.remove("2018")
+        years.remove("2019")
         return years
 
     # Get training data
@@ -297,8 +298,6 @@ class DataLoader:
             years = self.get_years()
             years.remove("2015")
             years.remove("2016")
-            years.remove("2017")
-            years.remove("2018")
         return self.papers(years).conferences().conferenceseries()
 
     # Get validation data
@@ -326,7 +325,7 @@ class DataLoader:
                 list(self.data[pd.isnull(self.data.chapter_abstract)].index),
                 inplace=True
                 )
-        self.data = self.data.reset_index()
+        self.data = self.data.reset_index(drop=True)
         self.data = self.data[["chapter", "chapter_abstract",
                                "conferenceseries", "chapter_title"]]
         return self
@@ -341,12 +340,12 @@ class DataLoader:
                 list(self.data[pd.isnull(self.data.chapter_abstract)].index),
                 inplace=True
                 )
-        self.data = self.data.reset_index()
+        self.data = self.data.reset_index(drop=True)
         self.data.drop(
                 list(self.data[pd.isnull(self.data.chapter_citations)].index),
                 inplace=True
                 )
-        self.data = self.data.reset_index()
+        self.data = self.data.reset_index(drop=True)
         self.data = self.data[["chapter", "chapter_abstract",
                                "chapter_citations", "chapter_title",
                                "conferenceseries"]]
@@ -361,7 +360,7 @@ class DataLoader:
                 list(self.data[pd.isnull(self.data.chapter_abstract)].index),
                 inplace=True
                 )
-        self.data = self.data.reset_index()
+        self.data = self.data.reset_index(drop=True)
         self.data = self.data[["chapter", "chapter_abstract",
                                "conferenceseries", "chapter_title"]]
         return self
@@ -376,12 +375,12 @@ class DataLoader:
                 list(self.data[pd.isnull(self.data.chapter_abstract)].index),
                 inplace=True
                 )
-        self.data = self.data.reset_index()
+        self.data = self.data.reset_index(drop=True)
         self.data.drop(
                 list(self.data[pd.isnull(self.data.chapter_citations)].index),
                 inplace=True
                 )
-        self.data = self.data.reset_index()
+        self.data = self.data.reset_index(drop=True)
         self.data = self.data[["chapter", "chapter_abstract",
                                "chapter_citations", "chapter_title",
                                "conferenceseries"]]
@@ -396,7 +395,7 @@ class DataLoader:
                 list(self.data[pd.isnull(self.data.chapter_abstract)].index),
                 inplace=True
                 )
-        self.data = self.data.reset_index()
+        self.data = self.data.reset_index(drop=True)
         self.data = self.data[["chapter", "chapter_abstract",
                                "conferenceseries", "chapter_title"]]
         return self
@@ -411,12 +410,12 @@ class DataLoader:
                 list(self.data[pd.isnull(self.data.chapter_abstract)].index),
                 inplace=True
                 )
-        self.data = self.data.reset_index()
+        self.data = self.data.reset_index(drop=True)
         self.data.drop(
                 list(self.data[pd.isnull(self.data.chapter_citations)].index),
                 inplace=True
                 )
-        self.data = self.data.reset_index()
+        self.data = self.data.reset_index(drop=True)
         self.data = self.data[["chapter", "chapter_abstract",
                                "chapter_citations", "chapter_title",
                                "conferenceseries"]]

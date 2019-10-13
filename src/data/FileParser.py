@@ -278,7 +278,7 @@ class FileParser:
                         },
                 "chapters_all_citations": {
                         "filename": os.path.join(self.path_raw, chapters_file),
-                        "process_line": "_process_line_chapters_citations",
+                        "process_line": "_process_line_chapters_all_citations",
                         "persistent_file": os.path.join(
                                 self.path_persistent,
                                 "chapters_all_citations.pkl"),

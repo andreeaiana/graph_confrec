@@ -125,7 +125,7 @@ class DatasetsParser:
 
     def _process_data_chapters_all_scigraph_citations(self):
         df_chapters_citations = pd.DataFrame(
-                list(self.parser.get_data("chapters_citations").items()),
+                list(self.parser.get_data("chapters_all_citations").items()),
                 columns=["chapter", "chapter_citations"]
                 )
         chapters_count = len(df_chapters_citations)
@@ -147,15 +147,15 @@ class DatasetsParser:
         df_scigraph_citations = self.get_data(
                 "chapters_all_scigraph_citations")
         df_chapters = pd.DataFrame(self.parser.get_data("chapters"),
-                                   columns = ["chapter"])
+                                   columns=["chapter"])
+        chapters = set(list(df_chapters["chapter"]))
         chapters_count = len(df_scigraph_citations)
         with tqdm(desc="Processing citations", total=chapters_count,
                   unit="chapter") as pbar:
             for idx in range(chapters_count):
                 scigraph_citations = df_scigraph_citations.iloc[idx][
                         "chapter_citations"]
-                citations = [c for c in scigraph_citations if c
-                             in df_chapters.chapter]
+                citations = [c for c in scigraph_citations if c in chapters]
                 df_scigraph_citations.iloc[
                         idx]["chapter_citations"
                            ] = citations if citations else np.nan
