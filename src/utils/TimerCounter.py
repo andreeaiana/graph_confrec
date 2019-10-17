@@ -1,10 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu Sep 26 16:17:04 2019
-
-@author: Andreea
-"""
-
 import time
 
 
