@@ -9,11 +9,17 @@ import matplotlib.pyplot as plt
 import logging
 from absl import app
 from absl import flags
+import pickle
 
 from models import SampleAndAggregate, SAGEInfo
 from minibatch import EdgeMinibatchIterator
 from neigh_samplers import UniformNeighborSampler
 from utils import load_data
+
+import sys
+sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "utils"))
+from TimerCounter import Timer
+
 
 # DISCLAIMER:
 # This code file is derived from https://github.com/williamleif/GraphSAGE,
@@ -44,7 +50,7 @@ flags.DEFINE_string('train_prefix', '',
                     + 'must be specified.')
 
 # left to default values in main experiments
-flags.DEFINE_integer('epochs', 1, 'number of epochs to train.')
+flags.DEFINE_integer('epochs', 10, 'number of epochs to train.')
 flags.DEFINE_float('dropout', 0.0, 'dropout rate (1 - keep probability).')
 flags.DEFINE_float('weight_decay', 0.0,
                    'weight for l2 loss on embedding matrix.')
@@ -165,26 +171,54 @@ def construct_placeholders():
     }
     return placeholders
 
-#def plot_losses():
-#        ymax = max((max(self.model_state["losses"][0]),max(self.model_state["losses"][1])))
-#        plt.plot(self.model_state["losses"][0])
-#        plt.plot(self.model_state["losses"][1])
-#        plt.xlabel("Epoch")
-#        plt.ylabel("Loss")
-#        plt.grid(True)
-#        plt.legend(["train","eval"],loc=3)
-#        plt.ylim(ymin=0,ymax=ymax+0.5)
-#
-#        file_path = os.path.join(
-#            self.path_save_states,
-#            "losses.pdf"
-#        )
-#        plt.savefig(file_path, bbox_inches="tight")
-#
-#        plt.show()
+
+def plot_losses(train_losses, validation_losses):
+    # Plot the training and validation losses
+    ymax = max(max(train_losses), max(validation_losses))
+    ymin = min(min(train_losses), min(validation_losses))
+    plt.plot(train_losses, color='tab:blue')
+    plt.plot(validation_losses, color='tab:orange')
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.grid(True)
+    plt.legend(["train", "validation"], loc=3)
+#    plt.ylim(ymin=ymin-0.5,ymax=ymax+0.5)
+    plt.ylim(ymin=0, ymax=ymax+0.5)
+    plt.savefig(log_dir() + "losses.png", bbox_inches="tight")
+    plt.show()
+
+
+def print_stats(train_losses, validation_losses, training_time):
+    epochs = len(train_losses)
+    time_per_epoch = training_time/epochs
+    epoch_min_val = validation_losses.index(min(validation_losses))
+
+    stats_file = log_dir() + "stats.txt"
+    with open(stats_file, "wb") as f:
+        _print("Total number of epochs trained: {}, average time per epoch: {} minutes.".format(
+                epochs, round(time_per_epoch/60, 4)), f)
+        _print("Total time trained: {} minutes.".format(
+                round(time_per_epoch/60, 4)), f)
+        _print("Lowest validation loss at epoch {} = {}.".format(
+                epoch_min_val+1, validation_losses[epoch_min_val]), f)
+
+        f.write("\nLosses:\n")
+        formatting = "{:" + str(len(str(train_losses[0]))) \
+                     + "d}: {:13.10f} {:13.10f}\n"
+        for epoch in range(epochs):
+            f.write(formatting.format(epoch+1, train_losses[epoch],
+                                      validation_losses[epoch]))
+
+
+def _print(text, f):
+    print(text)
+    f.write(text + "\n")
 
 
 def train(train_data, test_data=None):
+    timer = Timer()
+    timer.tic()
+
     G = train_data[0]
     features = train_data[1]
     id_map = train_data[2]
@@ -310,6 +344,9 @@ def train(train_data, test_data=None):
     avg_time = 0.0
     epoch_val_costs = []
 
+    train_losses = []
+    validation_losses = []
+
     train_adj_info = tf.compat.v1.assign(adj_info, minibatch.adj)
     val_adj_info = tf.compat.v1.assign(adj_info, minibatch.test_adj)
     saver = tf.compat.v1.train.Saver()
@@ -320,6 +357,8 @@ def train(train_data, test_data=None):
         print('Epoch: %04d' % (epoch + 1))
         logging.info('Epoch: %04d' % (epoch + 1))
         epoch_val_costs.append(0)
+        train_loss_epoch = []
+        validation_loss_epoch = []
         while not minibatch.end():
             # Construct feed dictionary
             feed_dict = minibatch.next_minibatch_feed_dict()
@@ -332,6 +371,7 @@ def train(train_data, test_data=None):
                             feed_dict=feed_dict)
             train_cost = outs[2]
             train_mrr = outs[5]
+            train_loss_epoch.append(train_cost)
             if train_shadow_mrr is None:
                 train_shadow_mrr = train_mrr
             else:
@@ -344,6 +384,7 @@ def train(train_data, test_data=None):
                         sess, model, minibatch, size=FLAGS.validate_batch_size)
                 sess.run(train_adj_info.op)
                 epoch_val_costs[-1] += val_cost
+                validation_loss_epoch.append(val_cost)
             if shadow_mrr is None:
                 shadow_mrr = val_mrr
             else:
@@ -384,13 +425,24 @@ def train(train_data, test_data=None):
             if total_steps > FLAGS.max_total_steps:
                 break
 
+        # Keep track of train and validation losses per epoch
+        train_losses.append(sum(train_loss_epoch)/len(train_loss_epoch))
+        validation_losses.append(
+                sum(validation_loss_epoch)/(len(validation_loss_epoch)))
+
+        # Save model at each epoch
         saver.save(sess, os.path.join(log_dir(), "model.ckpt"),
                    global_step=total_steps)
+
         if total_steps > FLAGS.max_total_steps:
             break
 
     print("Optimization finished!\n")
     logging.info("Optimization finished.")
+
+    training_time = timer.toc()
+    plot_losses(train_losses, validation_losses)
+    print_stats(train_losses, validation_losses, training_time)
 
     if FLAGS.save_embeddings:
         sess.run(val_adj_info.op)

@@ -70,8 +70,8 @@ class EdgeMinibatchIterator(object):
                 continue
             else:
                 new_edge_list.append((n1, n2))
-        print("Unexpected missing:", missing)
-        logging.info("Unexpected missing:" + str(missing))
+        print("Unexpected missing: ", missing)
+        logging.info("Unexpected missing: " + str(missing))
         return new_edge_list
 
     def construct_adj(self):
