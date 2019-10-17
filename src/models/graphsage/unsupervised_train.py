@@ -5,10 +5,12 @@ import os
 import time
 import tensorflow as tf
 import numpy as np
+import matplotlib.pyplot as plt
+import logging
 from absl import app
 from absl import flags
 
-from models import SampleAndAggregate, SAGEInfo, Node2VecModel
+from models import SampleAndAggregate, SAGEInfo
 from minibatch import EdgeMinibatchIterator
 from neigh_samplers import UniformNeighborSampler
 from utils import load_data
@@ -30,6 +32,7 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_boolean('log_device_placement', False,
                      """Whether to log device placement.""")
+
 # Core params..
 flags.DEFINE_string('model', 'graphsage',
                     'model names. See README for possible values.')
@@ -56,7 +59,6 @@ flags.DEFINE_boolean('random_context', True,
                      'Whether to use random context or direct edges')
 flags.DEFINE_integer('neg_sample_size', 20, 'number of negative samples')
 flags.DEFINE_integer('batch_size', 512, 'minibatch size.')
-flags.DEFINE_integer('n2v_test_epochs', 1, 'Number of new SGD epochs for n2v.')
 flags.DEFINE_integer('identity_dim', 0,
                      'Set to positive value to use identity embedding '
                      + 'features of that dimension. Default 0.')
@@ -117,6 +119,8 @@ def incremental_evaluate(sess, model, minibatch_iter, size):
 
 
 def save_val_embeddings(sess, model, minibatch_iter, size, out_dir, mod=""):
+    print("Saving embeddings...")
+    logging.info("Saving embeddings...")
     val_embeddings = []
     finished = False
     seen = set([])
@@ -141,6 +145,8 @@ def save_val_embeddings(sess, model, minibatch_iter, size, out_dir, mod=""):
     np.save(out_dir + name + mod + ".npy",  val_embeddings)
     with open(out_dir + name + mod + ".txt", "w") as fp:
         fp.write("\n".join(map(str, nodes)))
+    print("Embeddings saved.\n")
+    logging.info("Embeddings saved.")
 
 
 def construct_placeholders():
@@ -158,6 +164,24 @@ def construct_placeholders():
         'batch_size': tf.compat.v1.placeholder(tf.int32, name='batch_size'),
     }
     return placeholders
+
+#def plot_losses():
+#        ymax = max((max(self.model_state["losses"][0]),max(self.model_state["losses"][1])))
+#        plt.plot(self.model_state["losses"][0])
+#        plt.plot(self.model_state["losses"][1])
+#        plt.xlabel("Epoch")
+#        plt.ylabel("Loss")
+#        plt.grid(True)
+#        plt.legend(["train","eval"],loc=3)
+#        plt.ylim(ymin=0,ymax=ymax+0.5)
+#
+#        file_path = os.path.join(
+#            self.path_save_states,
+#            "losses.pdf"
+#        )
+#        plt.savefig(file_path, bbox_inches="tight")
+#
+#        plt.show()
 
 
 def train(train_data, test_data=None):
@@ -258,12 +282,8 @@ def train(train_data, test_data=None):
                                    identity_dim=FLAGS.identity_dim,
                                    logging=True)
 
-    elif FLAGS.model == 'n2v':
-        model = Node2VecModel(placeholders, features.shape[0], minibatch.deg,
-                              # 2x because graphsage uses concat
-                              nodevec_dim=2*FLAGS.dim_1,
-                              lr=FLAGS.learning_rate)
     else:
+        logging.error('Error: model name unrecognized.')
         raise Exception('Error: model name unrecognized.')
 
     config = tf.compat.v1.ConfigProto(
@@ -292,11 +312,13 @@ def train(train_data, test_data=None):
 
     train_adj_info = tf.compat.v1.assign(adj_info, minibatch.adj)
     val_adj_info = tf.compat.v1.assign(adj_info, minibatch.test_adj)
+    saver = tf.compat.v1.train.Saver()
     for epoch in range(FLAGS.epochs):
         minibatch.shuffle()
 
         iter = 0
         print('Epoch: %04d' % (epoch + 1))
+        logging.info('Epoch: %04d' % (epoch + 1))
         epoch_val_costs.append(0)
         while not minibatch.end():
             # Construct feed dictionary
@@ -335,16 +357,26 @@ def train(train_data, test_data=None):
                     total_steps + 1)
 
             if total_steps % FLAGS.print_every == 0:
-                print("Iter:", '%04d' % iter,
-                      "train_loss=", "{:.5f}".format(train_cost),
-                      "train_mrr=", "{:.5f}".format(train_mrr),
+                print("Iter: %04d" % iter,
+                      "train_loss={:.5f}".format(train_cost),
+                      "train_mrr={:.5f}".format(train_mrr),
                       # exponential moving average
-                      "train_mrr_ema=", "{:.5f}".format(train_shadow_mrr),
-                      "val_loss=", "{:.5f}".format(val_cost),
-                      "val_mrr=", "{:.5f}".format(val_mrr),
+                      "train_mrr_ema={:.5f}".format(train_shadow_mrr),
+                      "val_loss={:.5f}".format(val_cost),
+                      "val_mrr={:.5f}".format(val_mrr),
                       # exponential moving average
-                      "val_mrr_ema=", "{:.5f}".format(shadow_mrr),
-                      "time=", "{:.5f}".format(avg_time))
+                      "val_mrr_ema={:.5f}".format(shadow_mrr),
+                      "time={:.5f}".format(avg_time))
+                logging.info("Iter: %04d" % iter + " " +
+                             "train_loss={:.5f}".format(train_cost) + " " +
+                             "train_mrr={:.5f}".format(train_mrr) + " " +
+                             # exponential moving average
+                             "train_mrr_ema={:.5f}".format(train_shadow_mrr) +
+                             " " + "val_loss={:.5f}".format(val_cost) + " " +
+                             "val_mrr={:.5f}".format(val_mrr) + " " +
+                             # exponential moving average
+                             "val_mrr_ema={:.5f}".format(shadow_mrr) + " " +
+                             "time={:.5f}".format(avg_time))
 
             iter += 1
             total_steps += 1
@@ -352,87 +384,44 @@ def train(train_data, test_data=None):
             if total_steps > FLAGS.max_total_steps:
                 break
 
+        saver.save(sess, os.path.join(log_dir(), "model.ckpt"),
+                   global_step=total_steps)
         if total_steps > FLAGS.max_total_steps:
             break
 
-    print("Optimization Finished!")
+    print("Optimization finished!\n")
+    logging.info("Optimization finished.")
+
     if FLAGS.save_embeddings:
         sess.run(val_adj_info.op)
-
         save_val_embeddings(sess, model, minibatch, FLAGS.validate_batch_size,
                             log_dir())
 
-        if FLAGS.model == "n2v":
-            # stopping the gradient for the already trained nodes
-            train_ids = tf.constant([[id_map[n]] for n in G.nodes_iter()
-                                    if not G.node[n]['val'] and not
-                                    G.node[n]['test']],
-                                    dtype=tf.int32)
-            test_ids = tf.constant([[id_map[n]] for n in G.nodes_iter()
-                                    if G.node[n]['val'] or G.node[n]['test']],
-                                   dtype=tf.int32)
-            update_nodes = tf.nn.embedding_lookup(
-                    params=model.context_embeds, ids=tf.squeeze(test_ids))
-            no_update_nodes = tf.nn.embedding_lookup(
-                    params=model.context_embeds, ids=tf.squeeze(train_ids))
-            update_nodes = tf.scatter_nd(test_ids,
-                                         update_nodes,
-                                         tf.shape(input=model.context_embeds))
-            no_update_nodes = tf.stop_gradient(
-                    tf.scatter_nd(train_ids, no_update_nodes,
-                                  tf.shape(input=model.context_embeds)))
-            model.context_embeds = update_nodes + no_update_nodes
-            sess.run(model.context_embeds)
 
-            # run random walks
-            from graphsage.utils import run_random_walks
-            nodes = [n for n in G.nodes_iter() if G.node[n]["val"] or
-                     G.node[n]["test"]]
-            start_time = time.time()
-            pairs = run_random_walks(G, nodes, num_walks=50)
-            walk_time = time.time() - start_time
-
-            test_minibatch = EdgeMinibatchIterator(
-                    G,
-                    id_map,
-                    placeholders, batch_size=FLAGS.batch_size,
-                    max_degree=FLAGS.max_degree,
-                    num_neg_samples=FLAGS.neg_sample_size,
-                    context_pairs=pairs,
-                    n2v_retrain=True,
-                    fixed_n2v=True)
-
-            start_time = time.time()
-            print("Doing test training for n2v.")
-            test_steps = 0
-            for epoch in range(FLAGS.n2v_test_epochs):
-                test_minibatch.shuffle()
-                while not test_minibatch.end():
-                    feed_dict = test_minibatch.next_minibatch_feed_dict()
-                    feed_dict.update({placeholders['dropout']: FLAGS.dropout})
-                    outs = sess.run([model.opt_op, model.loss, model.ranks,
-                                     model.aff_all, model.mrr, model.outputs1],
-                                    feed_dict=feed_dict)
-                    if test_steps % FLAGS.print_every == 0:
-                        print("Iter:", '%04d' % test_steps,
-                              "train_loss=", "{:.5f}".format(outs[1]),
-                              "train_mrr=", "{:.5f}".format(outs[-2]))
-                    test_steps += 1
-            train_time = time.time() - start_time
-            save_val_embeddings(sess, model, minibatch,
-                                FLAGS.validate_batch_size, log_dir(),
-                                mod="-test")
-            print("Total time: ", train_time+walk_time)
-            print("Walk time: ", walk_time)
-            print("Train time: ", train_time)
+def _set_logging():
+    logging_file = log_dir() + "model.log"
+    logger = logging.getLogger()
+    fhandler = logging.FileHandler(filename=logging_file, mode='a')
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s',
+                                  datefmt='%m/%d/%Y %H:%M:%S')
+    fhandler.setFormatter(formatter)
+    logger.addHandler(fhandler)
+    logger.setLevel(logging.INFO)
 
 
 def main(argv=None):
     os.environ["CUDA_VISIBLE_DEVICES"] = str(FLAGS.gpu)
+    _set_logging()
+    logging.info("Starting...")
+    logging.info("Loading training data..")
     print("Loading training data..")
     train_data = load_data(FLAGS.train_prefix, load_walks=True)
-    print("Done loading training data..")
+    print("Done loading training data..\n")
+    logging.info("Done loading training data.")
+    print("Training model...")
+    logging.info("Training model...")
     train(train_data)
+    logging.info("Finished.")
 
 
 if __name__ == '__main__':

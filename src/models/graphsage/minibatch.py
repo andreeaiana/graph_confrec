@@ -2,11 +2,12 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
+import logging
 
 np.random.seed(123)
 
 # DISCLAIMER:
-# This code file is forked from https://github.com/williamleif/GraphSAGE,
+# This code file is derived from https://github.com/williamleif/GraphSAGE,
 # which is under an identical MIT license as graph_confrec.
 
 
@@ -22,14 +23,9 @@ class EdgeMinibatchIterator(object):
                     (from random walks)
     batch_size -- size of the minibatches
     max_degree -- maximum size of the downsampled adjacency lists
-    n2v_retrain -- signals that the iterator is being used to add new
-                embeddings to a n2v model
-    fixed_n2v -- signals that the iterator is being used to retrain n2v with
-                only existing nodes as context
     """
     def __init__(self, G, id2idx, placeholders, context_pairs=None,
-                 batch_size=100, max_degree=25, n2v_retrain=False,
-                 fixed_n2v=False, **kwargs):
+                 batch_size=100, max_degree=25, **kwargs):
 
         self.G = G
         self.nodes = G.nodes()
@@ -47,25 +43,18 @@ class EdgeMinibatchIterator(object):
         else:
             edges = context_pairs
         self.train_edges = self.edges = np.random.permutation(edges)
-        if not n2v_retrain:
-            self.train_edges = self._remove_isolated(self.train_edges)
-            self.val_edges = [e for e in G.edges() if
-                              G[e[0]][e[1]]['train_removed']]
-        else:
-            if fixed_n2v:
-                self.train_edges = self.val_edges = self._n2v_prune(self.edges)
-            else:
-                self.train_edges = self.val_edges = self.edges
-
-        print(len([n for n in G.nodes() if not G.node[n]['test']
-                   and not G.node[n]['val']]), 'train nodes')
-        print(len([n for n in G.nodes() if G.node[n]['test']
-                   or G.node[n]['val']]), 'test nodes')
+        self.train_edges = self._remove_isolated(self.train_edges)
+        self.val_edges = [e for e in G.edges() if
+                          G[e[0]][e[1]]['train_removed']]
+        train_nodes_count = len([n for n in G.nodes() if not G.node[n]['test']
+                                 and not G.node[n]['val']])
+        test_nodes_count = len([n for n in G.nodes() if G.node[n]['test']
+                                or G.node[n]['val']])
+        print(str(train_nodes_count) + ' train nodes')
+        print(str(test_nodes_count) + ' test nodes')
+        logging.info(str(train_nodes_count) + ' train nodes')
+        logging.info(str(test_nodes_count) + ' test nodes')
         self.val_set_size = len(self.val_edges)
-
-    def _n2v_prune(self, edges):
-        is_val = lambda n: self.G.node[n]["val"] or self.G.node[n]["test"]
-        return [e for e in edges if not is_val(e[1])]
 
     def _remove_isolated(self, edge_list):
         new_edge_list = []
@@ -82,6 +71,7 @@ class EdgeMinibatchIterator(object):
             else:
                 new_edge_list.append((n1, n2))
         print("Unexpected missing:", missing)
+        logging.info("Unexpected missing:" + str(missing))
         return new_edge_list
 
     def construct_adj(self):
