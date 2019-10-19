@@ -34,24 +34,26 @@ class EmbeddingsParser():
         print("SciBERT model initialized.")
 
         self.embedding_types = {
-                "average_last": "_average_tokens_last_layer",
-                "average_second_to_last": "_average_tokens_second_to_last_layer",
-                "average_sum_last_four": "_average_tokens_sum_last_four_layers",
-                "average_sum_all": "_average_tokens_sum_all_layers",
-                "average_concat_last_four": "_average_concat_last_four_layers",
-                "max_second_to_last": "_max_tokens_second_to_last_layer",
-                "max_concat_last_four": "_max_tokens_sum_last_four_layers",
-                "concat_avg_max_second_to_last": "_concat_avg_max_tokens_second_to_last_layer",
-                "concat_avg_max_sum_last_four": "_concat_avg_max_sum_last_four_layers",
-                "sum_last": "_sum_last_layer",
-                "sum_second_to_last": "_sum_second_to_last",
-                "sum_concat_last_four": "_sum_concat_last_four_layers"
+                "AVG_L": "_average_tokens_last_layer",
+                "AVG_2L": "_average_tokens_second_to_last_layer",
+                "AVG_SUM_L4": "_average_tokens_sum_last_four_layers",
+                "AVG_SUM_ALL": "_average_tokens_sum_all_layers",
+                "AVG_CONC_L4": "_average_concat_last_four_layers",
+                "MAX_2L": "_max_tokens_second_to_last_layer",
+                "MAX_CONC_L4": "_max_tokens_sum_last_four_layers",
+                "CONC_AVG_MAX_2L": "_concat_avg_max_tokens_second_to_last_layer",
+                "CONC_AVG_MAX_SUM_L4": "_concat_avg_max_sum_last_four_layers",
+                "SUM_L": "_sum_last_layer",
+                "SUM_2L": "_sum_second_to_last",
+                "SUM_CONC_L4": "_sum_concat_last_four_layers"
                 }
 
     def embed_sequence(self, sequence, embedding_type):
         # Tokenize input sequence, add special tokens, covert tokens to ids
         tokenized_sequence = self.tokenizer.encode(sequence,
                                                    add_special_tokens=True)
+        if len(tokenized_sequence) > 512:
+            tokenized_sequence = tokenized_sequence[:512]
         # Convert tokenized sequence to PyTorch tensors
         tokens_tensor = torch.tensor([tokenized_sequence])
 
