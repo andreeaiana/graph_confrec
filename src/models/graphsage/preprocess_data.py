@@ -29,8 +29,8 @@ class Processor():
                 os.path.dirname(os.path.realpath(__file__)),
                 "..", "..", "..", "data", "interim", "graphsage",
                 self.embedding_type)
-        if not os.path.isdir(path_persistent):
-            os.mkdir(path_persistent)
+        if not os.path.isdir(self.path_persistent):
+            os.mkdir(self.path_persistent)
 
     def training_data(self, num_walks=50):
         self.prefix = "train"
@@ -93,11 +93,11 @@ class Processor():
                         data.chapter.iloc[idx],
                         test=False,
                         feature=np.concatenate((
-                                emb_parser.embed_sequence(
+                                self.embeddings_parser.embed_sequence(
                                         data.chapter_title.iloc[idx],
                                         self.embedding_type),
-                                emb_parser.embed_sequence(
-                                        df_train.chapter_abstract.iloc[idx],
+                                self.embeddings_parser.embed_sequence(
+                                        data.chapter_abstract.iloc[idx],
                                         self.embedding_type)),
                                 axis=0),
                         val=False)
@@ -161,7 +161,7 @@ class Processor():
         # Plot degree histogram
         degree_sequence = sorted([d for n, d in self.G.degree()], reverse=True)
         degree_count = Counter(degree_sequence)
-        deg, cnt = zip(*degreeCount.items())
+        deg, cnt = zip(*degree_count.items())
 
         fig, ax = plt.subplots()
         plt.bar(deg, cnt, width=0.80, color='b')
