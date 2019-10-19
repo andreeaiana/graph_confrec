@@ -182,10 +182,9 @@ def plot_losses(train_losses, validation_losses):
     plt.ylabel("Loss")
     plt.grid(True)
     plt.legend(["train", "validation"], loc=3)
-#    plt.ylim(ymin=ymin-0.5,ymax=ymax+0.5)
-    plt.ylim(ymin=0, ymax=ymax+0.5)
+    plt.ylim(ymin=ymin-0.5, ymax=ymax+0.5)
     plt.savefig(log_dir() + "losses.png", bbox_inches="tight")
-    plt.show()
+#    plt.show()
 
 
 def print_stats(train_losses, validation_losses, training_time):
@@ -194,12 +193,12 @@ def print_stats(train_losses, validation_losses, training_time):
     epoch_min_val = validation_losses.index(min(validation_losses))
 
     stats_file = log_dir() + "stats.txt"
-    with open(stats_file, "wb") as f:
-        _print("Total number of epochs trained: {}, average time per epoch: {} minutes.".format(
+    with open(stats_file, "w") as f:
+        _print("Total number of epochs trained: {}, average time per epoch: {} minutes.\n".format(
                 epochs, round(time_per_epoch/60, 4)), f)
-        _print("Total time trained: {} minutes.".format(
-                round(time_per_epoch/60, 4)), f)
-        _print("Lowest validation loss at epoch {} = {}.".format(
+        _print("Total time trained: {} minutes.\n".format(
+                round(training_time/60, 4)), f)
+        _print("Lowest validation loss at epoch {} = {}.\n".format(
                 epoch_min_val+1, validation_losses[epoch_min_val]), f)
 
         f.write("\nLosses:\n")
@@ -212,7 +211,7 @@ def print_stats(train_losses, validation_losses, training_time):
 
 def _print(text, f):
     print(text)
-    f.write(text + "\n")
+    f.write(text)
 
 
 def train(train_data, test_data=None):
@@ -232,7 +231,8 @@ def train(train_data, test_data=None):
     minibatch = EdgeMinibatchIterator(
             G,
             id_map,
-            placeholders, batch_size=FLAGS.batch_size,
+            placeholders,
+            batch_size=FLAGS.batch_size,
             max_degree=FLAGS.max_degree,
             num_neg_samples=FLAGS.neg_sample_size,
             context_pairs=context_pairs)
@@ -331,12 +331,14 @@ def train(train_data, test_data=None):
     merged = tf.compat.v1.summary.merge_all()
     summary_writer = tf.compat.v1.summary.FileWriter(log_dir(), sess.graph)
 
+    # Initialize model saver
+    saver = tf.compat.v1.train.Saver()
+
     # Init variables
     sess.run(tf.compat.v1.global_variables_initializer(),
              feed_dict={adj_info_ph: minibatch.adj})
 
     # Train model
-
     train_shadow_mrr = None
     shadow_mrr = None
 
@@ -349,7 +351,7 @@ def train(train_data, test_data=None):
 
     train_adj_info = tf.compat.v1.assign(adj_info, minibatch.adj)
     val_adj_info = tf.compat.v1.assign(adj_info, minibatch.test_adj)
-    saver = tf.compat.v1.train.Saver()
+
     for epoch in range(FLAGS.epochs):
         minibatch.shuffle()
 
@@ -369,6 +371,7 @@ def train(train_data, test_data=None):
             outs = sess.run([merged, model.opt_op, model.loss, model.ranks,
                              model.aff_all, model.mrr, model.outputs1],
                             feed_dict=feed_dict)
+
             train_cost = outs[2]
             train_mrr = outs[5]
             train_loss_epoch.append(train_cost)
@@ -379,6 +382,7 @@ def train(train_data, test_data=None):
 
             if iter % FLAGS.validate_iter == 0:
                 # Validation
+                print(val_adj_info.op)
                 sess.run(val_adj_info.op)
                 val_cost, ranks, val_mrr, duration = evaluate(
                         sess, model, minibatch, size=FLAGS.validate_batch_size)
