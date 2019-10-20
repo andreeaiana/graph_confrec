@@ -21,9 +21,9 @@ from SciBERTEmbeddingsParser import EmbeddingsParser
 
 class Processor():
 
-    def __init__(self, embedding_type):
+    def __init__(self, embedding_type, gpu=None):
         self.embedding_type = embedding_type
-        self.embeddings_parser = EmbeddingsParser()
+        self.embeddings_parser = EmbeddingsParser(gpu)
         self.timer = Timer()
         self.path_persistent = os.path.join(
                 os.path.dirname(os.path.realpath(__file__)),
@@ -70,7 +70,10 @@ class Processor():
         self._create_features()
 
         # Perform and save random walks
-        self._run_random_walks(num_walks)
+        nodes = [n for n in list(self.G.nodes()) if not self.G.node[n]["val"]
+                 and not self.G.node[n]["test"]]
+        subgraph = self.G.subgraph(nodes)
+        self._run_random_walks(subgraph, nodes, num_walks)
 
         # print some statistics
         self._get_stats()
@@ -131,14 +134,13 @@ class Processor():
         np.save(os.path.join(self.path_persistent, self.prefix + "-feats.npy"),
                 features)
 
-    def _run_random_walks(self, num_walks):
+    def _run_random_walks(self, graph, nodes, num_walks):
         print("Running random walks.")
-        nodes = list(self.G.nodes)
-        walks = run_random_walks(self.G, nodes, num_walks=num_walks)
+        walks = run_random_walks(graph, nodes, num_walks=num_walks)
         print("Saving random walks to disk.")
         with open(os.path.join(
                 self.path_persistent, self.prefix + "-walks.txt"), "w") as fp:
-            fp.writelines([str(x[0]) + "\t" + str(x[1]) + "\n" for x in walks])
+            fp.write("\n".join([str(w[0]) + "\t" + str(w[1]) for w in walks]))
 
     def _get_stats(self):
         print("Number of nodes in the graph: {}".format(

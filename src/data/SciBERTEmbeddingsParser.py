@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
 import torch
-from transformers import BertConfig, BertModel, BertTokenizer
 import logging
 logging.basicConfig(level=logging.INFO)
 
@@ -18,7 +17,11 @@ class EmbeddingsParser():
             os.path.realpath(__file__)), "..", "..", "data", "external",
             "scibert_scivocab_uncased", "bert_config.json")
 
-    def __init__(self):
+    def __init__(self, gpu):
+        if torch.cuda.is_available() and gpu is not None:
+            os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
+            print("Using GPU device: {}.".format(str(gpu)))
+        from transformers import BertConfig, BertModel, BertTokenizer
         print("Initializing pretrained SciBERT model.")
         # Load pre-trained model tokenizer (vocabulary)
         self.tokenizer = BertTokenizer.from_pretrained(self.path_vocabulary)
