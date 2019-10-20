@@ -72,7 +72,7 @@ flags.DEFINE_integer('identity_dim', 0,
 # Logging, saving, validation settings etc.
 flags.DEFINE_boolean('save_embeddings', True,
                      'whether to save embeddings for all nodes after training')
-flags.DEFINE_string('base_log_dir', '.',
+flags.DEFINE_string('base_log_dir', '../../../data/processed/graphsage/',
                     'base directory for logging and saving embeddings')
 flags.DEFINE_integer('validate_iter', 5000,
                      "how often to run a validation minibatch.")
@@ -87,7 +87,10 @@ GPU_MEM_FRACTION = 0.8
 
 
 def log_dir():
-    log_dir = FLAGS.base_log_dir + "/unsup-" + FLAGS.train_prefix.split("/")[
+#    path_persistent = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+#                                   "..", "..", "..", "data", "processed",
+#                                   "graphsage")
+    log_dir = FLAGS.base_log_dir + FLAGS.train_prefix.split("/")[
             -2]
     log_dir += "/{model:s}_{model_size:s}_{lr:0.6f}/".format(
             model=FLAGS.model,
@@ -382,7 +385,6 @@ def train(train_data, test_data=None):
 
             if iter % FLAGS.validate_iter == 0:
                 # Validation
-                print(val_adj_info.op)
                 sess.run(val_adj_info.op)
                 val_cost, ranks, val_mrr, duration = evaluate(
                         sess, model, minibatch, size=FLAGS.validate_batch_size)

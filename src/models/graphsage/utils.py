@@ -20,21 +20,24 @@ N_WALKS = 50
 
 
 def load_data(prefix, normalize=True, load_walks=False):
-    G_data = json.load(open(prefix + "-G.json"))
+    path_persistent = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                   "..", "..", "..", "data", "interim",
+                                   "graphsage", prefix)
+    G_data = json.load(open(path_persistent + "-G.json"))
     G = json_graph.node_link_graph(G_data)
     if isinstance(list(G.nodes)[0], int):
         conversion = lambda n : int(n)
     else:
         conversion = lambda n : n
 
-    if os.path.exists(prefix + "-feats.npy"):
-        feats = np.load(prefix + "-feats.npy")
+    if os.path.exists(path_persistent + "-feats.npy"):
+        feats = np.load(path_persistent + "-feats.npy")
     else:
         print("No features present.. Only identity features will be used.")
         logging.info("No features present.. Only identity features will be " +
                      "used.")
         feats = None
-    id_map = json.load(open(prefix + "-id_map.json"))
+    id_map = json.load(open(path_persistent + "-id_map.json"))
     id_map = {conversion(k): int(v) for k, v in id_map.items()}
     walks = []
 
@@ -71,7 +74,7 @@ def load_data(prefix, normalize=True, load_walks=False):
         feats = scaler.transform(feats)
 
     if load_walks:
-        with open(prefix + "-walks.txt") as fp:
+        with open(path_persistent + "-walks.txt") as fp:
             for line in fp:
                 walks.append(map(conversion, line.split()))
 
