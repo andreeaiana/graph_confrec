@@ -33,7 +33,7 @@ class Processor():
             os.mkdir(self.path_persistent)
 
     def training_data(self, num_walks=50):
-        self.prefix = "train"
+        self.prefix = "train_val"
         self.timer.tic()
         print("Creating training files.")
 
@@ -49,13 +49,19 @@ class Processor():
 
         # Add nodes and edges
         print("Adding training nodes.")
-        self._add_nodes(df_train)
+        self._add_nodes(df_train, test=False, val=False)
         print("Adding training edges.")
         self._add_edges(df_train)
         print("Adding validation nodes.")
-        self._add_nodes(df_validation)
+        self._add_nodes(df_validation, test=False, val=True)
         print("Adding validation edges.")
         self._add_edges(df_validation)
+        print("Removing nodes without features.")
+        for node in list(self.G.nodes()):
+            if "feature" not in self.G.nodes[node].keys():
+                self.G.remove_node(node)
+        print("Nodes in graph: {}, edges in graph: {}.\n".format(
+                self.G.number_of_nodes(), self.G.number_of_edges()))
 
         print("Saving graph to disk.")
         G_data = json_graph.node_link_data(self.G)
@@ -88,13 +94,13 @@ class Processor():
 #        self.prefix = "test"
 #        pass
 
-    def _add_nodes(self, data):
+    def _add_nodes(self, data, test=False, val=False):
         with tqdm(desc="Adding training nodes: ", total=len(data),
                   unit="node") as pbar:
             for idx in range(len(data)):
                 self.G.add_node(
                         data.chapter.iloc[idx],
-                        test=False,
+                        test=test,
                         feature=np.concatenate((
                                 self.embeddings_parser.embed_sequence(
                                         data.chapter_title.iloc[idx],
@@ -102,9 +108,10 @@ class Processor():
                                 self.embeddings_parser.embed_sequence(
                                         data.chapter_abstract.iloc[idx],
                                         self.embedding_type)),
-                                axis=0),
-                        val=False)
+                                axis=0).tolist(),
+                        val=val)
                 pbar.update(1)
+        print("Nodes in graph: {}.\n".format(self.G.number_of_nodes()))
 
     def _add_edges(self, data):
         with tqdm(desc="Adding training edges: ", total=len(data),
@@ -116,6 +123,7 @@ class Processor():
                          for i in range(
                                 len(data.chapter_citations.iloc[idx]))])
                 pbar.update(1)
+        print("Edges in graph: {}.\n".format(self.G.number_of_edges()))
 
     def _create_id_map(self):
         print("Creating id map.")
@@ -143,21 +151,25 @@ class Processor():
             fp.write("\n".join([str(w[0]) + "\t" + str(w[1]) for w in walks]))
 
     def _get_stats(self):
-        print("Number of nodes in the graph: {}".format(
-                self.G.number_of_nodes()))
-        print("Number of edges in the graph: {}".format(
-                self.G.number_of_edges()))
-        print("The graph is connected: {}".format(nx.is_connected(self.G)))
-        print("Number of connected components: {}.".format(
-                nx.number_connected_components(self.G)))
-        print("Number of self-loops: {}".format(
-                nx.number_of_selfloops(self.G)))
-
-        # Max and min degrees
         degree_sequence = sorted([d for n, d in self.G.degree()], reverse=True)
         degree_count = Counter(degree_sequence)
-        print("Maximum degree: {}".format(max(degree_count)))
-        print("Minimum degree: {}".format(min(degree_count)))
+
+        with open(os.path.join(
+                self.path_persistent, self.prefix + "-stats.txt"), "w") as fp:
+            self._print("Number of nodes in the graph: {}".format(
+                    self.G.number_of_nodes()), fp)
+            self._print("Number of edges in the graph: {}".format(
+                    self.G.number_of_edges()), fp)
+            self._print("The graph is connected: {}".format(
+                    nx.is_connected(self.G)), fp)
+            self._print("Number of connected components: {}.".format(
+                    nx.number_connected_components(self.G)), fp)
+            self._print("Number of self-loops: {}".format(
+                    nx.number_of_selfloops(self.G)), fp)
+            self._print("Maximum degree: {}".format(max(degree_count)), fp)
+            self._print("Minimum degree: {}".format(min(degree_count)), fp)
+            self._print("Average degree: {}.".format(
+                    sum(degree_sequence)/len(G)), fp)
 
     def _degree_histogram(self):
         # Plot degree histogram
@@ -176,3 +188,8 @@ class Processor():
         plt.savefig(os.path.join(
                 self.path_persistent, self.prefix + "-degree_histogram.png"),
             bbox_inches="tight")
+
+    def _print(self, text, f):
+        print(text)
+        f.write(text)
+
