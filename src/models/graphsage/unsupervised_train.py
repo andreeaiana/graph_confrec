@@ -87,11 +87,7 @@ GPU_MEM_FRACTION = 0.8
 
 
 def log_dir():
-#    path_persistent = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-#                                   "..", "..", "..", "data", "processed",
-#                                   "graphsage")
-    log_dir = FLAGS.base_log_dir + FLAGS.train_prefix.split("/")[
-            -2]
+    log_dir = FLAGS.base_log_dir + FLAGS.train_prefix.split("/")[-2]
     log_dir += "/{model:s}_{model_size:s}_{lr:0.6f}/".format(
             model=FLAGS.model,
             model_size=FLAGS.model_size,
@@ -135,7 +131,6 @@ def save_val_embeddings(sess, model, minibatch_iter, size, out_dir, mod=""):
     seen = set([])
     nodes = []
     iter_num = 0
-    name = "val"
     while not finished:
         feed_dict_val, finished, edges = minibatch_iter.incremental_embed_feed_dict(
                                         size, iter_num)
@@ -151,8 +146,8 @@ def save_val_embeddings(sess, model, minibatch_iter, size, out_dir, mod=""):
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
     val_embeddings = np.vstack(val_embeddings)
-    np.save(out_dir + name + mod + ".npy",  val_embeddings)
-    with open(out_dir + name + mod + ".txt", "w") as fp:
+    np.save(out_dir + "embeddings" + mod + ".npy",  val_embeddings)
+    with open(out_dir + "embeddings_ids" + mod + ".txt", "w") as fp:
         fp.write("\n".join(map(str, nodes)))
     print("Embeddings saved.\n")
     logging.info("Embeddings saved.")
