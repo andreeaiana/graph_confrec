@@ -156,20 +156,20 @@ class Processor():
 
         with open(os.path.join(
                 self.path_persistent, self.prefix + "-stats.txt"), "w") as fp:
-            self._print("Number of nodes in the graph: {}".format(
+            self._print("Number of nodes in the graph: {}\n".format(
                     self.G.number_of_nodes()), fp)
-            self._print("Number of edges in the graph: {}".format(
+            self._print("Number of edges in the graph: {}\n".format(
                     self.G.number_of_edges()), fp)
-            self._print("The graph is connected: {}".format(
+            self._print("The graph is connected: {}\n".format(
                     nx.is_connected(self.G)), fp)
-            self._print("Number of connected components: {}.".format(
+            self._print("Number of connected components: {}\n".format(
                     nx.number_connected_components(self.G)), fp)
-            self._print("Number of self-loops: {}".format(
+            self._print("Number of self-loops: {}\n".format(
                     nx.number_of_selfloops(self.G)), fp)
-            self._print("Maximum degree: {}".format(max(degree_count)), fp)
-            self._print("Minimum degree: {}".format(min(degree_count)), fp)
-            self._print("Average degree: {}.".format(
-                    sum(degree_sequence)/len(G)), fp)
+            self._print("Maximum degree: {}\n".format(max(degree_count)), fp)
+            self._print("Minimum degree: {}\n".format(min(degree_count)), fp)
+            self._print("Average degree: {}\n".format(
+                    sum(degree_sequence)/len(self.G)), fp)
 
     def _degree_histogram(self):
         # Plot degree histogram
@@ -192,4 +192,3 @@ class Processor():
     def _print(self, text, f):
         print(text)
         f.write(text)
-
