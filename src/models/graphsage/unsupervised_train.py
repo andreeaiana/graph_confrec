@@ -197,7 +197,7 @@ def print_stats(train_losses, validation_losses, training_time):
         _print("Total time trained: {} minutes.\n".format(
                 round(training_time/60, 4)), f)
         _print("Lowest validation loss at epoch {} = {}.\n".format(
-                epoch_min_val+1, validation_losses[epoch_min_val]), f)
+                epoch_min_val, validation_losses[epoch_min_val]), f)
 
         f.write("\nLosses:\n")
         formatting = "{:" + str(len(str(train_losses[0]))) \
@@ -330,7 +330,7 @@ def train(train_data, test_data=None):
     summary_writer = tf.compat.v1.summary.FileWriter(log_dir(), sess.graph)
 
     # Initialize model saver
-    saver = tf.compat.v1.train.Saver()
+    saver = tf.compat.v1.train.Saver(max_to_keep=FLAGS.epochs)
 
     # Init variables
     sess.run(tf.compat.v1.global_variables_initializer(),
@@ -354,8 +354,8 @@ def train(train_data, test_data=None):
         minibatch.shuffle()
 
         iter = 0
-        print('Epoch: %04d' % (epoch + 1))
-        logging.info('Epoch: %04d' % (epoch + 1))
+        print('Epoch: %04d' % (epoch))
+        logging.info('Epoch: %04d' % (epoch))
         epoch_val_costs.append(0)
         train_loss_epoch = []
         validation_loss_epoch = []
@@ -432,8 +432,8 @@ def train(train_data, test_data=None):
                 sum(validation_loss_epoch)/(len(validation_loss_epoch)))
 
         # Save model at each epoch
-        saver.save(sess, os.path.join(log_dir(), "model.ckpt"),
-                   global_step=total_steps)
+        saver.save(sess, os.path.join(log_dir(), "model_epoch_" + str(epoch)
+                    + ".ckpt"), global_step=total_steps)
 
         if total_steps > FLAGS.max_total_steps:
             break
