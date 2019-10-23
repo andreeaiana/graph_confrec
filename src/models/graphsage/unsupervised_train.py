@@ -123,7 +123,7 @@ def incremental_evaluate(sess, model, minibatch_iter, size):
     return np.mean(val_losses), np.mean(val_mrrs), (time.time() - t_test)
 
 
-def save_val_embeddings(sess, model, minibatch_iter, size, out_dir, mod=""):
+def save_val_embeddings(sess, model, minibatch_iter, size, out_dir):
     print("Saving embeddings...")
     logging.info("Saving embeddings...")
     val_embeddings = []
@@ -146,8 +146,8 @@ def save_val_embeddings(sess, model, minibatch_iter, size, out_dir, mod=""):
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
     val_embeddings = np.vstack(val_embeddings)
-    np.save(out_dir + "embeddings" + mod + ".npy",  val_embeddings)
-    with open(out_dir + "embeddings_ids" + mod + ".txt", "w") as fp:
+    np.save(out_dir + "embeddings.npy", val_embeddings)
+    with open(out_dir + "embeddings_ids.txt", "w") as fp:
         fp.write("\n".join(map(str, nodes)))
     print("Embeddings saved.\n")
     logging.info("Embeddings saved.")
@@ -429,11 +429,25 @@ def train(train_data, test_data=None):
         # Keep track of train and validation losses per epoch
         train_losses.append(sum(train_loss_epoch)/len(train_loss_epoch))
         validation_losses.append(
-                sum(validation_loss_epoch)/(len(validation_loss_epoch)))
+                sum(validation_loss_epoch)/len(validation_loss_epoch))
+
+        # Save embeddings if the epoch has the lowest validation loss so far
+        if FLAGS.save_embeddings and validation_losses[-1] == min(
+                validation_losses):
+            print("Minimum validation loss so far ({}) at epoch {}.".format(
+                    current_loss, epoch))
+            logging.info(
+                    "Minimum validation loss so far ({}) at epoch {}.".format(
+                            current_loss, epoch))
+            sess.run(val_adj_info.op)
+            save_val_embeddings(sess, model, minibatch,
+                                FLAGS.validate_batch_size, log_dir())
 
         # Save model at each epoch
+        print("Saving model at epoch {}.".format(epoch))
+        logging.info("Saving model at epoch {}.".format(epoch))
         saver.save(sess, os.path.join(log_dir(), "model_epoch_" + str(epoch)
-                    + ".ckpt"), global_step=total_steps)
+                   + ".ckpt"), global_step=total_steps)
 
         if total_steps > FLAGS.max_total_steps:
             break
@@ -444,11 +458,6 @@ def train(train_data, test_data=None):
     training_time = timer.toc()
     plot_losses(train_losses, validation_losses)
     print_stats(train_losses, validation_losses, training_time)
-
-    if FLAGS.save_embeddings:
-        sess.run(val_adj_info.op)
-        save_val_embeddings(sess, model, minibatch, FLAGS.validate_batch_size,
-                            log_dir())
 
 
 def _set_logging():
