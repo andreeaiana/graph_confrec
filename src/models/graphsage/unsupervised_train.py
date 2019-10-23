@@ -203,7 +203,7 @@ def print_stats(train_losses, validation_losses, training_time):
         formatting = "{:" + str(len(str(train_losses[0]))) \
                      + "d}: {:13.10f} {:13.10f}\n"
         for epoch in range(epochs):
-            f.write(formatting.format(epoch+1, train_losses[epoch],
+            f.write(formatting.format(epoch, train_losses[epoch],
                                       validation_losses[epoch]))
 
 
@@ -435,10 +435,10 @@ def train(train_data, test_data=None):
         if FLAGS.save_embeddings and validation_losses[-1] == min(
                 validation_losses):
             print("Minimum validation loss so far ({}) at epoch {}.".format(
-                    current_loss, epoch))
+                    validation_losses[-1], epoch))
             logging.info(
                     "Minimum validation loss so far ({}) at epoch {}.".format(
-                            current_loss, epoch))
+                            validation_losses[-1], epoch))
             sess.run(val_adj_info.op)
             save_val_embeddings(sess, model, minibatch,
                                 FLAGS.validate_batch_size, log_dir())
