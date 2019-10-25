@@ -429,8 +429,8 @@ class DataLoader:
         conferences_truth = list()
         confidences_truth = list()
 
-        for conference in list(self.data.conferenceseries):
-            conferences_truth.append([conference])
+        for conferenceseries in list(self.data.conferenceseries):
+            conferences_truth.append([conferenceseries])
             confidences_truth.append([1])
 
         truth = [conferences_truth, confidences_truth]
@@ -439,13 +439,16 @@ class DataLoader:
     # Get test data with abstracts and citations ready for evaluation
     def evaluation_data_with_abstracts_citations(self, years=None):
         self.test_data_with_abstracts_citations(years)
-        quey_test = list(self.data.chapter_abstract)
+        quey_test = list(zip(list(self.data.chapter),
+                         list(self.data.chapter_title),
+                         list(self.data.chapter_abstract),
+                         list(self.data.chapter_citations)))
 
         conferences_truth = list()
         confidences_truth = list()
 
-        for conference in list(self.data.conferenceseries):
-            conferences_truth.append([conference])
+        for conferenceseries in list(self.data.conferenceseries):
+            conferences_truth.append([conferenceseries])
             confidences_truth.append([1])
 
         truth = [conferences_truth, confidences_truth]
