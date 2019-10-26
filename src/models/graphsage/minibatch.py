@@ -2,7 +2,6 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-import logging
 
 np.random.seed(123)
 
@@ -52,8 +51,6 @@ class EdgeMinibatchIterator(object):
                                 or G.node[n]['val']])
         print(str(train_nodes_count) + ' train nodes')
         print(str(test_nodes_count) + ' test nodes')
-        logging.info(str(train_nodes_count) + ' train nodes')
-        logging.info(str(test_nodes_count) + ' test nodes')
         self.val_set_size = len(self.val_edges)
 
     def _remove_isolated(self, edge_list):
@@ -71,7 +68,6 @@ class EdgeMinibatchIterator(object):
             else:
                 new_edge_list.append((n1, n2))
         print("Unexpected missing: ", missing)
-        logging.info("Unexpected missing: " + str(missing))
         return new_edge_list
 
     def construct_adj(self):
