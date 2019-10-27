@@ -9,6 +9,7 @@ from collections import Counter
 import matplotlib.pyplot as plt
 import networkx as nx
 from networkx.readwrite import json_graph
+from sklearn.preprocessing import StandardScaler
 
 from utils import run_random_walks
 
@@ -90,9 +91,75 @@ class Processor():
         print("Finished creating training files.")
         self.timer.toc()
 
-#    def test_data(self):
-#        self.prefix = "test"
-#        pass
+    def test_data(self, df_test, G_train, normalize=True):
+        self.prefix = "test"
+        self.timer.tic()
+        print("Preprocessing data...")
+        self.G = G_train
+        print("Training graph has {} nodes and {} edges.\n".format(
+                self.G.number_of_nodes(), self.G.number_of_edges()))
+
+        # Add nodes and edges
+        print("Adding test nodes.")
+        self._add_nodes(df_test, test=True, val=False)
+        print("Adding test edges.")
+        self._add_edges(df_test)
+        print("Removing nodes without features.")
+        for node in list(self.G.nodes()):
+            if "feature" not in self.G.nodes[node].keys():
+                self.G.remove_node(node)
+        print("Nodes in graph: {}, edges in graph: {}.\n".format(
+                self.G.number_of_nodes(), self.G.number_of_edges()))
+
+        # Remove all nodes that do not have val/test annotations
+        broken_count = 0
+        for node in self.G.nodes():
+            if 'val' not in self.G.node[node] or 'test' not in self.G.node[
+                    node]:
+                self.G.remove_node(node)
+                broken_count += 1
+        print("Removed {} nodes that lacked proper annotations due to networkx versioning issues.".format(
+                broken_count))
+
+        # Make sure the graph has edge train_removed annotations
+        for edge in self.G.edges():
+            if (self.G.node[edge[0]]['val'] or self.G.node[edge[1]]['val'] or
+               self.G.node[edge[0]]['test'] or self.G.node[edge[1]]['test']):
+                self.G[edge[0]][edge[1]]['train_removed'] = True
+            else:
+                self.G[edge[0]][edge[1]]['train_removed'] = False
+
+        # Create and process id map
+        id_map = self._create_id_map()
+
+        if isinstance(list(self.G.nodes)[0], int):
+            conversion = lambda n: int(n)
+        else:
+            conversion = lambda n: n
+        id_map = {conversion(k): int(v) for k, v in id_map.items()}
+
+        # Create and process features
+        features = self._create_features()
+
+        if normalize:
+            train_ids = np.array([id_map[n] for n in self.G.nodes() if not
+                                  self.G.node[n]['val'] and not
+                                  self.G.node[n]['test']])
+            train_feats = features[train_ids]
+            scaler = StandardScaler()
+            scaler.fit(train_feats)
+            features = scaler.transform(features)
+
+        # print some statistics
+        self._get_stats()
+
+        # Plot degree histogram
+        self._degree_histogram()
+
+        print("Finished preprocessing data.")
+        self.timer.toc()
+
+        return self.G, id_map, features
 
     def _add_nodes(self, data, test=False, val=False):
         with tqdm(desc="Adding training nodes: ", total=len(data),
@@ -130,17 +197,25 @@ class Processor():
         nodes = list(self.G.nodes)
         id_map = {nodes[i]: i for i in range(len(nodes))}
         print("Saving id map to disk.")
-        with open(os.path.join(
-                self.path_persistent, self.prefix + "-id_map.json"), "w") as f:
-            f.write(json.dumps(id_map))
+        if self.prefix == "test":
+            return id_map
+        else:
+            with open(os.path.join(
+                    self.path_persistent, self.prefix + "-id_map.json"),
+                    "w") as f:
+                f.write(json.dumps(id_map))
 
     def _create_features(self):
         print("Creating features.")
         features = np.array([self.G.nodes[node]["feature"] for node in
                              list(self.G.nodes)])
         print("Saving features to disk.")
-        np.save(os.path.join(self.path_persistent, self.prefix + "-feats.npy"),
-                features)
+        if self.prefix == "test":
+            return features
+        else:
+            np.save(os.path.join(self.path_persistent, self.prefix +
+                                 "-feats.npy"),
+                    features)
 
     def _run_random_walks(self, graph, nodes, num_walks):
         print("Running random walks.")
