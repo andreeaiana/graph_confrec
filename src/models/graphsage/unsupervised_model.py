@@ -423,14 +423,14 @@ class UnsupervisedModel:
 
             # Save embeddings if the epoch has the lowest validation loss
             # so far
-            if self._save_embeddings and validation_losses[-1] == min(
+            if self.save_embeddings and validation_losses[-1] == min(
                     validation_losses):
                 print("Minimum validation loss so far ({}) at epoch {}.".format(
                         validation_losses[-1], epoch))
                 sess.run(val_adj_info.op)
-                self._save_val_embeddings(sess, model, minibatch,
-                                          self.validate_batch_size,
-                                          self._log_dir())
+                self._save_embeddings(sess, model, minibatch,
+                                      self.validate_batch_size,
+                                      self._log_dir())
 
             # Save model at each epoch
             print("Saving model at epoch {}.".format(epoch))
@@ -448,119 +448,207 @@ class UnsupervisedModel:
         self._print_stats(train_losses, validation_losses, training_time)
 
     def predict(self, test_data, model_checkpoint):
-        pass
+        timer = Timer()
+        timer.tic()
+
+        G = test_data[0]
+        features = test_data[1]
+        id_map = test_data[2]
+
+        if features is not None:
+            # pad with dummy zero vector
+            features = np.vstack([features, np.zeros((features.shape[1],))])
+
+        context_pairs = test_data[3] if self.random_context else None
+        placeholders = self._construct_placeholders()
+        minibatch = EdgeMinibatchIterator(
+                    G,
+                    id_map,
+                    placeholders,
+                    batch_size=self.batch_size,
+                    max_degree=self.max_degree,
+                    num_neg_samples=self.neg_sample_size,
+                    context_pairs=context_pairs)
+
+        adj_info_ph = tf.compat.v1.placeholder(tf.int32,
+                                               shape=minibatch.adj.shape)
+        adj_info = tf.Variable(adj_info_ph, trainable=False, name="adj_info")
+
+        model = self._create_model(placeholders, features, adj_info, minibatch)
+
+        config = tf.compat.v1.ConfigProto(
+                log_device_placement=self.log_device_placement)
+        config.gpu_options.allow_growth = True
+        config.allow_soft_placement = True
+
+        # Initialize session
+        sess = tf.compat.v1.Session(config=config)
+        merged = tf.compat.v1.summary.merge_all()
+        summary_writer = tf.compat.v1.summary.FileWriter(self._log_dir(),
+                                                         sess.graph)
+
+        # Initialize model saver
+        saver = tf.compat.v1.train.Saver()
+
+        # Init variables
+        sess.run(tf.compat.v1.global_variables_initializer(),
+                 feed_dict={adj_info_ph: minibatch.adj})
+
+        val_adj_info = tf.compat.v1.assign(adj_info, minibatch.test_adj)
+
+        # Restore model
+        print("Restoring trained model.")
+        checkpoint_file = os.path.join(self._log_dir(), model_checkpoint)
+        ckpt = tf.compat.v1.train.get_checkpoint_state(checkpoint_file)
+        if ckpt and ckpt.model_checkpoint_path:
+            saver.restore(sess, ckpt.model_checkpoint_path)
+        print("Model restored.")
+        sess.run(val_adj_info.op)
+
+        # Infer embeddings
+        print("Computing embeddings...")
+        val_embeddings = []
+        finished = False
+        seen = set([])
+        nodes = []
+        iter_num = 0
+        while not finished:
+            feed_dict_val, finished, edges = minibatch.incremental_embed_feed_dict(
+                                            self.validate_batch_size, iter_num)
+            iter_num += 1
+            outs_val = sess.run([model.loss, model.mrr, model.outputs1],
+                                feed_dict=feed_dict_val)
+            for i, edge in enumerate(edges):
+                if not edge[0] in seen:
+                    val_embeddings.append(outs_val[-1][i, :])
+                    nodes.append(edge[0])
+                    seen.add(edge[0])
+
+        val_embeddings = np.vstack(val_embeddings)
+        if self.save_embeddings:
+            print("Saving embeddings...")
+            if not os.path.exists(self._log_dir()):
+                os.makedirs(self._log_dir())
+            np.save(self._log_dir() + "inferred_embeddings.npy",
+                    val_embeddings)
+            with open(self._log_dir() + "inferred_embeddings_ids.txt",
+                      "w") as fp:
+                fp.write("\n".join(map(str, nodes)))
+            print("Embeddings saved.\n")
+        timer.toc()
+        return nodes, val_embeddings
 
     def main():
         parser = argparse.ArgumentParser(
                 description='Arguments for unsupervised GraphSAGE model.')
-        parser.add_argument('--train_prefix',
+        parser.add_argument('train_prefix',
                             help='Name of the object file that stores the '
                             + 'training data.')
-        parser.add_argument("--model_name",
+        parser.add_argument("model_name",
                             choices=["graphsage_mean", "gcn", "graphsage_seq"
                                      "graphsage_maxpool", "graphsage_meanpool"
                                      ],
                             help="Model names.")
-        parser.add_argument('model_size',
+        parser.add_argument('--model_size',
                             choices=["small", "big"],
                             default="small",
                             help="Can be big or small; model specific def'ns")
-        parser.add_argument('learning_rate',
+        parser.add_argument('--learning_rate',
                             type=int,
                             default=0.00001,
                             help='Initial learning rate.')
-        parser.add_argument('epochs',
+        parser.add_argument('--epochs',
                             type=int,
                             default=10,
                             help='Number of epochs to train.')
-        parser.add_argument('dropout',
+        parser.add_argument('--dropout',
                             type=int,
                             default=0.0,
                             help='Dropout rate (1 - keep probability).')
-        parser.add_argument('weight_decay',
+        parser.add_argument('--weight_decay',
                             type=int,
                             default=0.0,
                             help='Weight for l2 loss on embedding matrix.')
-        parser.add_argument('max_degree',
+        parser.add_argument('--max_degree',
                             type=int,
                             default=100,
                             help='Maximum node degree.')
-        parser.add_argument('samples_1',
+        parser.add_argument('--samples_1',
                             type=int,
                             default=25,
                             help='Number of samples in layer 1.')
-        parser.add_argument('samples_2',
+        parser.add_argument('--samples_2',
                             type=int,
                             default=10,
                             help='Number of users samples in layer 2.')
-        parser.add_argument('dim_1',
+        parser.add_argument('--dim_1',
                             type=int,
                             default=128,
                             help='Size of output dim ' +
                             '(final is 2x this, if using concat)')
-        parser.add_argument('dim_2',
+        parser.add_argument('--dim_2',
                             type=int,
                             default=128,
                             help='Size of output dim ' +
                             '(final is 2x this, if using concat)')
-        parser.add_argument('random_context',
+        parser.add_argument('--random_context',
                             action="store_false",
+                            default=True,
                             help='Whether to use random context or direct ' +
                             'edges.')
-        parser.add_argument('neg_sample_size',
+        parser.add_argument('--neg_sample_size',
                             type=int,
                             default=20,
                             help='Number of negative samples.')
-        parser.add_argument('batch_size',
+        parser.add_argument('--batch_size',
                             type=int,
                             default=512,
                             help='Minibatch size.')
-        parser.add_argument('identity_dim',
+        parser.add_argument('--identity_dim',
                             type=int,
                             default=0,
                             help='Set to positive value to use identity ' +
                             'embedding features of that dimension.')
-        parser.add_argument('save_embeddings',
+        parser.add_argument('--save_embeddings',
                             action="store_false",
+                            default=True,
                             help='Whether to save embeddings for all nodes ' +
                             'after training')
-        parser.add_argument('base_log_dir',
+        parser.add_argument('--base_log_dir',
                             default='../../../data/processed/graphsage/',
                             help='Base directory for logging and saving ' +
                             'embeddings')
-        parser.add_argument('validate_iter',
+        parser.add_argument('--validate_iter',
                             type=int,
                             default=5000,
                             help='How often to run a validation minibatch.')
-        parser.add_argument('validate_batch_size',
+        parser.add_argument('--validate_batch_size',
                             type=int,
                             default=256,
                             help='How many nodes per validation sample.')
-        parser.add_argument('gpu',
+        parser.add_argument('--gpu',
                             type=int,
                             default=0,
                             help='Which gpu to use.')
-        parser.add_argument('print_every',
+        parser.add_argument('--print_every',
                             type=int,
                             default=50,
                             help='How often to print training info.')
-        parser.add_argument('max_total_steps',
+        parser.add_argument('--max_total_steps',
                             type=int,
                             default=10**10,
                             help='Maximum total number of iterations.')
-        parser.add_argument('log_device_placement',
+        parser.add_argument('--log_device_placement',
                             action="store_true",
+                            default=False,
                             help='Whether to log device placement.')
         args = parser.parse_args()
-
-        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-        os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
 
         print("Starting...")
         print("Loading training data..")
         train_data = load_data(args.train_prefix, load_walks=True)
         print("Done loading training data..\n")
-        from UnsupervisedModel import UnsupervisedModel
+        from unsupervised_model import UnsupervisedModel
         model = UnsupervisedModel(args.train_prefix, args.model_name,
                                   args.model_size, args.learning_rate,
                                   args.epochs, args.dropout, args.weight_decay,
@@ -570,7 +658,8 @@ class UnsupervisedModel:
                                   args.batch_size, args.identity_dim,
                                   args.save_embeddings, args.base_log_dir,
                                   args.validate_iter, args.validate_batch_size,
-                                  args.print_every, args.max_total_steps,
+                                  args.gpu, args.print_every,
+                                  args.max_total_steps,
                                   args.log_device_placement)
         model.train(train_data)
         print("Finished.")
