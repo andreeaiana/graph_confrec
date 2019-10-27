@@ -2,8 +2,6 @@ from collections import namedtuple
 
 import tensorflow as tf
 import math
-from absl import app
-from absl import flags
 import logging
 
 import layers as layers
@@ -12,8 +10,6 @@ import metrics as metrics
 from prediction import BipartiteEdgePredLayer
 from aggregators import MeanAggregator, MaxPoolingAggregator
 from aggregators import MeanPoolingAggregator, SeqAggregator, GCNAggregator
-
-FLAGS = flags.FLAGS
 
 # DISCLAIMER:
 # This code file is derived from https://github.com/williamleif/GraphSAGE,
@@ -88,47 +84,46 @@ class Model(object):
 
     def save(self, sess=None):
         if not sess:
-            logging.error("TensorFlow session not provided.")
             raise AttributeError("TensorFlow session not provided.")
         saver = tf.compat.v1.train.Saver(self.vars)
         save_path = saver.save(sess, "tmp/%s.ckpt" % self.name)
         print("Model saved in file: %s" % save_path)
-        logging.info("Model saved in file: %s" % save_path)
 
     def load(self, sess=None):
         if not sess:
-            logging.error("TensorFlow session not provided.")
             raise AttributeError("TensorFlow session not provided.")
         saver = tf.compat.v1.train.Saver(self.vars)
         save_path = "tmp/%s.ckpt" % self.name
         saver.restore(sess, save_path)
         print("Model restored from file: %s" % save_path)
-        logging.info("Model restored from file: %s" % save_path)
 
 
 class MLP(Model):
     """ A standard multi-layer perceptron """
-    def __init__(self, placeholders, dims, categorical=True, **kwargs):
+    def __init__(self, placeholders, dims, weight_decay, learning_rate,
+                 categorical=True, **kwargs):
         super(MLP, self).__init__(**kwargs)
 
         self.dims = dims
+        self.weight_decay = weight_decay
         self.input_dim = dims[0]
         self.output_dim = dims[-1]
         self.placeholders = placeholders
         self.categorical = categorical
+        self.learning_rate=learning_rate
 
         self.inputs = placeholders['features']
         self.labels = placeholders['labels']
 
         self.optimizer = tf.compat.v1.train.AdamOptimizer(
-                learning_rate=FLAGS.learning_rate)
+                learning_rate=self.learning_rate)
 
         self.build()
 
     def _loss(self):
         # Weight decay loss
         for var in self.layers[0].vars.values():
-            self.loss += FLAGS.weight_decay * tf.nn.l2_loss(var)
+            self.loss += self.weight_decay * tf.nn.l2_loss(var)
 
         # Cross entropy error
         if self.categorical:
@@ -151,6 +146,7 @@ class MLP(Model):
         self.layers.append(layers.Dense(
                 input_dim=self.input_dim,
                 output_dim=self.dims[1],
+                weight_decay=self.weight_decay,
                 act=tf.nn.relu,
                 dropout=self.placeholders['dropout'],
                 sparse_inputs=False,
@@ -159,6 +155,7 @@ class MLP(Model):
         self.layers.append(layers.Dense(
                 input_dim=self.dims[1],
                 output_dim=self.output_dim,
+                weight_decay = self.weight_decay,
                 act=lambda x: x,
                 dropout=self.placeholders['dropout'],
                 logging=self.logging))
@@ -214,8 +211,9 @@ class SampleAndAggregate(GeneralizedModel):
     """
 
     def __init__(self, placeholders, features, adj, degrees, layer_infos,
-                 concat=True, aggregator_type="mean", model_size="small",
-                 identity_dim=0, **kwargs):
+                 weight_decay, learning_rate, neg_sample_size, concat=True,
+                 aggregator_type="mean", model_size="small", identity_dim=0,
+                 **kwargs):
         '''
         Args:
             - placeholders: Stanford TensorFlow placeholder object.
@@ -252,6 +250,9 @@ class SampleAndAggregate(GeneralizedModel):
         self.inputs1 = placeholders["batch1"]
         self.inputs2 = placeholders["batch2"]
         self.model_size = model_size
+        self.weight_decay = weight_decay
+        self.learning_rate = learning_rate
+        self.neg_sample_size = neg_sample_size
         self.adj_info = adj
         if identity_dim > 0:
             self.embeds = tf.compat.v1.get_variable(
@@ -261,9 +262,6 @@ class SampleAndAggregate(GeneralizedModel):
             self.embeds = None
         if features is None:
             if identity_dim == 0:
-                logging.error("Must have a positive value for identity " +
-                                "feature dimension if no input features given."
-                                )
                 raise Exception("Must have a positive value for identity " +
                                 "feature dimension if no input features given."
                                 )
@@ -285,7 +283,7 @@ class SampleAndAggregate(GeneralizedModel):
         self.layer_infos = layer_infos
 
         self.optimizer = tf.compat.v1.train.AdamOptimizer(
-                learning_rate=FLAGS.learning_rate)
+                learning_rate=self.learning_rate)
 
         self.build()
 
@@ -393,7 +391,7 @@ class SampleAndAggregate(GeneralizedModel):
         self.neg_samples, _, _ = (tf.nn.fixed_unigram_candidate_sampler(
             true_classes=labels,
             num_true=1,
-            num_sampled=FLAGS.neg_sample_size,
+            num_sampled=self.neg_sample_size,
             unique=False,
             range_max=len(self.degrees),
             distortion=0.75,
@@ -422,13 +420,13 @@ class SampleAndAggregate(GeneralizedModel):
                 model_size=self.model_size)
 
         neg_samples, neg_support_sizes = self.sample(
-                self.neg_samples, self.layer_infos, FLAGS.neg_sample_size)
+                self.neg_samples, self.layer_infos, self.neg_sample_size)
         self.neg_outputs, _ = self.aggregate(
                 neg_samples,
                 [self.features],
                 self.dims, num_samples,
                 neg_support_sizes,
-                batch_size=FLAGS.neg_sample_size,
+                batch_size=self.neg_sample_size,
                 aggregators=self.aggregators,
                 concat=self.concat,
                 model_size=self.model_size)
@@ -463,7 +461,7 @@ class SampleAndAggregate(GeneralizedModel):
     def _loss(self):
         for aggregator in self.aggregators:
             for var in aggregator.vars.values():
-                self.loss += FLAGS.weight_decay * tf.nn.l2_loss(var)
+                self.loss += self.weight_decay * tf.nn.l2_loss(var)
 
         self.loss += self.link_pred_layer.loss(
                 self.outputs1, self.outputs2, self.neg_outputs)
@@ -476,7 +474,7 @@ class SampleAndAggregate(GeneralizedModel):
         self.neg_aff = self.link_pred_layer.neg_cost(self.outputs1,
                                                      self.neg_outputs)
         self.neg_aff = tf.reshape(self.neg_aff, [self.batch_size,
-                                                 FLAGS.neg_sample_size])
+                                                 self.neg_sample_size])
         _aff = tf.expand_dims(aff, axis=1)
         self.aff_all = tf.concat(axis=1, values=[self.neg_aff, _aff])
         size = tf.shape(input=self.aff_all)[1]

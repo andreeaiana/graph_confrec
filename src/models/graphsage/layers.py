@@ -2,12 +2,8 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from absl import app
-from absl import flags
 
 from inits import zeros
-
-FLAGS = flags.FLAGS
 
 # DISCLAIMER:
 # This code file is forked from https://github.com/williamleif/GraphSAGE,
@@ -79,9 +75,9 @@ class Layer(object):
 
 class Dense(Layer):
     """Dense layer."""
-    def __init__(self, input_dim, output_dim, dropout=0., act=tf.nn.relu,
-                 placeholders=None, bias=True, featureless=False,
-                 sparse_inputs=False, **kwargs):
+    def __init__(self, input_dim, output_dim, weight_decay, dropout=0.,
+                 act=tf.nn.relu, placeholders=None, bias=True,
+                 featureless=False, sparse_inputs=False, **kwargs):
         super(Dense, self).__init__(**kwargs)
 
         self.dropout = dropout
@@ -105,8 +101,8 @@ class Dense(Layer):
                      initializer=tf.compat.v1.keras.initializers.VarianceScaling(
                              scale=1.0, mode="fan_avg",
                              distribution="uniform"),
-                     regularizer=tf.keras.regularizers.l2(0.5 * (
-                             FLAGS.weight_decay)))
+                     regularizer=tf.keras.regularizers.l2(
+                             0.5 * (weight_decay)))
             if self.bias:
                 self.vars['bias'] = zeros([output_dim], name='bias')
 
