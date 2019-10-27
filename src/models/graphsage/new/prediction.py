@@ -4,10 +4,6 @@ from __future__ import print_function
 from inits import zeros
 from layers import Layer
 import tensorflow as tf
-from absl import app
-from absl import flags
-
-FLAGS = flags.FLAGS
 
 # DISCLAIMER:
 # This code file is forked from https://github.com/williamleif/GraphSAGE,
