@@ -545,7 +545,7 @@ class UnsupervisedModel:
                             help='Name of the object file that stores the '
                             + 'training data.')
         parser.add_argument("model_name",
-                            choices=["graphsage_mean", "gcn", "graphsage_seq"
+                            choices=["graphsage_mean", "gcn", "graphsage_seq",
                                      "graphsage_maxpool", "graphsage_meanpool"
                                      ],
                             help="Model names.")

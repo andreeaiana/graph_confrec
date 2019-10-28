@@ -128,7 +128,7 @@ class GCNAggregator(Layer):
 class MaxPoolingAggregator(Layer):
     """ Aggregates via max-pooling over MLP functions.
     """
-    def __init__(self, input_dim, output_dim, model_size="small",
+    def __init__(self, input_dim, output_dim, weight_decay, model_size="small",
                  neigh_input_dim=None, dropout=0., bias=False, act=tf.nn.relu,
                  name=None, concat=False, **kwargs):
         super(MaxPoolingAggregator, self).__init__(**kwargs)
@@ -155,6 +155,7 @@ class MaxPoolingAggregator(Layer):
         self.mlp_layers.append(Dense(
                 input_dim=neigh_input_dim,
                 output_dim=hidden_dim,
+                weight_decay=weight_decay,
                 act=tf.nn.relu,
                 dropout=dropout,
                 sparse_inputs=False,
@@ -211,7 +212,7 @@ class MaxPoolingAggregator(Layer):
 class MeanPoolingAggregator(Layer):
     """ Aggregates via mean-pooling over MLP functions.
     """
-    def __init__(self, input_dim, output_dim, model_size="small",
+    def __init__(self, input_dim, output_dim, weight_decay, model_size="small",
                  neigh_input_dim=None, dropout=0., bias=False, act=tf.nn.relu,
                  name=None, concat=False, **kwargs):
         super(MeanPoolingAggregator, self).__init__(**kwargs)
@@ -238,6 +239,7 @@ class MeanPoolingAggregator(Layer):
         self.mlp_layers.append(Dense(
                 input_dim=neigh_input_dim,
                 output_dim=hidden_dim,
+                weight_decay=weight_decay,
                 act=tf.nn.relu,
                 dropout=dropout,
                 sparse_inputs=False,
@@ -294,7 +296,7 @@ class MeanPoolingAggregator(Layer):
 class TwoMaxLayerPoolingAggregator(Layer):
     """ Aggregates via pooling over two MLP functions.
     """
-    def __init__(self, input_dim, output_dim, model_size="small",
+    def __init__(self, input_dim, output_dim, weight_decay, model_size="small",
                  neigh_input_dim=None, dropout=0., bias=False, act=tf.nn.relu,
                  name=None, concat=False, **kwargs):
         super(TwoMaxLayerPoolingAggregator, self).__init__(**kwargs)
@@ -323,6 +325,7 @@ class TwoMaxLayerPoolingAggregator(Layer):
         self.mlp_layers.append(Dense(
                 input_dim=neigh_input_dim,
                 output_dim=hidden_dim_1,
+                weight_decay=weight_decay,
                 act=tf.nn.relu,
                 dropout=dropout,
                 sparse_inputs=False,
@@ -330,6 +333,7 @@ class TwoMaxLayerPoolingAggregator(Layer):
         self.mlp_layers.append(Dense(
                 input_dim=hidden_dim_1,
                 output_dim=hidden_dim_2,
+                weight_decay=weight_decay,
                 act=tf.nn.relu,
                 dropout=dropout,
                 sparse_inputs=False,

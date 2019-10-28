@@ -313,7 +313,7 @@ class SampleAndAggregate(GeneralizedModel):
         return samples, support_sizes
 
     def aggregate(self, samples, input_features, dims, num_samples,
-                  support_sizes, batch_size=None, aggregators=None, name=None,
+                  support_sizes,batch_size=None, aggregators=None, name=None,
                   concat=False, model_size="small"):
         """ At each layer, aggregate hidden representations of neighbors to
             compute the hidden representations at next layer.
@@ -350,22 +350,45 @@ class SampleAndAggregate(GeneralizedModel):
                 dim_mult = 2 if concat and (layer != 0) else 1
                 # aggregator at current layer
                 if layer == len(num_samples) - 1:
-                    aggregator = self.aggregator_cls(
-                            dim_mult*dims[layer],
-                            dims[layer+1],
-                            act=lambda x: x,
-                            dropout=self.placeholders['dropout'],
-                            name=name,
-                            concat=concat,
-                            model_size=model_size)
+                    if self.aggregator_cls == MaxPoolingAggregator or \
+                     self.aggregator_cls == MeanPoolingAggregator:
+                        aggregator = self.aggregator_cls(
+                                dim_mult*dims[layer],
+                                dims[layer+1],
+                                act=lambda x: x,
+                                dropout=self.placeholders['dropout'],
+                                name=name,
+                                weight_decay=self.weight_decay,
+                                concat=concat,
+                                model_size=model_size)
+                    else:
+                        aggregator = self.aggregator_cls(
+                                dim_mult*dims[layer],
+                                dims[layer+1],
+                                act=lambda x: x,
+                                dropout=self.placeholders['dropout'],
+                                name=name,
+                                concat=concat,
+                                model_size=model_size)
                 else:
-                    aggregator = self.aggregator_cls(
+                    if self.aggregator_cls == MaxPoolingAggregator or \
+                     self.aggregator_cls == MeanPoolingAggregator:
+                        aggregator = self.aggregator_cls(
                             dim_mult*dims[layer],
                             dims[layer+1],
                             dropout=self.placeholders['dropout'],
                             name=name,
+                            weight_decay=self.weight_decay,
                             concat=concat,
                             model_size=model_size)
+                    else:
+                        aggregator = self.aggregator_cls(
+                                dim_mult*dims[layer],
+                                dims[layer+1],
+                                dropout=self.placeholders['dropout'],
+                                name=name,
+                                concat=concat,
+                                model_size=model_size)
                 aggregators.append(aggregator)
             else:
                 aggregator = aggregators[layer]
