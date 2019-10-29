@@ -41,14 +41,11 @@ class EmbeddingsParser():
                 "AVG_2L": "_average_tokens_second_to_last_layer",
                 "AVG_SUM_L4": "_average_tokens_sum_last_four_layers",
                 "AVG_SUM_ALL": "_average_tokens_sum_all_layers",
-                "AVG_CONC_L4": "_average_concat_last_four_layers",
                 "MAX_2L": "_max_tokens_second_to_last_layer",
-                "MAX_CONC_L4": "_max_tokens_sum_last_four_layers",
                 "CONC_AVG_MAX_2L": "_concat_avg_max_tokens_second_to_last_layer",
                 "CONC_AVG_MAX_SUM_L4": "_concat_avg_max_sum_last_four_layers",
                 "SUM_L": "_sum_last_layer",
-                "SUM_2L": "_sum_second_to_last",
-                "SUM_CONC_L4": "_sum_concat_last_four_layers"
+                "SUM_2L": "_sum_second_to_last"
                 }
 
     def embed_sequence(self, sequence, embedding_type):
@@ -125,9 +122,6 @@ class EmbeddingsParser():
     def _average_tokens_sum_all_layers(self):
         return torch.mean(torch.stack(self._sum_all_layers()), 0)
 
-    def _average_concat_last_four_layers(self):
-        return torch.mean(torch.stack(self._concat_last_four_layers()), 0)
-
     def _max_tokens_second_to_last_layer(self):
         return torch.max(torch.stack(self._second_to_last_layer()), 0).values
 
@@ -147,6 +141,3 @@ class EmbeddingsParser():
 
     def _sum_second_to_last(self):
         return torch.sum(torch.stack(self._second_to_last_layer()), 0)
-
-    def _sum_concat_last_four_layers(self):
-        return torch.sum(torch.stack(self._concat_last_four_layers()), 0)

@@ -503,9 +503,9 @@ class UnsupervisedModel:
         if ckpt and ckpt.model_checkpoint_path:
             saver.restore(sess, ckpt.model_checkpoint_path)
         print("Model restored.")
-        sess.run(val_adj_info.op)
 
         # Infer embeddings
+        sess.run(val_adj_info.op)
         print("Computing embeddings...")
         val_embeddings = []
         finished = False
