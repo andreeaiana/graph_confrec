@@ -426,14 +426,14 @@ class DataLoader:
         self.test_data_with_abstracts(years)
         quey_test = list(self.data.chapter_abstract)
 
-        conferences_truth = list()
+        conferenceseries_truth = list()
         confidences_truth = list()
 
         for conferenceseries in list(self.data.conferenceseries):
-            conferences_truth.append([conferenceseries])
+            conferenceseries_truth.append([conferenceseries])
             confidences_truth.append([1])
 
-        truth = [conferences_truth, confidences_truth]
+        truth = [conferenceseries_truth, confidences_truth]
         return quey_test, truth
 
     # Get test data with abstracts and citations ready for evaluation
@@ -444,12 +444,12 @@ class DataLoader:
                          list(self.data.chapter_abstract),
                          list(self.data.chapter_citations)))
 
-        conferences_truth = list()
+        conferenceseries_truth = list()
         confidences_truth = list()
 
         for conferenceseries in list(self.data.conferenceseries):
-            conferences_truth.append([conferenceseries])
+            conferenceseries_truth.append([conferenceseries])
             confidences_truth.append([1])
 
-        truth = [conferences_truth, confidences_truth]
+        truth = [conferenceseries_truth, confidences_truth]
         return quey_test, truth

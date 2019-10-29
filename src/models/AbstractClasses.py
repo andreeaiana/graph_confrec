@@ -12,7 +12,6 @@ class AbstractModel:
 
         Returns
             list: ids of the conferences
-            list: names of the conferences
             double: confidence scores
         """
         pass
@@ -25,7 +24,6 @@ class AbstractModel:
 
         Returns
             list: ids of the conferences
-            list: names of the conferences
             double: confidence scores
         """
         pass

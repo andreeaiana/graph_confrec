@@ -159,7 +159,7 @@ class Processor():
         print("Finished preprocessing data.")
         self.timer.toc()
 
-        return self.G, id_map, features
+        return self.G, features, id_map
 
     def _add_nodes(self, data, test=False, val=False):
         with tqdm(desc="Adding training nodes: ", total=len(data),
