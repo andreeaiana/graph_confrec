@@ -535,8 +535,17 @@ class UnsupervisedModel:
                       "w") as fp:
                 fp.write("\n".join(map(str, nodes)))
             print("Embeddings saved.\n")
+
+        # Return only the embeddings of the test nodes
+        test_embeddings_ids = {}
+        for i, node in enumerate(nodes):
+            test_embeddings_ids[node] = i
+        test_nodes = [nodes[n] for n in G.nodes() if G.node[n]['test']]
+        test_embeddings = val_embeddings[[test_embeddings_ids[id] for id in
+                                          test_nodes]]
+
         timer.toc()
-        return nodes, val_embeddings
+        return test_nodes, test_embeddings
 
     def main():
         parser = argparse.ArgumentParser(
