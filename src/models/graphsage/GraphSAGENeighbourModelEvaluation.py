@@ -3,6 +3,7 @@ import os
 import sys
 import pandas as pd
 import numpy as np
+import argparse
 
 sys.path.insert(0, os.path.join(os.getcwd(), "..", "evaluations"))
 sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "data"))
@@ -27,8 +28,9 @@ class GraphSAGENeighbourModelEvaluation():
                  log_device_placement=False, recs=10):
 
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-        os.environ["CUDA_VISIBLE_DEVICES"] = str(self.gpu)
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
 
+        self.d = DataLoader()
         self.model = GraphSAGENeighbourModel(
                 embedding_type, model_checkpoint, train_prefix, model_name,
                 model_size, learning_rate, epochs, dropout, weight_decay,
@@ -39,8 +41,7 @@ class GraphSAGENeighbourModelEvaluation():
 
     def evaluate(self):
         # Load test data
-        d_test = DataLoader()
-        query_test, truth = evaluation_data_with_abstracts_citations()
+        query_test, truth = self.d.evaluation_data_with_abstracts_citations()
 
         # Retrieve predictions
         recommendation = self.model.query_batch(query_test)
@@ -53,7 +54,7 @@ class GraphSAGENeighbourModelEvaluation():
     def main():
         parser = argparse.ArgumentParser(
                 description='Arguments for unsupervised GraphSAGE model.')
-        parser.add_argument("embedding_type",
+        parser.add_argument('embedding_type',
                             choices=["AVG_L", "AVG_2L", "AVG_SUM_L4",
                                      "AVG_SUM_ALL", "MAX_2L",
                                      "CONC_AVG_MAX_2L", "CONC_AVG_MAX_SUM_L4",
@@ -65,7 +66,7 @@ class GraphSAGENeighbourModelEvaluation():
         parser.add_argument('train_prefix',
                             help='Name of the object file that stores the '
                             + 'training data.')
-        parser.add_argument("model_type",
+        parser.add_argument('model_name',
                             choices=["graphsage_mean", "gcn", "graphsage_seq",
                                      "graphsage_maxpool", "graphsage_meanpool"
                                      ],
@@ -131,8 +132,8 @@ class GraphSAGENeighbourModelEvaluation():
                             help='Set to positive value to use identity ' +
                             'embedding features of that dimension.')
         parser.add_argument('--save_embeddings',
-                            action="store_false",
-                            default=True,
+                            action="store_true",
+                            default=False,
                             help='Whether to save embeddings for all nodes ' +
                             'after training')
         parser.add_argument('--base_log_dir',
@@ -171,19 +172,16 @@ class GraphSAGENeighbourModelEvaluation():
 
         from GraphSAGENeighbourModelEvaluation import GraphSAGENeighbourModelEvaluation
         print("Starting...")
-        model = UnsupervisedModel(args.embedding_type, args.model_checkpoint,
-                                  args.train_prefix, args.model_name,
-                                  args.model_size, args.learning_rate,
-                                  args.epochs, args.dropout, args.weight_decay,
-                                  args.max_degree, args.samples_1,
-                                  args.samples_2, args.dim_1, args.dim_2,
-                                  args.random_context, args.neg_sample_size,
-                                  args.batch_size, args.identity_dim,
-                                  args.save_embeddings, args.base_log_dir,
-                                  args.validate_iter, args.validate_batch_size,
-                                  args.gpu, args.print_every,
-                                  args.max_total_steps,
-                                  args.log_device_placement, args.recs)
+        model = GraphSAGENeighbourModelEvaluation(
+                args.embedding_type, args.model_checkpoint, args.train_prefix,
+                args.model_name, args.model_size, args.learning_rate,
+                args.epochs, args.dropout, args.weight_decay, args.max_degree,
+                args.samples_1, args.samples_2, args.dim_1, args.dim_2,
+                args.random_context, args.neg_sample_size, args.batch_size,
+                args.identity_dim, args.save_embeddings, args.base_log_dir,
+                args.validate_iter, args.validate_batch_size, args.gpu,
+                args.print_every, args.max_total_steps,
+                args.log_device_placement, args.recs)
         model.evaluate()
         print("Finished.")
 

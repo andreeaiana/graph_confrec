@@ -500,9 +500,12 @@ class UnsupervisedModel:
         print("Restoring trained model.")
         checkpoint_file = os.path.join(self._log_dir(), model_checkpoint)
         ckpt = tf.compat.v1.train.get_checkpoint_state(checkpoint_file)
-        if ckpt and ckpt.model_checkpoint_path:
-            saver.restore(sess, ckpt.model_checkpoint_path)
-        print("Model restored.")
+        if checkpoint_file:
+            saver.restore(sess, checkpoint_file)
+            print("Model restored.")
+        else:
+            print("This model checkpoint does not exist. The model might " +
+                  "not be trained yet or the checkpoint is invalid.")
 
         # Infer embeddings
         sess.run(val_adj_info.op)
@@ -540,7 +543,7 @@ class UnsupervisedModel:
         test_embeddings_ids = {}
         for i, node in enumerate(nodes):
             test_embeddings_ids[node] = i
-        test_nodes = [nodes[n] for n in G.nodes() if G.node[n]['test']]
+        test_nodes = [n for n in G.nodes() if G.node[n]['test']]
         test_embeddings = val_embeddings[[test_embeddings_ids[id] for id in
                                           test_nodes]]
 

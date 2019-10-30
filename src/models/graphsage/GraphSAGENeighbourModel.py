@@ -20,7 +20,6 @@ from similarities import Similarities
 from unsupervised_model import UnsupervisedModel
 
 
-
 class GraphSAGENeighbourModel(AbstractModel):
 
     def __init__(self, embedding_type, model_checkpoint, train_prefix,
@@ -34,13 +33,13 @@ class GraphSAGENeighbourModel(AbstractModel):
                  print_every=50, max_total_steps=10**10,
                  log_device_placement=False, recs=10):
 
-        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-        os.environ["CUDA_VISIBLE_DEVICES"] = str(self.gpu)
-
         self.embedding_type = embedding_type
         self.model_checkpoint = model_checkpoint
         self.recs = recs
         self.gpu = gpu
+
+        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(self.gpu)
 
         self.graphsage_model = UnsupervisedModel(
                                 train_prefix, model_name, model_size,
@@ -71,6 +70,12 @@ class GraphSAGENeighbourModel(AbstractModel):
         print("Loading training graph...")
         if not self._load_training_graph():
             print("The training graph does not exist.")
+        else:
+            print("Loaded.")
+
+        print("Loading training walks...")
+        if not self._load_training_walks():
+            print("The walks graph do not exist.")
         else:
             print("Loaded.")
 
@@ -105,61 +110,58 @@ class GraphSAGENeighbourModel(AbstractModel):
             list: ids of the conferences
             double: confidence scores
         """
-        # Process each query from batch separately
-        # (otherwise citations to other papers in the query
-        # will affect the results)
+
+        df_test = pd.DataFrame(batch, columns=["chapter", "chapter_title",
+                                               "chapter_abstract",
+                                               "chapter_citations"])
+
+        # Preprocess the data
+        graph, features, id_map = self.preprocessor.test_data(df_test,
+                                                              self.G_train)
+
+        # Infer embeddings
+        test_nodes, test_embeddings = self.graphsage_model.predict(
+                [graph, features, id_map, self.walks],
+                self.model_checkpoint)
+
+        # Obtain the most similar neighbours
         similarities = []
-
-        with tqdm(description="Inferring embeddings and computing similarities",
-                  total=len(batch)) as pbar:
-            for query in batch:
-                # Build dataframe with the data
-                df_test = pd.DataFrame(query, columns=["chapter",
-                                                       "chapter_title",
-                                                       "chapter_abstract",
-                                                       "chapter_citations"])
-
-                # Preprocess the data
-                graph, features, id_map = self.preprocessor(df_test,
-                                                            self.G_train)
-
-                # Infer embeddings
-                _, embedding = self.graphsage_model.predict(
-                        [graph, features, id_map], self.model_checkpoint)
-
-                # Obtain the most similar neighbours
+        with tqdm(desc="Computing similarities",
+                  total=len(test_embeddings)) as pbar:
+            for vector in test_embeddings:
                 similarities.append(self.sim.similar_by_vector(
-                            embedding, topn=len(self.training_embeddings)))
-
+                            vector, topn=10))
                 pbar.update(1)
 
         # Map similar papers to conferences
         conferenceseries = []
         confidences = []
-        with tqdm(description="Computing conference predicitons.",
+        with tqdm(desc="Computing conference predicitons.",
                   total=len(similarities)) as pbar:
-            for similarity in similarties:
+            for similarity in similarities:
                 conferences = set()
                 scores = []
                 for idx in range(len(similarity)):
                     conferences_length = len(conferences)
                     if conferences_length < self.recs:
                         conferences.add(
-                                list(d.data[d.data.chapter == similarity[
+                                list(self.df_train[
+                                        self.df_train.chapter == similarity[
                                         idx][0]].conferenceseries)[0])
                         if len(conferences) != conferences_length:
                             scores.append(similarity[idx][1])
-                conferences.append(list(conferences))
+                conferenceseries.append(list(conferences))
                 confidences.append(scores)
                 pbar.update(1)
 
-        results = [conferences, confidences]
+        results = [conferenceseries, confidences]
+        return results
 
     def _load_train_embeddings(self):
         embeddings_file = os.path.join(self.graphsage_model._log_dir(),
                                        "embeddings.npy")
         embeddings_ids_file = os.path.join(self.graphsage_model._log_dir(),
-                                           "embeddings_ids.npy")
+                                           "embeddings_ids.txt")
         if os.path.isfile(embeddings_file) and os.path.isfile(
                 embeddings_ids_file):
             self.pretrained_embeddings = np.load(embeddings_file)
@@ -179,5 +181,23 @@ class GraphSAGENeighbourModel(AbstractModel):
         if os.path.isfile(graph_file):
             with open(graph_file) as f:
                 self.G_train = json_graph.node_link_graph(json.load(f))
+            return True
+        return False
+
+    def _load_training_walks(self):
+        walks_file = os.path.join(
+                os.path.dirname(os.path.realpath(__file__)),
+                "..", "..", "..", "data", "interim", "graphsage",
+                self.embedding_type, "train_val-walks.txt")
+        self.walks = []
+        if isinstance(list(self.G_train.nodes)[0], int):
+            conversion = lambda n: int(n)
+        else:
+            conversion = lambda n: n
+
+        if os.path.isfile(walks_file):
+            with open(walks_file) as f:
+                for line in f:
+                    self.walks.append(map(conversion, line.split()))
             return True
         return False

@@ -82,18 +82,17 @@ class Processor():
         subgraph = self.G.subgraph(nodes)
         self._run_random_walks(subgraph, nodes, num_walks)
 
+        print("Finished creating training files.")
+        self.timer.toc()
+
         # print some statistics
         self._get_stats()
 
         # Plot degree histogram
         self._degree_histogram()
 
-        print("Finished creating training files.")
-        self.timer.toc()
-
     def test_data(self, df_test, G_train, normalize=True):
         self.prefix = "test"
-        self.timer.tic()
         print("Preprocessing data...")
         self.G = G_train
         print("Training graph has {} nodes and {} edges.\n".format(
@@ -149,15 +148,13 @@ class Processor():
             scaler = StandardScaler()
             scaler.fit(train_feats)
             features = scaler.transform(features)
+        print("Finished preprocessing data.")
 
         # print some statistics
         self._get_stats()
 
         # Plot degree histogram
         self._degree_histogram()
-
-        print("Finished preprocessing data.")
-        self.timer.toc()
 
         return self.G, features, id_map
 
@@ -193,26 +190,32 @@ class Processor():
         print("Edges in graph: {}.\n".format(self.G.number_of_edges()))
 
     def _create_id_map(self):
-        print("Creating id map.")
+        if self.prefix == "train_val":
+            print("Creating id map.")
+
         nodes = list(self.G.nodes)
         id_map = {nodes[i]: i for i in range(len(nodes))}
-        print("Saving id map to disk.")
+
         if self.prefix == "test":
             return id_map
         else:
+            print("Saving id map to disk.")
             with open(os.path.join(
                     self.path_persistent, self.prefix + "-id_map.json"),
                     "w") as f:
                 f.write(json.dumps(id_map))
 
     def _create_features(self):
-        print("Creating features.")
+        if self.prefix == "train_val":
+            print("Creating features.")
+
         features = np.array([self.G.nodes[node]["feature"] for node in
                              list(self.G.nodes)])
-        print("Saving features to disk.")
+
         if self.prefix == "test":
             return features
         else:
+            print("Saving features to disk.")
             np.save(os.path.join(self.path_persistent, self.prefix +
                                  "-feats.npy"),
                     features)
