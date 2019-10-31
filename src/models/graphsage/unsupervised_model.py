@@ -325,8 +325,8 @@ class UnsupervisedModel:
         # Initialize session
         sess = tf.compat.v1.Session(config=config)
         merged = tf.compat.v1.summary.merge_all()
-        summary_writer = tf.compat.v1.summary.FileWriter(self._log_dir(),
-                                                         sess.graph)
+#        summary_writer = tf.compat.v1.summary.FileWriter(self._log_dir(),
+#                                                         sess.graph)
 
         # Initialize model saver
         saver = tf.compat.v1.train.Saver(max_to_keep=self.epochs)
@@ -391,8 +391,8 @@ class UnsupervisedModel:
                 else:
                     shadow_mrr -= (1-0.99) * (shadow_mrr - val_mrr)
 
-                if total_steps % self.print_every == 0:
-                    summary_writer.add_summary(outs[0], total_steps)
+#                if total_steps % self.print_every == 0:
+#                    summary_writer.add_summary(outs[0], total_steps)
 
                 # Print results
                 avg_time = (avg_time * total_steps + time.time() - t) / (
@@ -484,8 +484,8 @@ class UnsupervisedModel:
         # Initialize session
         sess = tf.compat.v1.Session(config=config)
         merged = tf.compat.v1.summary.merge_all()
-        summary_writer = tf.compat.v1.summary.FileWriter(self._log_dir(),
-                                                         sess.graph)
+#        summary_writer = tf.compat.v1.summary.FileWriter(self._log_dir(),
+#                                                         sess.graph)
 
         # Initialize model saver
         saver = tf.compat.v1.train.Saver()

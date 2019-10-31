@@ -96,7 +96,7 @@ class GraphSAGENeighbourModel(AbstractModel):
         # Generate an ID for the query
         query_id = "new_node_id:" + "-".join(
                 [str(i) for i in random.sample(range(0, 10000), 5)])
-        return query_batch((query_id, query[0], query[1], query[2]))
+        return self.query_batch([(query_id, query[0], query[1], query[2])])
 
     def query_batch(self, batch):
         """Queries the model and returns a lis of recommendations.
@@ -130,7 +130,7 @@ class GraphSAGENeighbourModel(AbstractModel):
                   total=len(test_embeddings)) as pbar:
             for vector in test_embeddings:
                 similarities.append(self.sim.similar_by_vector(
-                            vector, topn=10))
+                            vector, topn=self.recs*10))
                 pbar.update(1)
 
         # Map similar papers to conferences
