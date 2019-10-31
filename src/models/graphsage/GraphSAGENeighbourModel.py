@@ -138,18 +138,18 @@ class GraphSAGENeighbourModel(AbstractModel):
         with tqdm(desc="Computing conference predicitons.",
                   total=len(similarities)) as pbar:
             for similarity in similarities:
-                conferences = list()
-                scores = list()
-                idx = 0
-                while len(conferences) < self.recs:
-                    conf = list(self.df_train[
-                            self.df_train.chapter == similarity[
-                                    idx][0]].conferenceseries)[0]
-                    if conf not in conferences:
-                        conferences.append(conf)
-                        scores.append(similarity[idx][1])
-                    idx += 1
-                conferenceseries.append(conferences)
+                conferences = set()
+                scores = []
+                for idx in range(len(similarity)):
+                    conferences_length = len(conferences)
+                    if conferences_length < self.recs:
+                        conferences.add(
+                                list(self.df_train[
+                                        self.df_train.chapter == similarity[
+                                         idx][0]].conferenceseries)[0])
+                        if len(conferences) != conferences_length:
+                            scores.append(similarity[idx][1])
+                conferenceseries.append(list(conferences))
                 confidences.append(scores)
                 pbar.update(1)
 
