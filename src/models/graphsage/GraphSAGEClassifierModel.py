@@ -107,8 +107,6 @@ class GraphSAGEClassifierModel(AbstractModel):
         # Compute predictions
         predictions = self.classifier.predict_proba(test_embeddings)
         sorted_predictions = np.argsort(-np.array(predictions))
-        print(sorted_predictions.shape)
-        print(sorted_predictions[:][0:self.recs])
 
         conferenceseries = list()
         confidences = list()
@@ -118,7 +116,8 @@ class GraphSAGEClassifierModel(AbstractModel):
             scores = list()
             i = 0
             while len(conferences) < self.recs:
-                conf = self.label_encoder.inverse_transform(order[i])
+                conf = self.label_encoder.inverse_transform(
+                        [order[i]]).tolist()[0]
                 if conf not in conferences:
                     conferences.append(conf)
                     scores.append(predictions[index][order][i])
@@ -205,7 +204,7 @@ class GraphSAGEClassifierModel(AbstractModel):
     def _load_model_classifier(self):
         if os.path.isfile(self.classifier_file):
             print("Loading classifier...")
-            with open(self.classifier_file,"rb") as f:
+            with open(self.classifier_file, "rb") as f:
                 self.label_encoder, self.labels, self.classifier = pickle.load(
                         f)
                 print("Loaded.")
@@ -213,7 +212,7 @@ class GraphSAGEClassifierModel(AbstractModel):
         return False
 
     def _save_model_classifier(self):
-        with open(self.classifier_file,"wb") as f:
+        with open(self.classifier_file, "wb") as f:
             pickle.dump([self.label_encoder, self.labels, self.classifier],
                         f, protocol=4)
 

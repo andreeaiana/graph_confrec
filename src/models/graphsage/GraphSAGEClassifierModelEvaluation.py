@@ -57,14 +57,14 @@ class GraphSAGEClassifierModelEvaluation():
         elif classifier_name == "KNN":
             classifier = KNeighborsClassifier(n_neighbors=30, n_jobs=10)
         elif classifier_name == "MLP":
-            classifier = MLPClassifier(random_state=0)
+            classifier = MLPClassifier(max_iter=400, random_state=0)
         elif classifier_name == "AdaBoost":
             classifier = AdaBoostClassifier(
                     base_estimator=DecisionTreeClassifier(max_depth=8),
                     n_estimators=100, random_state=0)
         elif classifier_name == "RandomForest":
             classifier = RandomForestClassifier(n_jobs=10, random_state=0)
-        elif classifier_name == "MultinomialLogisticsRegression":
+        elif classifier_name == "MultinomialLogisticRegression":
             classifier = LogisticRegression(penalty="l2",
                                             random_state=0,
                                             solver="saga",
