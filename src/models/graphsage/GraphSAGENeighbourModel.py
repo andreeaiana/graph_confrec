@@ -2,7 +2,6 @@
 import os
 import sys
 import json
-import pickle
 import random
 import numpy as np
 import pandas as pd
@@ -139,23 +138,26 @@ class GraphSAGENeighbourModel(AbstractModel):
         with tqdm(desc="Computing conference predicitons.",
                   total=len(similarities)) as pbar:
             for similarity in similarities:
-                conferences = set()
-                scores = []
-                for idx in range(len(similarity)):
-                    conferences_length = len(conferences)
-                    if conferences_length < self.recs:
-                        conferences.add(
-                                list(self.df_train[
-                                        self.df_train.chapter == similarity[
-                                        idx][0]].conferenceseries)[0])
-                        if len(conferences) != conferences_length:
-                            scores.append(similarity[idx][1])
-                conferenceseries.append(list(conferences))
+                conferences = list()
+                scores = list()
+                idx = 0
+                while len(conferences) < self.recs:
+                    conf = list(self.df_train[
+                            self.df_train.chapter == similarity[
+                                    idx][0]].conferenceseries)[0]
+                    if conf not in conferences:
+                        conferences.append(conf)
+                        scores.append(similarity[idx][1])
+                    idx += 1
+                conferenceseries.append(conferences)
                 confidences.append(scores)
                 pbar.update(1)
 
         results = [conferenceseries, confidences]
         return results
+
+    def train(self):
+        pass
 
     def _load_train_embeddings(self):
         embeddings_file = os.path.join(self.graphsage_model._log_dir(),
@@ -170,7 +172,6 @@ class GraphSAGENeighbourModel(AbstractModel):
                 for i, line in enumerate(f):
                     self.pretrained_embeddings_id_map[line.strip()] = i
             return True
-
         return False
 
     def _load_training_graph(self):
