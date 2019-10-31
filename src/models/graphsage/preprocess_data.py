@@ -159,8 +159,7 @@ class Processor():
         return self.G, features, id_map
 
     def _add_nodes(self, data, test=False, val=False):
-        with tqdm(desc="Adding training nodes: ", total=len(data),
-                  unit="node") as pbar:
+        with tqdm(desc="Adding nodes: ", total=len(data), unit="node") as pbar:
             for idx in range(len(data)):
                 self.G.add_node(
                         data.chapter.iloc[idx],
@@ -178,8 +177,7 @@ class Processor():
         print("Nodes in graph: {}.\n".format(self.G.number_of_nodes()))
 
     def _add_edges(self, data):
-        with tqdm(desc="Adding training edges: ", total=len(data),
-                  unit="edge") as pbar:
+        with tqdm(desc="Adding edges: ", total=len(data), unit="edge") as pbar:
             for idx in range(len(data)):
                 self.G.add_edges_from(
                         [(data.chapter.iloc[idx],
