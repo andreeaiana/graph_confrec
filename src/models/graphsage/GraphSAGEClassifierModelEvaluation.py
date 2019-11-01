@@ -10,7 +10,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.ensemble import RandomForestClassifier
 
 sys.path.insert(0, os.path.join(os.getcwd(), "..", "evaluations"))
 sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "data"))
@@ -57,11 +57,7 @@ class GraphSAGEClassifierModelEvaluation():
         elif classifier_name == "KNN":
             classifier = KNeighborsClassifier(n_neighbors=30, n_jobs=10)
         elif classifier_name == "MLP":
-            classifier = MLPClassifier(max_iter=400, random_state=0)
-        elif classifier_name == "AdaBoost":
-            classifier = AdaBoostClassifier(
-                    base_estimator=DecisionTreeClassifier(max_depth=8),
-                    n_estimators=100, random_state=0)
+            classifier = MLPClassifier(random_state=0)
         elif classifier_name == "RandomForest":
             classifier = RandomForestClassifier(n_jobs=10, random_state=0)
         elif classifier_name == "MultinomialLogisticRegression":
@@ -97,9 +93,8 @@ class GraphSAGEClassifierModelEvaluation():
         parser = argparse.ArgumentParser(
                 description='Arguments for unsupervised GraphSAGE model.')
         parser.add_argument("classifier_name",
-                            choices=["GaussianNB", "AdaBoost", "RandomForest",
-                                     "KNN", "MLP",
-                                     "MultinomialLogisticRegression"],
+                            choices=["GaussianNB", "RandomForest", "KNN",
+                                     "MLP", "MultinomialLogisticRegression"],
                             help="The name of the classifier.")
         parser.add_argument('embedding_type',
                             choices=["AVG_L", "AVG_2L", "AVG_SUM_L4",
