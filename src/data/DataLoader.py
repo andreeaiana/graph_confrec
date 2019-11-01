@@ -319,15 +319,16 @@ class DataLoader:
     # Get training data with abstracts
     def training_data_with_abstracts(self, years=None):
         self.training_data(years).abstracts()
-        self.data = self.data[["chapter", "chapter_abstract",
-                               "conferenceseries", "chapter_title"]].copy()
+        self.data = self.data[["chapter", "chapter_abstract", "chapter_title",
+                               "conferenceseries", "conferenceseries_name"
+                               ]].copy()
         self.data.drop(
                 list(self.data[pd.isnull(self.data.chapter_abstract)].index),
                 inplace=True
                 )
         self.data = self.data.reset_index(drop=True)
-        self.data = self.data[["chapter", "chapter_abstract",
-                               "conferenceseries", "chapter_title"]]
+        self.data = self.data[["chapter", "chapter_abstract", "chapter_title",
+                               "conferenceseries", "conferenceseries_name"]]
         return self
 
     # Get training data with abstracts and citations
@@ -335,7 +336,8 @@ class DataLoader:
         self.training_data(years).abstracts().citations()
         self.data = self.data[["chapter", "chapter_abstract",
                                "chapter_citations", "chapter_title",
-                               "conferenceseries"]].copy()
+                               "conferenceseries", "conferenceseries_name"
+                               ]].copy()
         self.data.drop(
                 list(self.data[pd.isnull(self.data.chapter_abstract)].index),
                 inplace=True
@@ -348,21 +350,22 @@ class DataLoader:
         self.data = self.data.reset_index(drop=True)
         self.data = self.data[["chapter", "chapter_abstract",
                                "chapter_citations", "chapter_title",
-                               "conferenceseries"]]
+                               "conferenceseries", "conferenceseries_name"]]
         return self
 
     # Get validation data with abstracts
     def validation_data_with_abstracts(self, years=None):
         self.validation_data(years).abstracts()
-        self.data = self.data[["chapter", "chapter_abstract",
-                               "conferenceseries", "chapter_title"]].copy()
+        self.data = self.data[["chapter", "chapter_abstract", "chapter_title"
+                               "conferenceseries", "conferenceseries_name"
+                               ]].copy()
         self.data.drop(
                 list(self.data[pd.isnull(self.data.chapter_abstract)].index),
                 inplace=True
                 )
         self.data = self.data.reset_index(drop=True)
-        self.data = self.data[["chapter", "chapter_abstract",
-                               "conferenceseries", "chapter_title"]]
+        self.data = self.data[["chapter", "chapter_abstract", "chapter_title"
+                               "conferenceseries", "conferenceseries_name"]]
         return self
 
     # Get validation data with abstracts and citations
@@ -370,7 +373,8 @@ class DataLoader:
         self.validation_data(years).abstracts().citations()
         self.data = self.data[["chapter", "chapter_abstract",
                                "chapter_citations", "chapter_title",
-                               "conferenceseries"]].copy()
+                               "conferenceseries", "conferenceseries_name"
+                               ]].copy()
         self.data.drop(
                 list(self.data[pd.isnull(self.data.chapter_abstract)].index),
                 inplace=True
@@ -383,21 +387,22 @@ class DataLoader:
         self.data = self.data.reset_index(drop=True)
         self.data = self.data[["chapter", "chapter_abstract",
                                "chapter_citations", "chapter_title",
-                               "conferenceseries"]]
+                               "conferenceseries", "conferenceseries_name"]]
         return self
 
     # Get test data with abstracts
     def test_data_with_abstracts(self, years=None):
         self.test_data(years).abstracts()
-        self.data = self.data[["chapter", "chapter_abstract",
-                               "conferenceseries", "chapter_title"]].copy()
+        self.data = self.data[["chapter", "chapter_abstract", "chapter_title"
+                               "conferenceseries", "conferenceseries_name"
+                               ]].copy()
         self.data.drop(
                 list(self.data[pd.isnull(self.data.chapter_abstract)].index),
                 inplace=True
                 )
         self.data = self.data.reset_index(drop=True)
-        self.data = self.data[["chapter", "chapter_abstract",
-                               "conferenceseries", "chapter_title"]]
+        self.data = self.data[["chapter", "chapter_abstract", "chapter_title"
+                               "conferenceseries", "conferenceseries_name"]]
         return self
 
     # Get test data with abstracts and citations
@@ -405,7 +410,8 @@ class DataLoader:
         self.test_data(years).abstracts().citations()
         self.data = self.data[["chapter", "chapter_abstract",
                                "chapter_citations", "chapter_title",
-                               "conferenceseries"]].copy()
+                               "conferenceseries", "conferenceseries_name"
+                               ]].copy()
         self.data.drop(
                 list(self.data[pd.isnull(self.data.chapter_abstract)].index),
                 inplace=True
@@ -418,7 +424,7 @@ class DataLoader:
         self.data = self.data.reset_index(drop=True)
         self.data = self.data[["chapter", "chapter_abstract",
                                "chapter_citations", "chapter_title",
-                               "conferenceseries"]]
+                               "conferenceseries", "conferenceseries_name"]]
         return self
 
     # Get test data with abstracts ready for evaluation
