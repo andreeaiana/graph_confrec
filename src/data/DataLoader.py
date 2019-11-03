@@ -356,7 +356,7 @@ class DataLoader:
     # Get validation data with abstracts
     def validation_data_with_abstracts(self, years=None):
         self.validation_data(years).abstracts()
-        self.data = self.data[["chapter", "chapter_abstract", "chapter_title"
+        self.data = self.data[["chapter", "chapter_abstract", "chapter_title",
                                "conferenceseries", "conferenceseries_name"
                                ]].copy()
         self.data.drop(
@@ -364,7 +364,7 @@ class DataLoader:
                 inplace=True
                 )
         self.data = self.data.reset_index(drop=True)
-        self.data = self.data[["chapter", "chapter_abstract", "chapter_title"
+        self.data = self.data[["chapter", "chapter_abstract", "chapter_title",
                                "conferenceseries", "conferenceseries_name"]]
         return self
 
@@ -393,7 +393,7 @@ class DataLoader:
     # Get test data with abstracts
     def test_data_with_abstracts(self, years=None):
         self.test_data(years).abstracts()
-        self.data = self.data[["chapter", "chapter_abstract", "chapter_title"
+        self.data = self.data[["chapter", "chapter_abstract", "chapter_title",
                                "conferenceseries", "conferenceseries_name"
                                ]].copy()
         self.data.drop(
@@ -401,7 +401,7 @@ class DataLoader:
                 inplace=True
                 )
         self.data = self.data.reset_index(drop=True)
-        self.data = self.data[["chapter", "chapter_abstract", "chapter_title"
+        self.data = self.data[["chapter", "chapter_abstract", "chapter_title",
                                "conferenceseries", "conferenceseries_name"]]
         return self
 

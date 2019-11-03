@@ -57,7 +57,7 @@ class GraphSAGEClassifierModelEvaluation():
         elif classifier_name == "KNN":
             classifier = KNeighborsClassifier(n_neighbors=30, n_jobs=10)
         elif classifier_name == "MLP":
-            classifier = MLPClassifier(random_state=0)
+            classifier = MLPClassifier(random_state=0, verbose=True)
         elif classifier_name == "RandomForest":
             classifier = RandomForestClassifier(n_jobs=10, random_state=0)
         elif classifier_name == "MultinomialLogisticRegression":
@@ -65,6 +65,7 @@ class GraphSAGEClassifierModelEvaluation():
                                             random_state=0,
                                             solver="saga",
                                             multi_class="multinomial",
+                                            verbose=1,
                                             n_jobs=10)
         else:
             raise ValueError("Classifier name not recognised.")
