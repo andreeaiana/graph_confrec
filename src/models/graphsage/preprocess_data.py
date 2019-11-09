@@ -6,6 +6,7 @@ import numpy as np
 import json
 from tqdm import tqdm
 from collections import Counter
+from itertools import combinations
 import matplotlib.pyplot as plt
 import networkx as nx
 from networkx.readwrite import json_graph
@@ -22,14 +23,15 @@ from SciBERTEmbeddingsParser import EmbeddingsParser
 
 class Processor():
 
-    def __init__(self, embedding_type, gpu=None):
+    def __init__(self, embedding_type, graph_type, gpu=None):
         self.embedding_type = embedding_type
+        self.graph_type = graph_type
         self.embeddings_parser = EmbeddingsParser(gpu)
         self.timer = Timer()
         self.path_persistent = os.path.join(
                 os.path.dirname(os.path.realpath(__file__)),
                 "..", "..", "..", "data", "interim", "graphsage",
-                self.embedding_type)
+                self.embedding_type, self.graph_type)
         if not os.path.isdir(self.path_persistent):
             os.mkdir(self.path_persistent)
 
@@ -52,10 +54,14 @@ class Processor():
         print("Adding training nodes.")
         self._add_nodes(df_train, test=False, val=False)
         print("Adding training edges.")
+        if self.graph_type == "authors":
+            df_train = d_train.author_names().data
         self._add_edges(df_train)
         print("Adding validation nodes.")
         self._add_nodes(df_validation, test=False, val=True)
         print("Adding validation edges.")
+        if self.graph_type == "authors":
+            df_validation = d_val.author_names().data
         self._add_edges(df_validation)
         print("Removing nodes without features.")
         for node in list(self.G.nodes()):
@@ -92,6 +98,7 @@ class Processor():
         self._degree_histogram()
 
     def test_data(self, df_test, G_train, normalize=True):
+        # TO DO: Add case for authors
         self.prefix = "test"
         print("Preprocessing data...")
         self.G = G_train
@@ -177,6 +184,18 @@ class Processor():
         print("Nodes in graph: {}.\n".format(self.G.number_of_nodes()))
 
     def _add_edges(self, data):
+        if self.graph_type == "citations":
+            self._add_edges_citations(data)
+        elif self.graph_type == "conferenceseries":
+            self._add_edges_conferenceseries(data)
+        elif self.graph_type == "authors":
+            self._add_edges_authors(data)
+        else:
+            raise KeyError("Graph type unknown.")
+
+    def _add_edges_citations(self, data):
+        """Adds edges between papers that share a citation.
+        """
         with tqdm(desc="Adding edges: ", total=len(data), unit="edge") as pbar:
             for idx in range(len(data)):
                 self.G.add_edges_from(
@@ -184,6 +203,32 @@ class Processor():
                           data.chapter_citations.iloc[idx][i])
                          for i in range(
                                 len(data.chapter_citations.iloc[idx]))])
+                pbar.update(1)
+        print("Edges in graph: {}.\n".format(self.G.number_of_edges()))
+
+    def _add_edges_conferenceseries(self, data):
+        """Adds edges between papers published at the same conferenceseries.
+        """
+        data_grouped = data.groupby("conferenceseries")["chapter"].agg(
+                list).reset_index()
+        with tqdm(desc="Adding edges: ", total=len(data_grouped),
+                  unit="edge") as pbar:
+            for idx in range(len(data_grouped)):
+                self.G.add_edges_from(combinations(
+                        data_grouped.iloc[idx].chapter, 2))
+                pbar.update(1)
+        print("Edges in graph: {}.\n".format(self.G.number_of_edges()))
+
+    def _add_edges_authors(self, data):
+        """Adds edges between papers sharing an author.
+        """
+        data_grouped = data.groupby("author_name")["chapter"].agg(
+                list).reset_index()
+        with tqdm(desc="Adding edges: ", total=len(data_grouped),
+                  unit="edge") as pbar:
+            for idx in range(len(data_grouped)):
+                self.G.add_edges_from(combinations(
+                        data_grouped.iloc[idx].chapter, 2))
                 pbar.update(1)
         print("Edges in graph: {}.\n".format(self.G.number_of_edges()))
 
