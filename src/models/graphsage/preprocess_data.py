@@ -97,7 +97,7 @@ class Processor():
         # Plot degree histogram
         self._degree_histogram()
 
-    def test_data(self, df_test, G_train, normalize=True):
+    def test_data(self, df_test, G_train, authors_df=None, normalize=True):
         # TO DO: Add case for authors
         self.prefix = "test"
         print("Preprocessing data...")
@@ -109,6 +109,12 @@ class Processor():
         print("Adding test nodes.")
         self._add_nodes(df_test, test=True, val=False)
         print("Adding test edges.")
+        if self.graph_type == "authors":
+            if authors_df is not None:
+                df_test = pd.merge(df_test, authors_df, how="left",
+                                   on=["chapter", "chapter"])
+            else:
+                raise ValueError("Paper authors are missing.")
         self._add_edges(df_test)
         print("Removing nodes without features.")
         for node in list(self.G.nodes()):
