@@ -114,7 +114,7 @@ class Processor():
                 df_test = pd.merge(df_test, authors_df, how="left",
                                    on=["chapter", "chapter"])
             else:
-                raise ValueError("Paper authors are missing.")
+                raise ValueError("Chapter authors are missing.")
         self._add_edges(df_test)
         print("Removing nodes without features.")
         for node in list(self.G.nodes()):
@@ -192,8 +192,8 @@ class Processor():
     def _add_edges(self, data):
         if self.graph_type == "citations":
             self._add_edges_citations(data)
-        elif self.graph_type == "conferenceseries":
-            self._add_edges_conferenceseries(data)
+#        elif self.graph_type == "conferenceseries":
+#            self._add_edges_conferenceseries(data)
         elif self.graph_type == "authors":
             self._add_edges_authors(data)
         else:
@@ -212,18 +212,18 @@ class Processor():
                 pbar.update(1)
         print("Edges in graph: {}.\n".format(self.G.number_of_edges()))
 
-    def _add_edges_conferenceseries(self, data):
-        """Adds edges between papers published at the same conferenceseries.
-        """
-        data_grouped = data.groupby("conferenceseries")["chapter"].agg(
-                list).reset_index()
-        with tqdm(desc="Adding edges: ", total=len(data_grouped),
-                  unit="edge") as pbar:
-            for idx in range(len(data_grouped)):
-                self.G.add_edges_from(combinations(
-                        data_grouped.iloc[idx].chapter, 2))
-                pbar.update(1)
-        print("Edges in graph: {}.\n".format(self.G.number_of_edges()))
+#    def _add_edges_conferenceseries(self, data):
+#        """Adds edges between papers published at the same conferenceseries.
+#        """
+#        data_grouped = data.groupby("conferenceseries")["chapter"].agg(
+#                list).reset_index()
+#        with tqdm(desc="Adding edges: ", total=len(data_grouped),
+#                  unit="edge") as pbar:
+#            for idx in range(len(data_grouped)):
+#                self.G.add_edges_from(combinations(
+#                        data_grouped.iloc[idx].chapter, 2))
+#                pbar.update(1)
+#        print("Edges in graph: {}.\n".format(self.G.number_of_edges()))
 
     def _add_edges_authors(self, data):
         """Adds edges between papers sharing an author.

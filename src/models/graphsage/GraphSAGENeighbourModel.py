@@ -49,7 +49,8 @@ class GraphSAGENeighbourModel(AbstractModel):
                                 validate_iter, validate_batch_size, gpu,
                                 print_every, max_total_steps,
                                 log_device_placement)
-        self.preprocessor = Processor(self.embedding_type, self.gpu)
+        self.preprocessor = Processor(self.embedding_type, "citations",
+                                      self.gpu)
 
         # Prepare the training data
         d_train = DataLoader()

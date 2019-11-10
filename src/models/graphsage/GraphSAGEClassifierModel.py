@@ -47,7 +47,7 @@ class GraphSAGEClassifierModel(AbstractModel):
                                 validate_iter, validate_batch_size, gpu,
                                 print_every, max_total_steps,
                                 log_device_placement)
-        self.preprocessor = Processor(self.embedding_type, gpu)
+        self.preprocessor = Processor(self.embedding_type, "citations", gpu)
 
         self.classifier_file = os.path.join(
                 self.graphsage_model._log_dir(),
