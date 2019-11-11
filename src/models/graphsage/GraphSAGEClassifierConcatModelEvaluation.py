@@ -18,18 +18,19 @@ sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "utils"))
 
 from DataLoader import DataLoader
 from EvaluationContainer import EvaluationContainer
-from GraphSAGEClassifierModel import GraphSAGEClassifierModel
+from GraphSAGEClassifierConcatModel import GraphSAGEClassifierConcatModel
 
 
-class GraphSAGEClassifierModelEvaluation():
+class GraphSAGEClassifierConcatModelEvaluation():
 
     def __init__(self, classifier_name, embedding_type,
                  model_checkpoint_citations, model_checkpoint_authors,
-                 train_prefix, model_name, model_size="small",
-                 learning_rate=0.00001, epochs=10, dropout=0.0,
-                 weight_decay=0.0, max_degree=100, samples_1=25, samples_2=10,
-                 dim_1=128, dim_2=128, random_context=True, neg_sample_size=20,
-                 batch_size=512, identity_dim=0, save_embeddings=False,
+                 train_prefix_citations, train_prefix_authors, model_name,
+                 model_size="small", learning_rate=0.00001, epochs=10,
+                 dropout=0.0, weight_decay=0.0, max_degree=100, samples_1=25,
+                 samples_2=10, dim_1=128, dim_2=128, random_context=True,
+                 neg_sample_size=20, batch_size=512, identity_dim=0,
+                 save_embeddings=False,
                  base_log_dir='../../../data/processed/graphsage/',
                  validate_iter=5000, validate_batch_size=256, gpu=0,
                  print_every=50, max_total_steps=10**10,
@@ -41,17 +42,18 @@ class GraphSAGEClassifierModelEvaluation():
         classifier = self._choose_classifier(classifier_name)
 
         self.d_test = DataLoader()
-        self.d_test_authors = DataLoader(0)
+        self.d_test_authors = DataLoader()
         self.d_train = DataLoader()
 
-        self.model = GraphSAGEClassifierModel(
+        self.model = GraphSAGEClassifierConcatModel(
                 classifier, embedding_type, model_checkpoint_citations,
-                model_checkpoint_authors, train_prefix, model_name, model_size,
-                learning_rate, epochs, dropout, weight_decay, max_degree,
-                samples_1, samples_2, dim_1, dim_2, random_context,
-                neg_sample_size, batch_size, identity_dim, save_embeddings,
-                base_log_dir, validate_iter, validate_batch_size, gpu,
-                print_every, max_total_steps, log_device_placement, recs)
+                model_checkpoint_authors, train_prefix_citations,
+                train_prefix_authors, model_name, model_size, learning_rate,
+                epochs, dropout, weight_decay, max_degree, samples_1,
+                samples_2, dim_1, dim_2, random_context, neg_sample_size,
+                batch_size, identity_dim, save_embeddings, base_log_dir,
+                validate_iter, validate_batch_size, gpu, print_every,
+                max_total_steps, log_device_placement, recs)
 
     def _choose_classifier(self, classifier_name):
         if classifier_name == "GaussianNB":
@@ -114,9 +116,12 @@ class GraphSAGEClassifierModelEvaluation():
         parser.add_argument('model_checkpoint_authors',
                             help='Name of the GraphSAGE model checkpoint ' +
                             'for the authors graph.')
-        parser.add_argument('train_prefix',
+        parser.add_argument('train_prefix_citations',
                             help='Name of the object file that stores the '
-                            + 'training data.')
+                            + 'citations training data.')
+        parser.add_argument('train_prefix_authors',
+                            help='Name of the object file that stores the '
+                            + 'authors training data.')
         parser.add_argument('model_name',
                             choices=["graphsage_mean", "gcn", "graphsage_seq",
                                      "graphsage_maxpool", "graphsage_meanpool"
@@ -221,19 +226,20 @@ class GraphSAGEClassifierModelEvaluation():
                             help='Number of recommendations.')
         args = parser.parse_args()
 
-        from GraphSAGEClassifierModelEvaluation import GraphSAGEClassifierModelEvaluation
+        from GraphSAGEClassifierConcatModelEvaluation import GraphSAGEClassifierConcatModelEvaluation
         print("Starting...")
-        model = GraphSAGEClassifierModelEvaluation(
+        model = GraphSAGEClassifierConcatModelEvaluation(
                 args.classifier_name, args.embedding_type,
                 args.model_checkpoint_citations, args.model_checkpoint_authors,
-                args.train_prefix, args.model_name, args.model_size,
-                args.learning_rate, args.epochs, args.dropout,
-                args.weight_decay, args.max_degree, args.samples_1,
-                args.samples_2, args.dim_1, args.dim_2, args.random_context,
-                args.neg_sample_size, args.batch_size, args.identity_dim,
-                args.save_embeddings, args.base_log_dir, args.validate_iter,
-                args.validate_batch_size, args.gpu, args.print_every,
-                args.max_total_steps, args.log_device_placement, args.recs)
+                args.train_prefix_citations, args.train_prefix_authors,
+                args.model_name, args.model_size, args.learning_rate,
+                args.epochs, args.dropout, args.weight_decay, args.max_degree,
+                args.samples_1, args.samples_2, args.dim_1, args.dim_2,
+                args.random_context, args.neg_sample_size, args.batch_size,
+                args.identity_dim, args.save_embeddings, args.base_log_dir,
+                args.validate_iter, args.validate_batch_size, args.gpu,
+                args.print_every, args.max_total_steps,
+                args.log_device_placement, args.recs)
         model.evaluate()
         print("Finished.")
 

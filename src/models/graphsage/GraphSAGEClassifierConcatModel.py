@@ -17,15 +17,15 @@ from preprocess_data import Processor
 from unsupervised_model import UnsupervisedModel
 
 
-class GraphSAGEClassifierModel(AbstractModel):
+class GraphSAGEClassifierConcatModel(AbstractModel):
 
     def __init__(self, classifier, embedding_type, model_checkpoint_citations,
-                 model_checkpoint_authors, train_prefix, model_name,
-                 model_size="small", learning_rate=0.00001, epochs=10,
-                 dropout=0.0, weight_decay=0.0, max_degree=100, samples_1=25,
-                 samples_2=10, dim_1=128, dim_2=128, random_context=True,
-                 neg_sample_size=20, batch_size=512, identity_dim=0,
-                 save_embeddings=False,
+                 model_checkpoint_authors, train_prefix_citations,
+                 train_prefix_authors, model_name, model_size="small",
+                 learning_rate=0.00001, epochs=10, dropout=0.0,
+                 weight_decay=0.0, max_degree=100, samples_1=25, samples_2=10,
+                 dim_1=128, dim_2=128, random_context=True, neg_sample_size=20,
+                 batch_size=512, identity_dim=0, save_embeddings=False,
                  base_log_dir='../../../data/processed/graphsage/',
                  validate_iter=5000, validate_batch_size=256, gpu=0,
                  print_every=50, max_total_steps=10**10,
@@ -33,18 +33,12 @@ class GraphSAGEClassifierModel(AbstractModel):
 
         self.classifier = classifier
         self.embedding_type = embedding_type
-        self.graph_type = graph_type
         self.model_checkpoint_citations = model_checkpoint_citations
         self.model_checkpoint_authors = model_checkpoint_authors
         self.recs = recs
 
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
-
-        train_prefix_citations = self.embedding_type + "/citations/" + \
-            train_prefix
-        train_prefix_authors = self.embedding_type + "/authors/" + \
-            train_prefix
 
         # GraphSAGE models
         self.graphsage_model_citations = UnsupervisedModel(
