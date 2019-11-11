@@ -23,12 +23,13 @@ from GraphSAGEClassifierModel import GraphSAGEClassifierModel
 
 class GraphSAGEClassifierModelEvaluation():
 
-    def __init__(self, classifier_name, embedding_type, model_checkpoint,
-                 train_prefix, model_name, model_size="small",
-                 learning_rate=0.00001, epochs=10, dropout=0.0,
-                 weight_decay=0.0, max_degree=100, samples_1=25, samples_2=10,
-                 dim_1=128, dim_2=128, random_context=True, neg_sample_size=20,
-                 batch_size=512, identity_dim=0, save_embeddings=False,
+    def __init__(self, classifier_name, embedding_type, graph_type,
+                 model_checkpoint, train_prefix, model_name,
+                 model_size="small", learning_rate=0.00001, epochs=10,
+                 dropout=0.0, weight_decay=0.0, max_degree=100, samples_1=25,
+                 samples_2=10, dim_1=128, dim_2=128, random_context=True,
+                 neg_sample_size=20, batch_size=512, identity_dim=0,
+                 save_embeddings=False,
                  base_log_dir='../../../data/processed/graphsage/',
                  validate_iter=5000, validate_batch_size=256, gpu=0,
                  print_every=50, max_total_steps=10**10,
@@ -43,11 +44,11 @@ class GraphSAGEClassifierModelEvaluation():
         self.d_train = DataLoader()
 
         self.model = GraphSAGEClassifierModel(
-                classifier, embedding_type, model_checkpoint, train_prefix,
-                model_name, model_size, learning_rate, epochs, dropout,
-                weight_decay, max_degree, samples_1, samples_2, dim_1, dim_2,
-                random_context, neg_sample_size, batch_size, identity_dim,
-                save_embeddings, base_log_dir, validate_iter,
+                classifier, embedding_type, graph_type, model_checkpoint,
+                train_prefix, model_name, model_size, learning_rate, epochs,
+                dropout, weight_decay, max_degree, samples_1, samples_2, dim_1,
+                dim_2, random_context, neg_sample_size, batch_size,
+                identity_dim, save_embeddings, base_log_dir, validate_iter,
                 validate_batch_size, gpu, print_every, max_total_steps,
                 log_device_placement, recs)
 
@@ -104,6 +105,9 @@ class GraphSAGEClassifierModelEvaluation():
                                      "SUM_L", "SUM_2L"
                                      ],
                             help="Type of embedding.")
+        parser.add_argument('graph_type',
+                            choices=["citations", "authors"],
+                            help="The type of graph used.")
         parser.add_argument('model_checkpoint',
                             help='Name of the GraphSAGE model checkpoint.')
         parser.add_argument('train_prefix',
@@ -216,7 +220,7 @@ class GraphSAGEClassifierModelEvaluation():
         from GraphSAGEClassifierModelEvaluation import GraphSAGEClassifierModelEvaluation
         print("Starting...")
         model = GraphSAGEClassifierModelEvaluation(
-                args.classifier_name, args.embedding_type,
+                args.classifier_name, args.embedding_type, args.graph_type,
                 args.model_checkpoint, args.train_prefix, args.model_name,
                 args.model_size, args.learning_rate, args.epochs, args.dropout,
                 args.weight_decay, args.max_degree, args.samples_1,

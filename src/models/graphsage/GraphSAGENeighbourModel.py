@@ -21,18 +21,19 @@ from unsupervised_model import UnsupervisedModel
 
 class GraphSAGENeighbourModel(AbstractModel):
 
-    def __init__(self, embedding_type, model_checkpoint, train_prefix,
-                 model_name, model_size="small", learning_rate=0.00001,
-                 epochs=10, dropout=0.0, weight_decay=0.0, max_degree=100,
-                 samples_1=25, samples_2=10, dim_1=128, dim_2=128,
-                 random_context=True, neg_sample_size=20, batch_size=512,
-                 identity_dim=0, save_embeddings=False,
+    def __init__(self, embedding_type, graph_type, model_checkpoint,
+                 train_prefix, model_name, model_size="small",
+                 learning_rate=0.00001, epochs=10, dropout=0.0,
+                 weight_decay=0.0, max_degree=100, samples_1=25, samples_2=10,
+                 dim_1=128, dim_2=128, random_context=True, neg_sample_size=20,
+                 batch_size=512, identity_dim=0, save_embeddings=False,
                  base_log_dir='../../../data/processed/graphsage/',
                  validate_iter=5000, validate_batch_size=256, gpu=0,
                  print_every=50, max_total_steps=10**10,
                  log_device_placement=False, recs=10):
 
         self.embedding_type = embedding_type
+        self.graph_type = graph_type
         self.model_checkpoint = model_checkpoint
         self.recs = recs
         self.gpu = gpu
@@ -75,7 +76,7 @@ class GraphSAGENeighbourModel(AbstractModel):
 
         print("Loading training walks...")
         if not self._load_training_walks():
-            print("The walks graph do not exist.")
+            print("The walks do not exist.")
         else:
             print("Loaded.")
 
@@ -179,7 +180,7 @@ class GraphSAGENeighbourModel(AbstractModel):
         graph_file = os.path.join(
                 os.path.dirname(os.path.realpath(__file__)),
                 "..", "..", "..", "data", "interim", "graphsage",
-                self.embedding_type, "train_val-G.json")
+                self.embedding_type, self.graph_type, "train_val-G.json")
         if os.path.isfile(graph_file):
             with open(graph_file) as f:
                 self.G_train = json_graph.node_link_graph(json.load(f))
@@ -190,7 +191,7 @@ class GraphSAGENeighbourModel(AbstractModel):
         walks_file = os.path.join(
                 os.path.dirname(os.path.realpath(__file__)),
                 "..", "..", "..", "data", "interim", "graphsage",
-                self.embedding_type, "train_val-walks.txt")
+                self.embedding_type, self.graph_type, "train_val-walks.txt")
         self.walks = []
         if isinstance(list(self.G_train.nodes)[0], int):
             conversion = lambda n: int(n)
