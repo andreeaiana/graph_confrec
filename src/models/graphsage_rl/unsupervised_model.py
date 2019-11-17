@@ -706,114 +706,122 @@ class UnsupervisedModelRL:
         sess.close()
         tf.compat.v1.reset_default_graph()
 
-#    def predict(self, test_data, model_checkpoint, gpu_mem_fraction=None):
-#        timer = Timer()
-#        timer.tic()
-#
-#        G = test_data[0]
-#        features = test_data[1]
-#        id_map = test_data[2]
-#
-#        if features is not None:
-#            # pad with dummy zero vector
-#            features = np.vstack([features, np.zeros((features.shape[1],))])
-#
-#        context_pairs = test_data[3] if self.random_context else None
-#        placeholders = self._construct_placeholders()
-#        minibatch = EdgeMinibatchIterator(
-#                    G,
-#                    id_map,
-#                    placeholders,
-#                    batch_size=self.batch_size,
-#                    max_degree=self.max_degree,
-#                    num_neg_samples=self.neg_sample_size,
-#                    context_pairs=context_pairs)
-#
-#        adj_info_ph = tf.compat.v1.placeholder(tf.int32,
-#                                               shape=minibatch.adj.shape)
-#        adj_info = tf.Variable(adj_info_ph, trainable=False, name="adj_info")
-#
-#        model = self._create_model(placeholders, features, adj_info, minibatch)
-#
-#        config = tf.compat.v1.ConfigProto(
-#                log_device_placement=self.log_device_placement)
-#
-#        if gpu_mem_fraction is not None:
-#            config.gpu_options.per_process_gpu_memory_fraction = gpu_mem_fraction
-#        else:
-#            config.gpu_options.allow_growth = True
-#        config.allow_soft_placement = True
-#
-#        # Initialize session
-#        sess = tf.compat.v1.Session(config=config)
-#        merged = tf.compat.v1.summary.merge_all()
-##        summary_writer = tf.compat.v1.summary.FileWriter(self._log_dir(),
-##                                                         sess.graph)
-#
-#        # Initialize model saver
-#        saver = tf.compat.v1.train.Saver()
-#
-#        # Init variables
-#        sess.run(tf.compat.v1.global_variables_initializer(),
-#                 feed_dict={adj_info_ph: minibatch.adj})
-#
-#        val_adj_info = tf.compat.v1.assign(adj_info, minibatch.test_adj)
-#
-#        # Restore model
-#        print("Restoring trained model.")
-#        checkpoint_file = os.path.join(self._log_dir(), model_checkpoint)
-#        ckpt = tf.compat.v1.train.get_checkpoint_state(checkpoint_file)
-#        if checkpoint_file:
-#            saver.restore(sess, checkpoint_file)
-#            print("Model restored.")
-#        else:
-#            print("This model checkpoint does not exist. The model might " +
-#                  "not be trained yet or the checkpoint is invalid.")
-#
-#        # Infer embeddings
-#        sess.run(val_adj_info.op)
-#        print("Computing embeddings...")
-#        val_embeddings = []
-#        finished = False
-#        seen = set([])
-#        nodes = []
-#        iter_num = 0
-#        while not finished:
-#            feed_dict_val, finished, edges = minibatch.incremental_embed_feed_dict(
-#                                            self.validate_batch_size, iter_num)
-#            iter_num += 1
-#            outs_val = sess.run([model.loss, model.mrr, model.outputs1],
-#                                feed_dict=feed_dict_val)
-#            for i, edge in enumerate(edges):
-#                if not edge[0] in seen:
-#                    val_embeddings.append(outs_val[-1][i, :])
-#                    nodes.append(edge[0])
-#                    seen.add(edge[0])
-#
-#        val_embeddings = np.vstack(val_embeddings)
-#        if self.save_embeddings:
-#            print("Saving embeddings...")
-#            if not os.path.exists(self._log_dir()):
-#                os.makedirs(self._log_dir())
-#            np.save(self._log_dir() + "inferred_embeddings.npy",
-#                    val_embeddings)
-#            with open(self._log_dir() + "inferred_embeddings_ids.txt",
-#                      "w") as fp:
-#                fp.write("\n".join(map(str, nodes)))
-#            print("Embeddings saved.\n")
-#
-#        # Return only the embeddings of the test nodes
-#        test_embeddings_ids = {}
-#        for i, node in enumerate(nodes):
-#            test_embeddings_ids[node] = i
-#        test_nodes = [n for n in G.nodes() if G.node[n]['test']]
-#        test_embeddings = val_embeddings[[test_embeddings_ids[id] for id in
-#                                          test_nodes]]
-#
-#        sess.close()
-#        tf.compat.v1.reset_default_graph()
-#        timer.toc()
-#        return test_nodes, test_embeddings
+    def predict(self, test_data, model_checkpoint, sampler_name="FastML"):
+        timer = Timer()
+        timer.tic()
+
+        G = test_data[0]
+        features = test_data[1]
+        id_map = test_data[2]
+
+        if features is not None:
+            # pad with dummy zero vector
+            features = np.vstack([features, np.zeros((features.shape[1],))])
+
+        context_pairs = train_data[3] if self.random_context else None
+        placeholders = self._construct_placeholders()
+        minibatch = EdgeMinibatchIterator(
+                    G,
+                    id_map,
+                    placeholders,
+                    batch_size=self.batch_size,
+                    max_degree=self.max_degree,
+                    num_neg_samples=self.neg_sample_size,
+                    context_pairs=context_pairs)
+
+        adj_info_ph = tf.compat.v1.placeholder(tf.int32,
+                                               shape=minibatch.adj.shape)
+        adj_info = tf.Variable(adj_info_ph, trainable=False, name="adj_info")
+        adj_shape = adj_info.get_shape().as_list()
+
+        model = self._create_model(sampler_name, placeholders, features,
+                                   adj_info, minibatch)
+
+        config = tf.compat.v1.ConfigProto(
+                log_device_placement=self.log_device_placement)
+        config.gpu_options.allow_growth = True
+        config.allow_soft_placement = True
+
+        # Initialize session
+        sess = tf.compat.v1.Session(config=config)
+        merged = tf.compat.v1.summary.merge_all()
+
+        # Initialize model saver
+        saver = tf.compat.v1.train.Saver()
+
+        # Init variables
+        sess.run(tf.compat.v1.global_variables_initializer(),
+                 feed_dict={adj_info_ph: minibatch.adj})
+
+        # Restore params of ML sampler model
+        if sampler_name == 'ML' or sampler_name == 'FastML':
+            sampler_vars = tf.compat.v1.get_collection(
+                    tf.compat.v1.GraphKeys.GLOBAL_VARIABLES, scope="MLsampler")
+            saver_sampler = tf.compat.v1.train.Saver(var_list=sampler_vars)
+            sampler_model_path = self._sampler_model_path()
+            saver_sampler.restore(sess, sampler_model_path + 'model.ckpt')
+
+        # Restore model
+        print("Restoring trained model.")
+        checkpoint_file = os.path.join(self._log_dir(sampler_name),
+                                       model_checkpoint)
+        ckpt = tf.compat.v1.train.get_checkpoint_state(checkpoint_file)
+        if checkpoint_file:
+            saver.restore(sess, checkpoint_file)
+            print("Model restored.")
+        else:
+            print("This model checkpoint does not exist. The model might " +
+                  "not be trained yet or the checkpoint is invalid.")
+
+        total_steps = 0
+        avg_time = 0.0
+
+        val_adj_info = tf.compat.v1.assign(adj_info, minibatch.test_adj)
+
+        # Infer embeddings
+        sess.run(val_adj_info.op)
+
+        print("Computing embeddings...")
+        val_embeddings = []
+        finished = False
+        seen = set([])
+        nodes = []
+        iter_num = 0
+        while not finished:
+            feed_dict_val, finished, edges = minibatch.incremental_embed_feed_dict(
+                                            self.validate_batch_size, iter_num)
+            iter_num += 1
+            outs_val = sess.run([model.loss, model.mrr, model.outputs1],
+                                feed_dict=feed_dict_val)
+            for i, edge in enumerate(edges):
+                if not edge[0] in seen:
+                    val_embeddings.append(outs_val[-1][i, :])
+                    nodes.append(edge[0])
+                    seen.add(edge[0])
+        val_embeddings = np.vstack(val_embeddings)
+        if self.save_embeddings:
+            print("Saving embeddings...")
+            if not os.path.exists(self._log_dir(sampler_name)):
+                os.makedirs(self._log_dir(sampler_name))
+            np.save(self._log_dir(sampler_name) + "inferred_embeddings.npy",
+                    val_embeddings)
+            with open(self._log_dir(sampler_name) +
+                      "inferred_embeddings_ids.txt", "w") as fp:
+                fp.write("\n".join(map(str, nodes)))
+            print("Embeddings saved.\n")
+
+        # Return only the embeddings of the test nodes
+        test_embeddings_ids = {}
+        for i, node in enumerate(nodes):
+            test_embeddings_ids[node] = i
+        test_nodes = [n for n in G.nodes() if G.node[n]['test']]
+        test_embeddings = val_embeddings[[test_embeddings_ids[id] for id in
+                                          test_nodes]]
+
+        sess.close()
+        tf.compat.v1.reset_default_graph()
+        timer.toc()
+        return test_nodes, test_embeddings
 
     def _sampler_model_path(self):
         sampler_model_path = self.base_log_dir + self.train_prefix.rsplit(
