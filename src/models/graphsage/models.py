@@ -155,7 +155,7 @@ class MLP(Model):
         self.layers.append(layers.Dense(
                 input_dim=self.dims[1],
                 output_dim=self.output_dim,
-                weight_decay = self.weight_decay,
+                weight_decay=self.weight_decay,
                 act=lambda x: x,
                 dropout=self.placeholders['dropout'],
                 logging=self.logging))

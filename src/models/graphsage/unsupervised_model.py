@@ -70,7 +70,6 @@ class UnsupervisedModel:
         tf.compat.v1.set_random_seed(seed)
         tf.compat.v1.disable_eager_execution()
 
-
     def _log_dir(self):
         log_dir = self.base_log_dir + self.train_prefix.rsplit("/",
                                                                maxsplit=1)[-2]
@@ -144,7 +143,8 @@ class UnsupervisedModel:
                                                     name='neg_sample_size'),
             'dropout': tf.compat.v1.placeholder_with_default(0., shape=(),
                                                              name='dropout'),
-            'batch_size': tf.compat.v1.placeholder(tf.int32, name='batch_size'),
+            'batch_size': tf.compat.v1.placeholder(tf.int32,
+                                                   name='batch_size'),
         }
         return placeholders
 
@@ -448,7 +448,7 @@ class UnsupervisedModel:
         self._plot_losses(train_losses, validation_losses)
         self._print_stats(train_losses, validation_losses, training_time)
 
-    def predict(self, test_data, model_checkpoint):
+    def predict(self, test_data, model_checkpoint, gpu_mem_fraction=None):
         timer = Timer()
         timer.tic()
 
@@ -479,7 +479,11 @@ class UnsupervisedModel:
 
         config = tf.compat.v1.ConfigProto(
                 log_device_placement=self.log_device_placement)
-        config.gpu_options.allow_growth = True
+
+        if gpu_mem_fraction is not None:
+            config.gpu_options.per_process_gpu_memory_fraction = gpu_mem_fraction
+        else:
+            config.gpu_options.allow_growth = True
         config.allow_soft_placement = True
 
         # Initialize session
@@ -548,6 +552,8 @@ class UnsupervisedModel:
         test_embeddings = val_embeddings[[test_embeddings_ids[id] for id in
                                           test_nodes]]
 
+        sess.close()
+        tf.compat.v1.reset_default_graph()
         timer.toc()
         return test_nodes, test_embeddings
 

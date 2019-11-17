@@ -200,7 +200,7 @@ class Processor():
     def _add_edges_citations(self, data):
         """Adds edges between papers that share a citation.
         """
-        with tqdm(desc="Adding edges: ", total=len(data), unit="edge") as pbar:
+        with tqdm(desc="Adding edges: ", total=len(data)) as pbar:
             for idx in range(len(data)):
                 self.G.add_edges_from(
                         [(data.chapter.iloc[idx],
@@ -215,8 +215,7 @@ class Processor():
         """
         data_grouped = data.groupby("author_name")["chapter"].agg(
                 list).reset_index()
-        with tqdm(desc="Adding edges: ", total=len(data_grouped),
-                  unit="edge") as pbar:
+        with tqdm(desc="Adding edges: ", total=len(data_grouped)) as pbar:
             for idx in range(len(data_grouped)):
                 self.G.add_edges_from(combinations(
                         data_grouped.iloc[idx].chapter, 2))
