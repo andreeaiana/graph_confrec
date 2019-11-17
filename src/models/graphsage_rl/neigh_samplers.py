@@ -52,12 +52,14 @@ class MLNeighborSampler(Layer):
     """
     Sampling by regressor trained by RL-learning
     """
-    def __init__(self, adj_info, features, max_degree, **kwargs):
+    def __init__(self, adj_info, features, max_degree, nonlinear_sampler,
+                 **kwargs):
         super(MLNeighborSampler, self).__init__(**kwargs)
         self.adj_info = adj_info
         self.features = tf.Variable(tf.constant(features, dtype=tf.float32),
                                     trainable=False)
         self.batch_size = max_degree
+        self.nonlinear_sampler = nonlinear_sampler
         self.node_dim = features.shape[1]
         self.reuse = False
 
@@ -77,7 +79,7 @@ class MLNeighborSampler(Layer):
             # debug
             node_dim = np.int(v_f.shape[1])
             n_f = tf.reshape(n_f, shape=[-1, neig_num, node_dim])
-            if FLAGS.nonlinear_sampler == True:
+            if self.nonlinear_sampler == True:
                 v_f = tf.tile(tf.expand_dims(v_f, axis=1), [1, neig_num, 1])
                 l = tf.compat.v1.layers.dense(
                         tf.concat([v_f, n_f], axis=2), 1,
@@ -128,12 +130,14 @@ class FastMLNeighborSampler(Layer):
 
     """
 
-    def __init__(self, adj_info, features, max_degree, **kwargs):
+    def __init__(self, adj_info, features, max_degree, nonlinear_sampler,
+                 **kwargs):
         super(FastMLNeighborSampler, self).__init__(**kwargs)
         self.adj_info = adj_info
         self.features = tf.Variable(tf.constant(features, dtype=tf.float32),
                                     trainable=False)
         self.batch_size = max_degree
+        self.nonlinear_sampler = nonlinear_sampler
         self.node_dim = features.shape[1]
         self.reuse = False
 
@@ -159,7 +163,7 @@ class FastMLNeighborSampler(Layer):
             # debug
             node_dim = np.int(v_f.shape[1])
             n_f = tf.reshape(n_f, shape=[-1, neig_num, node_dim])
-            if FLAGS.nonlinear_sampler == True:
+            if self.nonlinear_sampler == True:
                 v_f = tf.tile(tf.expand_dims(v_f, axis=1), [1, neig_num, 1])
                 l = tf.compat.v1.layers.dense(
                         tf.concat([v_f, n_f], axis=2), 1,

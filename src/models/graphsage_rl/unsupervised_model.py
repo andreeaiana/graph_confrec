@@ -10,6 +10,7 @@ import argparse
 import numpy as np
 from scipy import sparse
 import tensorflow as tf
+import multiprocessing as mp
 import matplotlib.pyplot as plt
 
 from models import SampleAndAggregate, SAGEInfo
@@ -209,10 +210,12 @@ class UnsupervisedModelRL:
         if sampler_name == 'Uniform':
             sampler = UniformNeighborSampler(adj_info)
         elif sampler_name == 'ML':
-            sampler = MLNeighborSampler(adj_info, features, self.max_degree)
+            sampler = MLNeighborSampler(adj_info, features, self.max_degree,
+                                        self.nonlinear_sampler)
         elif sampler_name == 'FastML':
             sampler = FastMLNeighborSampler(adj_info, features,
-                                            self.max_degree)
+                                            self.max_degree,
+                                            self.nonlinear_sampler)
         else:
             raise Exception('Error: sampler name unrecognized.')
         return sampler
@@ -344,7 +347,7 @@ class UnsupervisedModelRL:
             raise Exception('Error: model name unrecognized.')
         return model
 
-    def train(self, train_data, test_data=None, sampler_name='Uniform'):
+    def train(self, train_data, sampler_name='Uniform'):
         print("Training model...")
         timer = Timer()
         timer.tic()
@@ -532,7 +535,7 @@ class UnsupervisedModelRL:
                                                   'loss_node_count.npz',
                                                   sparse.csr_matrix(lnc_acc))
                 # Save embeddings
-                if self.save_embeddings: # and sampler_name is not "Uniform":
+                if self.save_embeddings and sampler_name is not "Uniform":
                     sess.run(val_adj_info.op)
                     self._save_embeddings(sess, model, minibatch,
                                           self.validate_batch_size,
@@ -968,13 +971,27 @@ class UnsupervisedModelRL:
                                     args.log_device_placement)
 
         print("Start training uniform sampling + graphsage model..")
-        model.train(train_data, sampler_name="Uniform")
+        p_train_uniform = mp.Process(target=model.train,
+                                     args=(train_data, "Uniform"))
+        p_train_uniform.start()
+        p_train_uniform.join()
+        p_train_uniform.terminate()
         print("Done training uniform sampling + graphsage model..")
+
         print("Start training ML sampler..")
-        model.train_sampler(train_data)
+        p_train_sampler = mp.Process(target=model.train_sampler,
+                                     args=(train_data, ))
+        p_train_sampler.start()
+        p_train_sampler.join()
+        p_train_sampler.terminate()
         print("Done training ML sampler..")
+
         print("Start training ML sampling + graphsage model..")
-        model.train(train_data, sampler_name='FastML')
+        p_train_ml = mp.Process(target=model.train,
+                                args=(train_data, "FastML"))
+        p_train_ml.start()
+        p_train_ml.join()
+        p_train_ml.terminate()
         print("Done training ML sampling + graphsage model..")
 
         print("Finished.")
