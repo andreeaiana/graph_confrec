@@ -718,7 +718,7 @@ class UnsupervisedModelRL:
             # pad with dummy zero vector
             features = np.vstack([features, np.zeros((features.shape[1],))])
 
-        context_pairs = train_data[3] if self.random_context else None
+        context_pairs = test_data[3] if self.random_context else None
         placeholders = self._construct_placeholders()
         minibatch = EdgeMinibatchIterator(
                     G,

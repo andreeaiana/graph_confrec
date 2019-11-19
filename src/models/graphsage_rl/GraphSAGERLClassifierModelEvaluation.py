@@ -29,7 +29,7 @@ class GraphSAGERLClassifierModelEvaluation():
                  samples_1=25, samples_2=10, dim_1=128, dim_2=128,
                  random_context=True, neg_sample_size=20, batch_size=512,
                  identity_dim=0, save_embeddings=False,
-                 base_log_dir='../../../data/processed/graphsage/',
+                 base_log_dir='../../../data/processed/graphsage_rl/',
                  validate_iter=5000, validate_batch_size=512, gpu=0,
                  print_every=50, max_total_steps=10**10,
                  log_device_placement=False, recs=10):
@@ -196,7 +196,7 @@ class GraphSAGERLClassifierModelEvaluation():
                             help='Whether to save embeddings for all nodes ' +
                             'after training')
         parser.add_argument('--base_log_dir',
-                            default='../../../data/processed/graphsage/',
+                            default='../../../data/processed/graphsage_rl/',
                             help='Base directory for logging and saving ' +
                             'embeddings')
         parser.add_argument('--validate_iter',
@@ -205,7 +205,7 @@ class GraphSAGERLClassifierModelEvaluation():
                             help='How often to run a validation minibatch.')
         parser.add_argument('--validate_batch_size',
                             type=int,
-                            default=256,
+                            default=512,
                             help='How many nodes per validation sample.')
         parser.add_argument('--gpu',
                             type=int,
@@ -231,10 +231,10 @@ class GraphSAGERLClassifierModelEvaluation():
 
         from GraphSAGERLClassifierModelEvaluation import GraphSAGERLClassifierModelEvaluation
         print("Starting...")
-        model = GraphSAGEClassifierModelEvaluation(
+        model = GraphSAGERLClassifierModelEvaluation(
                 args.classifier_name, args.embedding_type, args.graph_type,
                 args.model_checkpoint, args.train_prefix, args.model_name,
-                args.model_name, args.nonlinear_sampler, args.uniform_ratio,
+                args.sampler_name, args.nonlinear_sampler, args.uniform_ratio,
                 args.model_size, args.learning_rate, args.epochs, args.dropout,
                 args.weight_decay, args.max_degree, args.samples_1,
                 args.samples_2, args.dim_1, args.dim_2, args.random_context,

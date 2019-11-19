@@ -27,7 +27,7 @@ class GraphSAGERLClassifierModel(AbstractModel):
                  samples_1=25, samples_2=10, dim_1=128, dim_2=128,
                  random_context=True, neg_sample_size=20, batch_size=512,
                  identity_dim=0, save_embeddings=False,
-                 base_log_dir='../../../data/processed/graphsage/',
+                 base_log_dir='../../../data/processed/graphsage_rl/',
                  validate_iter=5000, validate_batch_size=512, gpu=0,
                  print_every=50, max_total_steps=10**10,
                  log_device_placement=False, recs=10):
