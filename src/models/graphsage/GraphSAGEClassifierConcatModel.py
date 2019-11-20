@@ -2,12 +2,14 @@
 import os
 import sys
 import json
+import time
 import pickle
 import random
 import numpy as np
 import pandas as pd
 from networkx.readwrite import json_graph
 from sklearn.preprocessing import LabelEncoder
+from pathos.multiprocessing import ProcessPool
 
 sys.path.insert(0, os.path.join(os.getcwd(), ".."))
 sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "utils"))
@@ -64,7 +66,7 @@ class GraphSAGEClassifierConcatModel(AbstractModel):
         self.preprocessor_citations = Processor(self.embedding_type,
                                                 "citations", gpu)
         self.preprocessor_authors = Processor(self.embedding_type,
-                                                "authors", gpu)
+                                              "authors", gpu)
 
         # Classifier file location
         classifier_dir = os.path.join(os.path.dirname(
@@ -134,23 +136,45 @@ class GraphSAGEClassifierConcatModel(AbstractModel):
                                                   "chapter_citations"])
         authors_df = batch[1]
 
-        # Preprocess the data
-        graph_citations, features_citations, id_map_citations = self.preprocessor.test_data(
+        # Preprocess the data for the citations graph
+        graph_citations, features_citations, id_map_citations = self.preprocessor_citations.test_data(
                 df_test, self.G_train_citations)
-        graph_authors, features_authors, id_map_authors = self.preprocessor.test_data(
-                df_test, self.G_train_authors, authors_df = authors_df)
+        del self.G_train_citations, self.preprocessor_citations
+
+        # Preprocess the data for the authors graph
+        graph_authors, features_authors, id_map_authors = self.preprocessor_authors.test_data(
+                df_test, self.G_train_authors, authors_df=authors_df)
+        del self.G_train_authors, self.preprocessor_authors
+        del authors_df, df_test
 
         # Infer embeddings
-        _, test_embeddings_citations = self.graphsage_model_citations.predict(
-                [graph_citations, features_citations, id_map_citations,
-                 self.walks_citations], self.model_checkpoint_citations)
-        _, test_embeddings_authors = self.graphsage_model_authors.predict(
-                [graph_authors, features_authors, id_map_authors,
-                 self.walks_authors], self.model_checkpoint_authors)
+        pool = ProcessPool(nodes=1)
+        job = pool.amap(self._infer_embeddings,
+                        [self.graphsage_model_citations,
+                         self.graphsage_model_authors],
+                         [graph_citations, graph_authors],
+                         [features_citations, features_authors],
+                         [id_map_citations, id_map_authors],
+                         [self.walks_citations, self.walks_authors],
+                         [self.model_checkpoint_citations,
+                          self.model_checkpoint_authors])
+        pool.close()
+        while not job.ready():
+            print("Tasks remaining: {}.".format(
+                    job._number_left*job._chunksize))
+            time.sleep(5)
+        results = job.get()
+        pool.terminate()
+
+        # Clean variables
+        del graph_citations, features_citations, id_map_citations
+        del self.walks_citations, self.graphsage_model_citations
+        del graph_authors, features_authors, id_map_authors
+        del self.walks_authors, self.graphsage_model_authors
 
         # Concatenate embeddings
-        test_embeddings = np.concatenate((test_embeddings_citations,
-                                          test_embeddings_authors), axis=1)
+        test_embeddings = np.concatenate((results[0], results[1]), axis=1)
+        del test_embeddings_citations, test_embeddings_authors
 
         # Compute predictions
         predictions = self.classifier.predict_proba(test_embeddings)
@@ -217,13 +241,21 @@ class GraphSAGEClassifierConcatModel(AbstractModel):
             print("Training finished.")
             timer.toc()
 
+    def _infer_embeddings(self, model, graph, features, id_map, walks,
+                          checkpoint):
+        print("Inferring embeddings...")
+        test_embeddings = model.predict([graph, features, id_map, walks],
+                                        checkpoint, gpu_mem_fraction=0.4)[1]
+        print("Embeddings inferred.")
+        return test_embeddings
+
     def _load_training_graph_citations(self):
         graph_file = os.path.join(
                 os.path.dirname(os.path.realpath(__file__)),
                 "..", "..", "..", "data", "interim", "graphsage",
                 self.embedding_type, "citations/train_val-G.json")
         if os.path.isfile(graph_file):
-            print("Loading training graph...")
+            print("Loading citations training graph...")
             with open(graph_file) as f:
                 self.G_train_citations = json_graph.node_link_graph(
                         json.load(f))
@@ -237,7 +269,7 @@ class GraphSAGEClassifierConcatModel(AbstractModel):
                 "..", "..", "..", "data", "interim", "graphsage",
                 self.embedding_type, "authors/train_val-G.json")
         if os.path.isfile(graph_file):
-            print("Loading training graph...")
+            print("Loading authors training graph...")
             with open(graph_file) as f:
                 self.G_train_authors = json_graph.node_link_graph(
                         json.load(f))
@@ -257,7 +289,7 @@ class GraphSAGEClassifierConcatModel(AbstractModel):
             conversion = lambda n: n
 
         if os.path.isfile(walks_file):
-            print("Loading training walks...")
+            print("Loading citations training walks...")
             with open(walks_file) as f:
                 for line in f:
                     self.walks_citations.append(map(conversion, line.split()))
@@ -277,7 +309,7 @@ class GraphSAGEClassifierConcatModel(AbstractModel):
             conversion = lambda n: n
 
         if os.path.isfile(walks_file):
-            print("Loading training walks...")
+            print("Loading authors training walks...")
             with open(walks_file) as f:
                 for line in f:
                     self.walks_authors.append(map(conversion, line.split()))
