@@ -110,8 +110,9 @@ class GraphSAGERLClassifierModelEvaluation():
                             help='Name of the object file that stores the '
                             + 'training data.')
         parser.add_argument('model_name',
-                            choices=["graphsage_mean", "gcn", "graphsage_seq",
-                                     "graphsage_maxpool", "graphsage_meanpool"
+                            choices=["mean_concat", "mean_add", "gcn",
+                                     "graphsage_seq", "graphsage_maxpool",
+                                     "graphsage_meanpool"
                                      ],
                             help="Model names.")
         parser.add_argument('--sampler_name',
