@@ -35,6 +35,8 @@ class GraphSAGEClassifierModelEvaluation():
                  print_every=50, max_total_steps=10**10,
                  log_device_placement=False, recs=10):
 
+        self.graph_type = graph_type
+
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
 
@@ -42,6 +44,8 @@ class GraphSAGEClassifierModelEvaluation():
 
         self.d_test = DataLoader()
         self.d_train = DataLoader()
+        if self.graph_type == "authors":
+            self.d_test_authors = DataLoader()
 
         self.model = GraphSAGEClassifierModel(
                 classifier, embedding_type, graph_type, model_checkpoint,
@@ -78,13 +82,24 @@ class GraphSAGEClassifierModelEvaluation():
             training_data = self.d_train.training_data_with_abstracts_citations().data
             self.model.train(training_data)
 
-        # Load test data
-        query_test, truth = self.d_test.evaluation_data_with_abstracts_citations()
-
         self.model._load_model_classifier()
 
-        # Retrieve predictions
-        recommendation = self.model.query_batch(query_test)
+        if self.graph_type == "citations":
+            # Load test data
+            query_test, truth = self.d_test.evaluation_data_with_abstracts_citations()
+
+            # Retrieve predictions
+            recommendation = self.model.query_batch(query_test)
+
+        if self.graph_type == "authors":
+            # Load test data
+            query_test, truth = self.d_test.evaluation_data_with_abstracts_citations()
+            query_test_authors = self.d_test_authors.test_data_with_abstracts_citations(
+                    ).author_names().data[["author_name", "chapter"]]
+
+            # Retrieve predictions
+            recommendation = self.model.query_batch((query_test,
+                                                     query_test_authors))
 
         # Evaluate
         print("Evaluating...")

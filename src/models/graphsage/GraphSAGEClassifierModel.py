@@ -49,7 +49,8 @@ class GraphSAGEClassifierModel(AbstractModel):
                                 validate_iter, validate_batch_size, gpu,
                                 print_every, max_total_steps,
                                 log_device_placement)
-        self.preprocessor = Processor(self.embedding_type, "citations", gpu)
+        self.preprocessor = Processor(self.embedding_type, self.graph_type,
+                                      gpu)
 
         self.classifier_file = os.path.join(
                 self.graphsage_model._log_dir(),
@@ -72,13 +73,27 @@ class GraphSAGEClassifierModel(AbstractModel):
             list: ids of the conferences
             double: confidence scores
         """
-        if len(query) < 3:
-            print("The input does not contain enough data; chapter title " +
-                  "chapter abstract, and chapter citations are required.")
         # Generate an ID for the query
         query_id = "new_node_id:" + "-".join(
                 [str(i) for i in random.sample(range(0, 10000), 5)])
-        return self.query_batch([(query_id, query[0], query[1], query[2])])
+
+        if self.graph_type == "citations":
+            if len(query) < 3:
+                print("The input does not contain enough data; chapter " +
+                      "title chapter abstract, and chapter citations are " +
+                      "required.")
+            return self.query_batch([(query_id, query[0], query[1], query[2])])
+        elif self.graph_type == "authors":
+            if len(query) < 4:
+                print("The input does not contain enough data; chapter " +
+                      "title chapter abstract, chapter citations, and " +
+                      "chapter authors are required.")
+            authors_df = pd.DataFrame({"author_name": query[3],
+                                       "chapter": [query_id]*len(query[3])})
+            return self.query_batch([(query_id, query[0], query[1], query[2])],
+                                    authors_df)
+        else:
+            raise ValueError("Graph type not recognised.")
 
     def query_batch(self, batch):
         """Queries the model and returns a lis of recommendations.
@@ -92,19 +107,30 @@ class GraphSAGEClassifierModel(AbstractModel):
             list: ids of the conferences
             double: confidence scores
         """
+        if self.graph_type == "citations":
+            df_test = pd.DataFrame(batch, columns=["chapter", "chapter_title",
+                                                   "chapter_abstract",
+                                                   "chapter_citations"])
 
-        df_test = pd.DataFrame(batch, columns=["chapter", "chapter_title",
-                                               "chapter_abstract",
-                                               "chapter_citations"])
-
-        # Preprocess the data
-        graph, features, id_map = self.preprocessor.test_data(df_test,
-                                                              self.G_train)
+            # Preprocess the data
+            graph, features, id_map = self.preprocessor.test_data(df_test,
+                                                                  self.G_train)
+        elif self.graph_type == "authors":
+            df_test = pd.DataFrame(batch[0],
+                                   columns=["chapter", "chapter_title",
+                                            "chapter_abstract",
+                                            "chapter_citations"])
+            authors_df = batch[1]
+            # Preprocess the data
+            graph, features, id_map = self.preprocessor.test_data(
+                    df_test, self.G_train, authors_df=authors_df)
+        else:
+            raise ValueError("Graph type not recognised.")
 
         # Infer embeddings
-        test_nodes, test_embeddings = self.graphsage_model.predict(
-                [graph, features, id_map, self.walks],
-                self.model_checkpoint)
+        test_embeddings = self.graphsage_model.predict(
+                [graph, features, id_map, self.walks], self.model_checkpoint
+                )[1]
 
         # Compute predictions
         predictions = self.classifier.predict_proba(test_embeddings)
