@@ -706,7 +706,8 @@ class UnsupervisedModelRL:
         sess.close()
         tf.compat.v1.reset_default_graph()
 
-    def predict(self, test_data, model_checkpoint, sampler_name="FastML"):
+    def predict(self, test_data, model_checkpoint, sampler_name="FastML",
+                gpu_mem_fraction=None):
         timer = Timer()
         timer.tic()
 
@@ -739,6 +740,8 @@ class UnsupervisedModelRL:
 
         config = tf.compat.v1.ConfigProto(
                 log_device_placement=self.log_device_placement)
+        if gpu_mem_fraction is not None:
+            config.gpu_options.per_process_gpu_memory_fraction = gpu_mem_fraction
         config.gpu_options.allow_growth = True
         config.allow_soft_placement = True
 
@@ -858,7 +861,7 @@ class UnsupervisedModelRL:
                             "linear sampler"
                             )
         parser.add_argument("--uniform_ratio",
-                            type=int,
+                            type=float,
                             default=0.6,
                             help="In case of FastML sampling, the " +
                             "percentile of uniform sampling preceding the " +
@@ -868,7 +871,7 @@ class UnsupervisedModelRL:
                             default="small",
                             help="Can be big or small; model specific def'ns")
         parser.add_argument('--learning_rate',
-                            type=int,
+                            type=float,
                             default=0.00001,
                             help='Initial learning rate.')
         parser.add_argument('--epochs',
@@ -876,11 +879,11 @@ class UnsupervisedModelRL:
                             default=10,
                             help='Number of epochs to train.')
         parser.add_argument('--dropout',
-                            type=int,
+                            type=float,
                             default=0.0,
                             help='Dropout rate (1 - keep probability).')
         parser.add_argument('--weight_decay',
-                            type=int,
+                            type=float,
                             default=0.0,
                             help='Weight for l2 loss on embedding matrix.')
         parser.add_argument('--max_degree',

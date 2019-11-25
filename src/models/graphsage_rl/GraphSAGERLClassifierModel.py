@@ -105,9 +105,9 @@ class GraphSAGERLClassifierModel(AbstractModel):
                                                               self.G_train)
 
         # Infer embeddings
-        test_nodes, test_embeddings = self.graphsage_model.predict(
-                [graph, features, id_map, self.walks],
-                self.model_checkpoint)
+        test_embeddings = self.graphsage_model.predict(
+                [graph, features, id_map, self.walks], self.model_checkpoint
+                )[1]
 
         # Compute predictions
         predictions = self.classifier.predict_proba(test_embeddings)

@@ -80,7 +80,7 @@ class GraphSAGENeighbourModelEvaluation():
                             default="small",
                             help="Can be big or small; model specific def'ns")
         parser.add_argument('--learning_rate',
-                            type=int,
+                            type=float,
                             default=0.00001,
                             help='Initial learning rate.')
         parser.add_argument('--epochs',
@@ -88,11 +88,11 @@ class GraphSAGENeighbourModelEvaluation():
                             default=10,
                             help='Number of epochs to train.')
         parser.add_argument('--dropout',
-                            type=int,
+                            type=float,
                             default=0.0,
                             help='Dropout rate (1 - keep probability).')
         parser.add_argument('--weight_decay',
-                            type=int,
+                            type=float,
                             default=0.0,
                             help='Weight for l2 loss on embedding matrix.')
         parser.add_argument('--max_degree',
