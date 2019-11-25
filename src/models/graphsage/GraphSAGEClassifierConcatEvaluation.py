@@ -17,12 +17,14 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
 
+sys.path.insert(0, os.path.join(os.getcwd(), ".."))
 sys.path.insert(0, os.path.join(os.getcwd(), "..", "evaluations"))
 sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "data"))
 sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "utils"))
 
 from TimerCounter import Timer
 from DataLoader import DataLoader
+from AbstractClasses import AbstractModel
 from unsupervised_model import UnsupervisedModel
 from EvaluationContainer import EvaluationContainer
 
