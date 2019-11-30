@@ -135,12 +135,11 @@ class GraphSAGEClassifierConcatEvaluation():
 
         self.label_encoder = LabelEncoder()
         self.labels = self.label_encoder.fit_transform(
-                data.conferenceseries)
+                training_data.conferenceseries)
         self.classifier.fit(training_embeddings, self.labels)
         self._save_model_classifier()
 
         print("Training finished.")
-        timer.toc()
 
     def load_data(self):
         d_test = DataLoader()
@@ -449,7 +448,7 @@ class GraphSAGEClassifierConcatEvaluation():
         print("Evaluating...")
         evaluation = EvaluationContainer()
         evaluation.evaluate(recommendation, truth)
-        print("Finsihed.")
+        print("Finished.")
 
     if __name__ == "__main__":
         main()
