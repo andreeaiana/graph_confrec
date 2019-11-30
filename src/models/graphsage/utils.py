@@ -37,6 +37,13 @@ def load_data(prefix, normalize=True, load_walks=False):
     id_map = json.load(open(path_persistent + "-id_map.json"))
     id_map = {conversion(k): int(v) for k, v in id_map.items()}
     walks = []
+    class_map = json.load(open(path_persistent + "-class_map.json"))
+    if isinstance(list(class_map.values())[0], list):
+        lab_conversion = lambda n : n
+    else:
+        lab_conversion = lambda n : int(n)
+    class_map = {conversion(k): lab_conversion(v) for k, v in class_map.items()
+                 }
 
     # Remove all nodes that do not have val/test annotations
     # (necessary because of networkx weirdness with the Reddit data)
@@ -72,7 +79,7 @@ def load_data(prefix, normalize=True, load_walks=False):
             for line in fp:
                 walks.append(map(conversion, line.split()))
 
-    return G, feats, id_map, walks
+    return G, feats, id_map, walks, class_map
 
 
 def run_random_walks(G, nodes, num_walks=N_WALKS):
