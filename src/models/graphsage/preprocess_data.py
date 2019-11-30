@@ -235,17 +235,16 @@ class Processor():
     def _create_class_map(self, data):
         print("Creating class map.")
         nodes = list(self.G.nodes)
-        class_map = {nodes[i]: list(
+        class_map = {nodes[i]: [int(j) for j in list(
                 self.label_encoder.transform(np.array(
                         data[data.chapter == nodes[i]].conferenceseries
-                        ).reshape(-1, 1))[0]) for i in range(len(nodes))}
+                        ).reshape(-1, 1))[0])] for i in range(len(nodes))}
         print("Saving class map to disk.")
         with open(os.path.join(
                 self.path_persistent, self.prefix + "-class_map.json"),
                 "w") as f:
             f.write(json.dumps(class_map))
 
-        # Save label encoder for inverse transforms
         with open(os.path.join(
                 self.path_persistent, "label_encoder.pkl"), "wb") as f:
             pickle.dump(self.label_encoder, f)
