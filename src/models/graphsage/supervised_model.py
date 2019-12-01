@@ -543,7 +543,7 @@ class SupervisedModel:
         test_preds = val_preds[[test_preds_ids[id] for id in test_nodes]]
         timer.toc()
         sess.close()
-        return test_preds, test_nodes
+        return test_nodes, test_preds
 
     def main():
         parser = argparse.ArgumentParser(
