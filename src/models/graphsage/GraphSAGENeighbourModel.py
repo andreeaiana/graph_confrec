@@ -92,8 +92,9 @@ class GraphSAGENeighbourModel(AbstractModel):
             double: confidence scores
         """
         if len(query) < 3:
-            print("The input does not contain enough data; chapter title " +
-                  "chapter abstract, and chapter citations are required.")
+            raise ValueError("The input does not contain enough data; " +
+                             "chapter title chapter abstract, and chapter " +
+                             "citations are required.")
         # Generate an ID for the query
         query_id = "new_node_id:" + "-".join(
                 [str(i) for i in random.sample(range(0, 10000), 5)])

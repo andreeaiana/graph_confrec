@@ -79,15 +79,16 @@ class GraphSAGEClassifierModel(AbstractModel):
 
         if self.graph_type == "citations":
             if len(query) < 3:
-                print("The input does not contain enough data; chapter " +
-                      "title chapter abstract, and chapter citations are " +
-                      "required.")
+                raise ValueError("The input does not contain enough data; " +
+                                 "chapter  title chapter abstract, and " +
+                                 "chapter citations are required.")
             return self.query_batch([(query_id, query[0], query[1], query[2])])
         elif self.graph_type == "authors":
             if len(query) < 4:
-                print("The input does not contain enough data; chapter " +
-                      "title chapter abstract, chapter citations, and " +
-                      "chapter authors are required.")
+                raise ValueError("The input does not contain enough data; " +
+                                 "chapter title chapter abstract, chapter " +
+                                 "citations, and chapter authors are required."
+                                 )
             authors_df = pd.DataFrame({"author_name": query[3],
                                        "chapter": [query_id]*len(query[3])})
             return self.query_batch([(query_id, query[0], query[1], query[2])],
