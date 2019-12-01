@@ -361,7 +361,7 @@ class SupervisedModel:
             minibatch.shuffle()
 
             iter = 0
-            print('Epoch: %04d' % (epoch + 1))
+            print('Epoch: %04d' % (epoch))
             epoch_val_costs.append(0)
             train_loss_epoch = []
             validation_loss_epoch = []
@@ -448,8 +448,102 @@ class SupervisedModel:
             fp.write("loss={:.5f} f1_micro={:.5f} f1_macro={:.5f} time={:.5f}".
                      format(val_cost, val_f1_mic, val_f1_mac, duration))
 
-    def predict(self, test_data, model_checkpoint, gpu_mem_fraction=None):
-        pass
+    def inference(self, test_data, model_checkpoint, gpu_mem_fraction=None):
+        print("Inference.")
+        timer = Timer()
+        timer.tic()
+
+        G = test_data[0]
+        features = test_data[1]
+        id_map = test_data[2]
+        class_map  = test_data[4]
+        if isinstance(list(class_map.values())[0], list):
+            num_classes = len(list(class_map.values())[0])
+        else:
+            num_classes = len(set(class_map.values()))
+
+        if not features is None:
+            # pad with dummy zero vector
+            features = np.vstack([features, np.zeros((features.shape[1],))])
+
+        context_pairs = test_data[3] if self.random_context else None
+        placeholders = self._construct_placeholders(num_classes)
+        minibatch = NodeMinibatchIterator(
+                    G,
+                    id_map,
+                    placeholders,
+                    class_map,
+                    num_classes,
+                    batch_size=self.batch_size,
+                    max_degree=self.max_degree,
+                    context_pairs = context_pairs)
+
+        adj_info_ph = tf.compat.v1.placeholder(tf.int32,
+                                               shape=minibatch.adj.shape)
+        adj_info = tf.Variable(adj_info_ph, trainable=False, name="adj_info")
+
+        model = self._create_model(num_classes, placeholders, features,
+                                   adj_info, minibatch)
+
+        config = tf.compat.v1.ConfigProto(
+                log_device_placement=self.log_device_placement)
+        config.gpu_options.allow_growth = True
+        config.allow_soft_placement = True
+
+        # Initialize session
+        sess = tf.compat.v1.Session(config=config)
+        merged = tf.compat.v1.summary.merge_all()
+#        summary_writer = tf.summary.FileWriter(self._log_dir(), sess.graph)
+
+        # Initialize model saver
+        saver = tf.compat.v1.train.Saver(max_to_keep=self.epochs)
+
+        # Init variables
+        sess.run(tf.compat.v1.global_variables_initializer(),
+                 feed_dict={adj_info_ph: minibatch.adj})
+
+        # Restore model
+        print("Restoring trained model.")
+        checkpoint_file = os.path.join(self._log_dir(), model_checkpoint)
+        ckpt = tf.compat.v1.train.get_checkpoint_state(checkpoint_file)
+        if checkpoint_file:
+            saver.restore(sess, checkpoint_file)
+            print("Model restored.")
+        else:
+            print("This model checkpoint does not exist. The model might " +
+                  "not be trained yet or the checkpoint is invalid.")
+
+        val_adj_info = tf.compat.v1.assign(adj_info, minibatch.test_adj)
+        sess.run(val_adj_info.op)
+
+        print("Computing predictions...")
+        t_test = time.time()
+        finished = False
+        val_losses = []
+        val_preds = []
+        nodes = []
+        iter_num = 0
+        while not finished:
+            feed_dict_val, _, finished, nodes_subset = minibatch.incremental_node_val_feed_dict(
+                    self.batch_size, iter_num, test=True)
+            node_outs_val = sess.run([model.preds, model.loss],
+                                     feed_dict=feed_dict_val)
+            val_preds.append(node_outs_val[0])
+            val_losses.append(node_outs_val[1])
+            nodes.extend(nodes_subset)
+            iter_num += 1
+        val_preds = np.vstack(val_preds)
+        print("Computed.")
+
+        # Return only the embeddings of the test nodes
+        test_preds_ids = {}
+        for i, node in enumerate(nodes):
+            test_preds_ids[node] = i
+        test_nodes = [n for n in G.nodes() if G.node[n]['test']]
+        test_preds = val_preds[[test_preds_ids[id] for id in test_nodes]]
+        timer.toc()
+        sess.close()
+        return test_preds, test_nodes
 
     def main():
         parser = argparse.ArgumentParser(
@@ -484,7 +578,7 @@ class SupervisedModel:
                             help='Weight for l2 loss on embedding matrix.')
         parser.add_argument('--max_degree',
                             type=int,
-                            default=128,
+                            default=100,
                             help='Maximum node degree.')
         parser.add_argument('--samples_1',
                             type=int,
@@ -579,7 +673,8 @@ class SupervisedModel:
                                 args.gpu, args.print_every,
                                 args.max_total_steps,
                                 args.log_device_placement)
-        model.train(train_data)
+#        model.train(train_data)
+        model.inference(train_data, "model_epoch_0.ckpt")
         print("Finished.")
 
     if __name__ == "__main__":
