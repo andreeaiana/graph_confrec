@@ -42,7 +42,7 @@ class GraphSAGEClassifierConcatEvaluation():
         classifier_dir = os.path.join(os.path.dirname(
                          os.path.realpath(__file__)), "..", "..", "..", "data",
                          "processed", "graphsage", self.embedding_type,
-                         "citations_authors")
+                         "concat_citations_authors")
         classifier_dir += "/{model:s}_{model_size:s}_{lr:0.6f}/".format(
                 model=model_name, model_size=model_size, lr=learning_rate)
         if not os.path.exists(classifier_dir):
