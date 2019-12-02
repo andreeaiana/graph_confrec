@@ -32,8 +32,8 @@ class SupervisedModel:
     def __init__(self, train_prefix, model_name, model_size="small",
                  learning_rate=0.001, epochs=10, dropout=0.0,
                  weight_decay=0.0, max_degree=100, samples_1=25, samples_2=10,
-                 samples_3=0, dim_1=128, dim_2=128, random_context=True,
-                 batch_size=512, sigmoid=False, identity_dim=0,
+                 samples_3=0, dim_1=128, dim_2=128, batch_size=512,
+                 sigmoid=False, identity_dim=0,
                  base_log_dir='../../../data/processed/graphsage/',
                  validate_iter=5000, validate_batch_size=256, gpu=0,
                  print_every=5, max_total_steps=10**10,
@@ -52,7 +52,6 @@ class SupervisedModel:
         self.samples_3 = samples_3
         self.dim_1 = dim_1
         self.dim_2 = dim_2
-        self.random_context = random_context
         self.batch_size = batch_size
         self.sigmoid = sigmoid
         self.identity_dim = identity_dim
@@ -310,7 +309,6 @@ class SupervisedModel:
             # pad with dummy zero vector
             features = np.vstack([features, np.zeros((features.shape[1],))])
 
-        context_pairs = train_data[3] if self.random_context else None
         placeholders = self._construct_placeholders(num_classes)
         minibatch = NodeMinibatchIterator(
                     G,
@@ -319,8 +317,7 @@ class SupervisedModel:
                     class_map,
                     num_classes,
                     batch_size=self.batch_size,
-                    max_degree=self.max_degree,
-                    context_pairs = context_pairs)
+                    max_degree=self.max_degree)
 
         adj_info_ph = tf.compat.v1.placeholder(tf.int32,
                                                shape=minibatch.adj.shape)
@@ -466,7 +463,6 @@ class SupervisedModel:
             # pad with dummy zero vector
             features = np.vstack([features, np.zeros((features.shape[1],))])
 
-        context_pairs = test_data[3] if self.random_context else None
         placeholders = self._construct_placeholders(num_classes)
         minibatch = NodeMinibatchIterator(
                     G,
@@ -475,8 +471,7 @@ class SupervisedModel:
                     class_map,
                     num_classes,
                     batch_size=self.batch_size,
-                    max_degree=self.max_degree,
-                    context_pairs = context_pairs)
+                    max_degree=self.max_degree)
 
         adj_info_ph = tf.compat.v1.placeholder(tf.int32,
                                                shape=minibatch.adj.shape)
@@ -603,11 +598,6 @@ class SupervisedModel:
                             default=128,
                             help='Size of output dim ' +
                             '(final is 2x this, if using concat)')
-        parser.add_argument('--random_context',
-                            action="store_false",
-                            default=True,
-                            help='Whether to use random context or direct ' +
-                            'edges.')
         parser.add_argument('--batch_size',
                             type=int,
                             default=512,
@@ -666,15 +656,13 @@ class SupervisedModel:
                                 args.epochs, args.dropout, args.weight_decay,
                                 args.max_degree, args.samples_1,
                                 args.samples_2, args.samples_3, args.dim_1,
-                                args.dim_2, args.random_context,
-                                args.batch_size, args.sigmoid,
+                                args.dim_2, args.batch_size, args.sigmoid,
                                 args.identity_dim, args.base_log_dir,
                                 args.validate_iter, args.validate_batch_size,
                                 args.gpu, args.print_every,
                                 args.max_total_steps,
                                 args.log_device_placement)
-#        model.train(train_data)
-        model.inference(train_data, "model_epoch_0.ckpt")
+        model.train(train_data)
         print("Finished.")
 
     if __name__ == "__main__":
