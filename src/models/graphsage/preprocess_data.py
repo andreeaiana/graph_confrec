@@ -107,7 +107,8 @@ class Processor():
         # Plot degree histogram
         self._degree_histogram()
 
-    def test_data(self, df_test, G_train, authors_df=None, normalize=True):
+    def test_data(self, df_test, G_train, authors_df=None, class_map=None,
+                  normalize=True):
         # TO DO: Add case for authors
         self.prefix = "test"
         print("Preprocessing data...")
@@ -178,6 +179,15 @@ class Processor():
 
         # Plot degree histogram
         self._degree_histogram()
+
+        # Add "fake" temporary classes for test nodes in class map
+        if class_map is not None:
+            test_nodes = [n for n in self.G.nodes() if self.G.node[n]['test']]
+            for test_node in test_nodes:
+                class_map[test_node] = np.zeros(
+                        (len(class_map[list(class_map.keys())[0]]), ),
+                        dtype=int)
+            return self.G, features, id_map, class_map
 
         return self.G, features, id_map
 
