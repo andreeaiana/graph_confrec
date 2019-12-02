@@ -19,8 +19,8 @@ class GraphSAGEModelEvaluation():
                  train_prefix, model_name, model_size="small",
                  learning_rate=0.001, epochs=10, dropout=0.0,
                  weight_decay=0.0, max_degree=100, samples_1=25, samples_2=10,
-                 samples_3=0, dim_1=128, dim_2=128, random_context=True,
-                 batch_size=512, sigmoid=False, identity_dim=0,
+                 samples_3=0, dim_1=128, dim_2=128, batch_size=512,
+                 sigmoid=False, identity_dim=0,
                  base_log_dir='../../../data/processed/graphsage/',
                  validate_iter=5000, validate_batch_size=256, gpu=0,
                  print_every=5, max_total_steps=10**10,
@@ -34,9 +34,9 @@ class GraphSAGEModelEvaluation():
                 embedding_type, graph_type, model_checkpoint, train_prefix,
                 model_name, model_size, learning_rate, epochs, dropout,
                 weight_decay, max_degree, samples_1, samples_2, samples_3,
-                dim_1, dim_2, random_context, batch_size, sigmoid,
-                identity_dim, base_log_dir, validate_iter, validate_batch_size,
-                gpu, print_every, max_total_steps, log_device_placement, recs)
+                dim_1, dim_2, batch_size, sigmoid, identity_dim, base_log_dir,
+                validate_iter, validate_batch_size, gpu, print_every,
+                max_total_steps, log_device_placement, recs)
 
     def evaluate(self):
         # Load test data
@@ -120,11 +120,6 @@ class GraphSAGEModelEvaluation():
                             default=128,
                             help='Size of output dim ' +
                             '(final is 2x this, if using concat)')
-        parser.add_argument('--random_context',
-                            action="store_false",
-                            default=True,
-                            help='Whether to use random context or direct ' +
-                            'edges.')
         parser.add_argument('--batch_size',
                             type=int,
                             default=512,
@@ -180,8 +175,8 @@ class GraphSAGEModelEvaluation():
                 args.learning_rate, args.epochs, args.dropout,
                 args.weight_decay, args.max_degree, args.samples_1,
                 args.samples_2, args.samples_3, args.dim_1, args.dim_2,
-                args.random_context, args.batch_size, args.sigmoid,
-                args.identity_dim, args.base_log_dir, args.validate_iter,
+                args.batch_size, args.sigmoid, args.identity_dim,
+                args.base_log_dir, args.validate_iter,
                 args.validate_batch_size, args.gpu, args.print_every,
                 args.max_total_steps, args.log_device_placement, args.recs)
         model.evaluate()

@@ -23,8 +23,8 @@ class GraphSAGEModel(AbstractModel):
                  train_prefix, model_name, model_size="small",
                  learning_rate=0.001, epochs=10, dropout=0.0,
                  weight_decay=0.0, max_degree=100, samples_1=25, samples_2=10,
-                 samples_3=0, dim_1=128, dim_2=128, random_context=True,
-                 batch_size=512, sigmoid=False, identity_dim=0,
+                 samples_3=0, dim_1=128, dim_2=128, batch_size=512,
+                 sigmoid=False, identity_dim=0,
                  base_log_dir='../../../data/processed/graphsage/',
                  validate_iter=5000, validate_batch_size=256, gpu=0,
                  print_every=5, max_total_steps=10**10,
@@ -41,9 +41,9 @@ class GraphSAGEModel(AbstractModel):
         self.graphsage_model = SupervisedModel(
                 train_prefix, model_name, model_size, learning_rate, epochs,
                 dropout, weight_decay, max_degree, samples_1, samples_2,
-                samples_3, dim_1, dim_2, random_context, batch_size, sigmoid,
-                identity_dim, base_log_dir, validate_iter, validate_batch_size,
-                gpu, print_every, max_total_steps, log_device_placement)
+                samples_3, dim_1, dim_2, batch_size, sigmoid, identity_dim,
+                base_log_dir, validate_iter, validate_batch_size, gpu,
+                print_every, max_total_steps, log_device_placement)
         self.preprocessor = Processor(self.embedding_type, self.graph_type,
                                       gpu)
 
@@ -52,9 +52,6 @@ class GraphSAGEModel(AbstractModel):
 
         if not self._load_training_class_map():
             print("The training class map dows not exist.")
-
-        if not self._load_training_walks():
-            print("The walks do not exist.")
 
         if not self._load_label_encoder():
             print("The label encoder does not exist.")
@@ -96,17 +93,17 @@ class GraphSAGEModel(AbstractModel):
                                                "chapter_citations"])
 
         # Preprocess the data
-        graph, features, id_map = self.preprocessor.test_data(df_test,
-                                                              self.G_train)
+        graph, features, id_map, class_map = self.preprocessor.test_data(
+                df_test, self.G_train, class_map=self.class_map_train)
 
         # Inference on test data
         predictions = self.graphsage_model.inference(
-                [graph, features, id_map, self.walks, self.class_map],
+                [graph, features, id_map, None, class_map],
                 self.model_checkpoint)[1]
 
         # Compute predictions
         sorted_predictions = (-predictions).argsort(axis=1)
-        conferenceseries = list()
+        conferences = list()
         confidences = list()
 
         for i in range(len(predictions)):
@@ -119,7 +116,7 @@ class GraphSAGEModel(AbstractModel):
             confidences.append(list(
                     predictions[i, sorted_predictions[:, :self.recs][i]]))
 
-        results = [conferenceseries, confidences]
+        results = [conferences, confidences]
         return results
 
     def train(self):
@@ -131,8 +128,10 @@ class GraphSAGEModel(AbstractModel):
                 "..", "..", "..", "data", "interim", "graphsage",
                 self.embedding_type, self.graph_type, "train_val-G.json")
         if os.path.isfile(graph_file):
+            print("Loading training graph...")
             with open(graph_file) as f:
                 self.G_train = json_graph.node_link_graph(json.load(f))
+            print("Loaded.")
             return True
         return False
 
@@ -142,33 +141,21 @@ class GraphSAGEModel(AbstractModel):
                 "..", "..", "..", "data", "interim", "graphsage",
                 self.embedding_type, self.graph_type,
                 "train_val-class_map.json")
-        if isinstance(list(class_map.values())[0], list):
-            lab_conversion = lambda n : n
-        else:
-            lab_conversion = lambda n : int(n)
-
-        if os.path.isfile(class_map_file):
-            self.class_map = json.load(open(class_map_file))
-            self.class_map = {conversion(k): lab_conversion(v) for k, v in
-                         class_map.items()}
-            return True
-        return False
-
-    def _load_training_walks(self):
-        walks_file = os.path.join(
-                os.path.dirname(os.path.realpath(__file__)),
-                "..", "..", "..", "data", "interim", "graphsage",
-                self.embedding_type, self.graph_type, "train_val-walks.txt")
-        self.walks = []
+        self.class_map_train = {}
         if isinstance(list(self.G_train.nodes)[0], int):
             conversion = lambda n: int(n)
         else:
             conversion = lambda n: n
-
-        if os.path.isfile(walks_file):
-            with open(walks_file) as f:
-                for line in f:
-                    self.walks.append(map(conversion, line.split()))
+        if os.path.isfile(class_map_file):
+            print("Loading training class map...")
+            self.class_map_train = json.load(open(class_map_file))
+            if isinstance(list(self.class_map_train.values())[0], list):
+                lab_conversion = lambda n : n
+            else:
+                lab_conversion = lambda n : int(n)
+            self.class_map_train = {conversion(k): lab_conversion(v) for k, v
+                                    in self.class_map_train.items()}
+            print("Loaded.")
             return True
         return False
 
@@ -179,6 +166,8 @@ class GraphSAGEModel(AbstractModel):
                 self.embedding_type, self.graph_type, "label_encoder.pkl")
         if os.path.isfile(label_encoder_file):
             with open(label_encoder_file, "rb") as f:
+                print("Loading label encoder.")
                 self.label_encoder = pickle.load(f)
-                return True
+            print("Loaded.")
+            return True
         return False
