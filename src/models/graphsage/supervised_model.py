@@ -647,7 +647,7 @@ class SupervisedModel:
 
         print("Starting...")
         print("Loading training data..")
-        train_data = load_data(args.train_prefix, load_walks=True)
+        train_data = load_data(args.train_prefix)
         print("Done loading training data..\n")
         from supervised_model import SupervisedModel
         model = SupervisedModel(args.train_prefix, args.model_name,
