@@ -829,7 +829,7 @@ class UnsupervisedModelRL:
 
     def _sampler_model_path(self):
         sampler_model_path = self.base_log_dir + self.train_prefix.rsplit(
-                    "/", maxsplit=1)[-2] + "/MLsampler"
+                    "/", maxsplit=1)[-2] + "/MLsampler/unsupervised"
         sampler_model_path += "/{model:s}_{model_size:s}_{lr:0.4f}/".format(
                 model=self.model_name, model_size=self.model_size,
                 lr=self.learning_rate)
@@ -837,7 +837,8 @@ class UnsupervisedModelRL:
 
     def _loss_node_path(self, sampler_name):
         loss_node_path = self.base_log_dir + self.train_prefix.rsplit(
-                    "/", maxsplit=1)[-2] + "/loss_node-" + sampler_name
+                    "/", maxsplit=1)[-2] + "/loss_node-" + sampler_name + \
+                    "/unsupervised"
         loss_node_path += "/{model:s}_{model_size:s}_{lr:0.4f}/".format(
                 model=self.model_name, model_size=self.model_size,
                 lr=self.learning_rate)
