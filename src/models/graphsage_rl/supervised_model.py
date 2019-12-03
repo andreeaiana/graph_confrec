@@ -161,13 +161,13 @@ class SupervisedModelRL:
     def _construct_placeholders(self, num_classes):
         # Define placeholders
         placeholders = {
-            'labels' : tf.compat.v1.placeholder(
+            'labels': tf.compat.v1.placeholder(
                     tf.float32, shape=(None, num_classes), name='labels'),
-            'batch' : tf.compat.v1.placeholder(
+            'batch': tf.compat.v1.placeholder(
                     tf.int32, shape=(self.batch_size), name='batch1'),
-            'dropout': tf.compat.v1.placeholder_with_default(
+            'dropout: tf.compat.v1.placeholder_with_default(
                     0., shape=(), name='dropout'),
-            'batch_size' : tf.compat.v1.placeholder(
+            'batch_size': tf.compat.v1.placeholder(
                     tf.int32, name='batch_size'),
             'learning_rate': tf.compat.v1.placeholder(
                     tf.float32, name='learning_rate')
@@ -276,7 +276,7 @@ class SupervisedModelRL:
                         SAGEInfo("node", sampler, self.samples_2, self.dim_2)]
             else:
                 layer_infos = [
-                        SAGEInfo("node", sampler, v.samples_1, FLselfAGS.dim_1)]
+                        SAGEInfo("node", sampler, self.samples_1, self.dim_1)]
 
             # modified
             model = SupervisedGraphsage(num_classes,
@@ -311,8 +311,8 @@ class SupervisedModelRL:
                                         aggregator_type="gcn",
                                         model_size=self.model_size,
                                         concat=False,
-                                        sigmoid_loss = self.sigmoid,
-                                        identity_dim = self.identity_dim,
+                                        sigmoid_loss=self.sigmoid,
+                                        identity_dim=self.identity_dim,
                                         logging=True)
         elif self.model_name == 'graphsage_seq':
             # Create model
@@ -386,14 +386,14 @@ class SupervisedModelRL:
         G = train_data[0]
         features = train_data[1]
         id_map = train_data[2]
-        class_map  = train_data[4]
+        class_map = train_data[4]
 
         if isinstance(list(class_map.values())[0], list):
             num_classes = len(list(class_map.values())[0])
         else:
             num_classes = len(set(class_map.values()))
 
-        if not features is None:
+        if features is not None:
             # pad with dummy zero vector
             features = np.vstack([features, np.zeros((features.shape[1],))])
 
@@ -526,11 +526,11 @@ class SupervisedModelRL:
 
                     ln = outs[4].values
                     ln_idx = outs[4].indices
-                    ln_acc[ln_idx[:,0], ln_idx[:,1]] += ln
+                    ln_acc[ln_idx[:, 0], ln_idx[:, 1]] += ln
 
                     lnc = outs[5].values
                     lnc_idx = outs[5].indices
-                    lnc_acc[lnc_idx[:,0], lnc_idx[:,1]] += lnc
+                    lnc_acc[lnc_idx[:, 0], lnc_idx[:, 1]] += lnc
 
                     if total_steps % self.print_every == 0:
                         train_f1_mic, train_f1_mac = self._calc_f1(
@@ -575,7 +575,7 @@ class SupervisedModelRL:
                 print("Epoch time=", "{:.5f}".format(epoch_laps))
 
                 if total_steps > self.max_total_steps:
-                        break
+                    break
 
         print("Avg time per epoch=", "{:.5f}".format(np.mean(epoch_laps_)))
 
@@ -588,11 +588,111 @@ class SupervisedModelRL:
         sess.close()
         tf.compat.v1.reset_default_graph()
 
+    def inference(self, test_data, sampler_name="FastML"):
+        print("Inference...")
+        timer = Timer()
+        timer.tic()
+
+        G = test_data[0]
+        features = test_data[1]
+        id_map = test_data[2]
+        class_map = test_data[4]
+
+        if isinstance(list(class_map.values())[0], list):
+            num_classes = len(list(class_map.values())[0])
+        else:
+            num_classes = len(set(class_map.values()))
+
+        if features is not None:
+            # pad with dummy zero vector
+            features = np.vstack([features, np.zeros((features.shape[1],))])
+
+        placeholders = self._construct_placeholders(num_classes)
+        minibatch = NodeMinibatchIterator(
+                G,
+                id_map,
+                placeholders,
+                class_map,
+                num_classes,
+                batch_size=self.batch_size,
+                max_degree=self.max_degree)
+        adj_info_ph = tf.compat.v1.placeholder(tf.int32,
+                                               shape=minibatch.adj.shape)
+        adj_info = tf.Variable(adj_info_ph, trainable=False, name="adj_info")
+
+        model = self._create_model(sampler_name, num_classes, placeholders,
+                                   features, adj_info, minibatch)
+
+        config = tf.compat.v1.ConfigProto(
+                log_device_placement=self.log_device_placement)
+        config.gpu_options.allow_growth = True
+        config.allow_soft_placement = True
+
+        # Initialize session
+        sess = tf.Session(config=config)
+        merged = tf.summary.merge_all()
+
+        # Initialize model saver
+        saver = tf.compat.v1.train.Saver()
+
+        # Init variables
+        sess.run(tf.compat.v1.global_variables_initializer(),
+                 feed_dict={adj_info_ph: minibatch.adj})
+
+        # Restore model
+        print("Restoring trained model.")
+        checkpoint_file = os.path.join(self._log_dir(sampler_name),
+                                       "model.ckpt")
+        ckpt = tf.compat.v1.train.get_checkpoint_state(checkpoint_file)
+        if checkpoint_file:
+            saver.restore(sess, checkpoint_file)
+            print("Model restored.")
+        else:
+            print("This model checkpoint does not exist. The model might " +
+                  "not be trained yet or the checkpoint is invalid.")
+
+        total_steps = 0
+        avg_time = 0.0
+
+        val_adj_info = tf.compat.v1.assign(adj_info, minibatch.test_adj)
+        sess.run(val_adj_info.op)
+
+        print("Computing predictions...")
+        t_test = time.time()
+        finished = False
+        val_losses = []
+        val_preds = []
+        labels = []
+        nodes = []
+        iter_num = 0
+        while not finished:
+            feed_dict_val, batch_labels, finished, nodes_subset  = minibatch_iter.incremental_node_val_feed_dict(
+                    size, iter_num, test=True)
+            node_outs_val = sess.run([model.preds, model.loss],
+                                     feed_dict=feed_dict_val)
+            val_preds.append(node_outs_val[0])
+            labels.append(batch_labels)
+            val_losses.append(node_outs_val[1])
+            nodes.extend(nodes_subset)
+            iter_num += 1
+        val_preds = np.vstack(val_preds)
+        print("Computed.")
+
+        # Return only the embeddings of the test nodes
+        test_preds_ids = {}
+        for i, node in enumerate(nodes):
+            test_preds_ids[node] = i
+        test_nodes = [n for n in G.nodes() if G.node[n]['test']]
+        test_preds = val_preds[[test_preds_ids[id] for id in test_nodes]]
+        timer.toc()
+        sess.close()
+        return test_nodes, test_preds
+
     def train_sampler(self, train_data, sampler_name="ML"):
         features = train_data[1]
         batch_size = 512
 
-        if not features is None:
+        if features is not None:
             features = np.vstack([features, np.zeros((features.shape[1],))])
 
         node_size = len(features)
@@ -609,8 +709,8 @@ class SupervisedModelRL:
 
         # Sampler model (non-linear, linear)
         with tf.compat.v1.variable_scope("MLsampler"):
-            if self.nonlinear_sampler == True:
-                print ("Non-linear regression sampler used.")
+            if self.nonlinear_sampler is True:
+                print("Non-linear regression sampler used.")
                 l = tf.compat.v1.layers.dense(
                         tf.concat([x1_ph, x2_ph], axis=1), 1,
                         activation=tf.nn.relu, trainable=True,
@@ -620,7 +720,7 @@ class SupervisedModelRL:
                         name='dense')
                 out = tf.exp(l)
             else:
-                print ("Linear regression sampler used.")
+                print("Linear regression sampler used.")
                 l = tf.compat.v1.layers.dense(
                         x1_ph, node_dim, activation=None, trainable=True,
                         kernel_initializer=tf.compat.v1.keras.initializers.VarianceScaling(
@@ -660,8 +760,8 @@ class SupervisedModelRL:
 
                 # Load data
                 loss_node_path = self.base_log_dir + self.train_prefix.rsplit(
-                         "/", maxsplit=1)[-2] + "/loss_node-" + \
-                         model_prefix_ + "-Uniform"
+                                 "/", maxsplit=1)[-2] + "/loss_node-" + \
+                                 model_prefix_ + "-Uniform"
                 loss_node_path += self._hyper_prefix()
                 loss_node_perstep = sparse.load_npz(loss_node_path +
                                                     'loss_node.npz')
@@ -751,18 +851,18 @@ class SupervisedModelRL:
         val_loss_old = 0
 
         for lr_iter in range(len(lr)):
-            print ('Learning rate= %f' % lr[lr_iter])
+            print('Learning rate= %f' % lr[lr_iter])
             for epoch in range(50):
                 # shuffle
                 perm = np.random.permutation(vertex_tr.shape[0])
                 validation_loss_epoch = []
-                print("Epoch: %04d" %(epoch))
+                print("Epoch: %04d" % (epoch))
 
                 for iter in range(iter_size):
                     # allocate batch
                     vtr = vertex_tr[perm[iter*batch_size:(iter+1)*batch_size]]
                     ntr = neighbor_tr[perm[iter*batch_size:(iter+1)*batch_size]
-                                        ]
+                                      ]
                     ytr = y_tr[perm[iter*batch_size:(iter+1)*batch_size]]
 
                     t = time.time()
@@ -792,10 +892,10 @@ class SupervisedModelRL:
 
                     # print
                     if total_steps % self.print_every == 0:
-                        print("Iter:", "%04d"%iter,
+                        print("Iter:", "%04d" % iter,
                               "train_loss=", "{:.5f}".format(train_loss),
                               "val_loss=", "{:.5f}".format(val_loss))
-                    total_steps +=1
+                    total_steps += 1
 
                     if total_steps > self.max_total_steps:
                         break
@@ -1013,11 +1113,11 @@ class SupervisedModelRL:
             model.samples_3 = samples_3_org
         else:
             p_train_uniform = mp.Process(target=model.train,
-                                             args=(train_data, "Uniform"))
+                                         args=(train_data, "Uniform"))
             p_train_uniform.start()
             p_train_uniform.join()
             p_train_uniform.terminate()
-        print("Done 1st phase: training graphsage model w/ uinform sampling..")
+        print("Done 1st phase: training graphsage model w/ uniform sampling..")
 
         # Train sampler
         print("Training RL-based regressor...")
