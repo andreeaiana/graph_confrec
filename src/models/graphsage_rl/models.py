@@ -15,7 +15,7 @@ import numpy as np
 import pdb
 
 # DISCLAIMER:
-# This code file is derived from https://github.com/oj9040/GraphSAGE_RL
+# This code file is derived from https://github.com/oj9040/GraphSAGE_RL.
 # Boilerplate parts of this code file were originally forked from
 # https://github.com/tkipf/gcn
 # which itself was very inspired by the keras package

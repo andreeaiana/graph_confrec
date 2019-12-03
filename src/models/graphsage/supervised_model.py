@@ -85,8 +85,7 @@ class SupervisedModel:
 
     def _log_dir(self):
         log_dir = self.base_log_dir + \
-                  self.train_prefix.rsplit("/", maxsplit=1)[-2] + "/" + \
-                  "supervised"
+                  self.train_prefix.rsplit("/", maxsplit=1)[-2] + "/supervised"
         log_dir += "/{model:s}_{model_size:s}_{lr:0.6f}/".format(
                     model=self.model_name, model_size=self.model_size,
                     lr=self.learning_rate)

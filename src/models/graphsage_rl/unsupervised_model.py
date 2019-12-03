@@ -78,7 +78,7 @@ class UnsupervisedModelRL:
     def _log_dir(self, sampler_model_name):
         log_dir = self.base_log_dir \
                     + self.train_prefix.rsplit("/", maxsplit=1)[-2] + "-" \
-                    + sampler_model_name
+                    + sampler_model_name + "/unsupervised"
         log_dir += "/{model:s}_{model_size:s}_{lr:0.6f}/".format(
                     model=self.model_name, model_size=self.model_size,
                     lr=self.learning_rate)
@@ -88,7 +88,8 @@ class UnsupervisedModelRL:
 
     def _sampler_log_dir(self):
         log_dir = self.base_log_dir \
-                    + self.train_prefix.rsplit("/", maxsplit=1)[-2]
+                    + self.train_prefix.rsplit("/", maxsplit=1)[-2] + \
+                    "/unsupervised"
         log_dir += "/{model:s}_{model_size:s}_{lr:0.6f}/".format(
                     model=self.model_name, model_size=self.model_size,
                     lr=self.learning_rate)
