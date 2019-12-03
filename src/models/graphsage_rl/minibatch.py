@@ -130,7 +130,7 @@ class EdgeMinibatchIterator(object):
         end_idx = min(start_idx + self.batch_size, len(self.train_edges))
         # Handle the case when the batch is smaller than the batch size
         # (at the end of the training samples)
-        if len(self.train_edges) < (start_idx+self.batch_size):
+        if len(self.train_edges) < (start_idx + self.batch_size):
             start_idx = start_idx - (start_idx + self.batch_size-len(
                     self.train_edges))
         batch_edges = self.train_edges[start_idx: end_idx]
@@ -319,6 +319,11 @@ class NodeMinibatchIterator(object):
         start_idx = self.batch_num * self.batch_size
         self.batch_num += 1
         end_idx = min(start_idx + self.batch_size, len(self.train_nodes))
+         # Handle the case when the batch is smaller than the batch size
+        # (at the end of the training samples)
+        if len(self.train_nodes) < (start_idx + self.batch_size):
+            start_idx = start_idx - (start_idx + self.batch_size - len(
+                    self.train_nodes))
         batch_nodes = self.train_nodes[start_idx: end_idx]
         return self.batch_feed_dict(batch_nodes)
 
@@ -326,6 +331,12 @@ class NodeMinibatchIterator(object):
         node_list = self.nodes
         val_nodes = node_list[iter_num*size:min((iter_num+1)*size,
                                                 len(node_list))]
+        # Handle the case when the batch is smaller than the batch size
+        # (at the end of the training samples)
+        if len(node_list) < (iter_num + 1) * size:
+            val_nodes = node_list[
+                    iter_num*size - ((iter_num + 1)*size - len(node_list)):min(
+                            (iter_num + 1)*size, len(node_list))]
         return self.batch_feed_dict(val_nodes), (iter_num+1)*size >= len(node_list), val_nodes
 
     def shuffle(self):

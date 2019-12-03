@@ -316,7 +316,6 @@ class GCNAggregator(Layer):
         self.output_dim = output_dim
 
     def _call(self, inputs):
-
         self_vecs, neigh_vecs, att, num_nz = inputs
 
         neigh_vecs = tf.nn.dropout(neigh_vecs, 1 - (1-self.dropout))
@@ -644,7 +643,7 @@ class SeqAggregator(Layer):
         self.cell = tf.compat.v1.nn.rnn_cell.BasicLSTMCell(self.hidden_dim)
 
     def _call(self, inputs):
-        self_vecs, neigh_vecs = inputs
+        self_vecs, neigh_vecs, att, num_nz = inputs
 
         dims = tf.shape(input=neigh_vecs)
         batch_size = dims[0]
