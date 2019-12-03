@@ -4,13 +4,14 @@ import sys
 import pandas as pd
 import numpy as np
 import json
+import pickle
 from tqdm import tqdm
 from collections import Counter
 from itertools import combinations
 import matplotlib.pyplot as plt
 import networkx as nx
 from networkx.readwrite import json_graph
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
 
 from utils import run_random_walks
 
@@ -76,6 +77,15 @@ class Processor():
                   "w") as f:
             f.write(json.dumps(G_data))
 
+        # Create and save class map
+        self.label_encoder = OneHotEncoder(handle_unknown='ignore',
+                                           sparse=False, dtype=np.int)
+        data = df_train.append(df_validation, ignore_index=True)
+        labels = data.conferenceseries.unique()
+        labels = labels.reshape(-1, 1)
+        self.label_encoder.fit(labels)
+        self._create_class_map(data)
+
         # Create and save id map
         self._create_id_map()
 
@@ -97,7 +107,8 @@ class Processor():
         # Plot degree histogram
         self._degree_histogram()
 
-    def test_data(self, df_test, G_train, authors_df=None, normalize=True):
+    def test_data(self, df_test, G_train, authors_df=None, class_map=None,
+                  normalize=True):
         # TO DO: Add case for authors
         self.prefix = "test"
         print("Preprocessing data...")
@@ -169,6 +180,15 @@ class Processor():
         # Plot degree histogram
         self._degree_histogram()
 
+        # Add "fake" temporary classes for test nodes in class map
+        if class_map is not None:
+            test_nodes = [n for n in self.G.nodes() if self.G.node[n]['test']]
+            for test_node in test_nodes:
+                class_map[test_node] = np.zeros(
+                        (len(class_map[list(class_map.keys())[0]]), ),
+                        dtype=int)
+            return self.G, features, id_map, class_map
+
         return self.G, features, id_map
 
     def _add_nodes(self, data, test=False, val=False):
@@ -221,6 +241,23 @@ class Processor():
                         data_grouped.iloc[idx].chapter, 2))
                 pbar.update(1)
         print("Edges in graph: {}.\n".format(self.G.number_of_edges()))
+
+    def _create_class_map(self, data):
+        print("Creating class map.")
+        nodes = list(self.G.nodes)
+        class_map = {nodes[i]: [int(j) for j in list(
+                self.label_encoder.transform(np.array(
+                        data[data.chapter == nodes[i]].conferenceseries
+                        ).reshape(-1, 1))[0])] for i in range(len(nodes))}
+        print("Saving class map to disk.")
+        with open(os.path.join(
+                self.path_persistent, self.prefix + "-class_map.json"),
+                "w") as f:
+            f.write(json.dumps(class_map))
+
+        with open(os.path.join(
+                self.path_persistent, "label_encoder.pkl"), "wb") as f:
+            pickle.dump(self.label_encoder, f)
 
     def _create_id_map(self):
         if self.prefix == "train_val":

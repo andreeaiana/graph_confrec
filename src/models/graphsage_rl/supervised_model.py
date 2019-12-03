@@ -165,7 +165,7 @@ class SupervisedModelRL:
                     tf.float32, shape=(None, num_classes), name='labels'),
             'batch': tf.compat.v1.placeholder(
                     tf.int32, shape=(self.batch_size), name='batch1'),
-            'dropout: tf.compat.v1.placeholder_with_default(
+            'dropout': tf.compat.v1.placeholder_with_default(
                     0., shape=(), name='dropout'),
             'batch_size': tf.compat.v1.placeholder(
                     tf.int32, name='batch_size'),
@@ -588,106 +588,6 @@ class SupervisedModelRL:
         sess.close()
         tf.compat.v1.reset_default_graph()
 
-    def inference(self, test_data, sampler_name="FastML"):
-        print("Inference...")
-        timer = Timer()
-        timer.tic()
-
-        G = test_data[0]
-        features = test_data[1]
-        id_map = test_data[2]
-        class_map = test_data[4]
-
-        if isinstance(list(class_map.values())[0], list):
-            num_classes = len(list(class_map.values())[0])
-        else:
-            num_classes = len(set(class_map.values()))
-
-        if features is not None:
-            # pad with dummy zero vector
-            features = np.vstack([features, np.zeros((features.shape[1],))])
-
-        placeholders = self._construct_placeholders(num_classes)
-        minibatch = NodeMinibatchIterator(
-                G,
-                id_map,
-                placeholders,
-                class_map,
-                num_classes,
-                batch_size=self.batch_size,
-                max_degree=self.max_degree)
-        adj_info_ph = tf.compat.v1.placeholder(tf.int32,
-                                               shape=minibatch.adj.shape)
-        adj_info = tf.Variable(adj_info_ph, trainable=False, name="adj_info")
-
-        model = self._create_model(sampler_name, num_classes, placeholders,
-                                   features, adj_info, minibatch)
-
-        config = tf.compat.v1.ConfigProto(
-                log_device_placement=self.log_device_placement)
-        config.gpu_options.allow_growth = True
-        config.allow_soft_placement = True
-
-        # Initialize session
-        sess = tf.Session(config=config)
-        merged = tf.summary.merge_all()
-
-        # Initialize model saver
-        saver = tf.compat.v1.train.Saver()
-
-        # Init variables
-        sess.run(tf.compat.v1.global_variables_initializer(),
-                 feed_dict={adj_info_ph: minibatch.adj})
-
-        # Restore model
-        print("Restoring trained model.")
-        checkpoint_file = os.path.join(self._log_dir(sampler_name),
-                                       "model.ckpt")
-        ckpt = tf.compat.v1.train.get_checkpoint_state(checkpoint_file)
-        if checkpoint_file:
-            saver.restore(sess, checkpoint_file)
-            print("Model restored.")
-        else:
-            print("This model checkpoint does not exist. The model might " +
-                  "not be trained yet or the checkpoint is invalid.")
-
-        total_steps = 0
-        avg_time = 0.0
-
-        val_adj_info = tf.compat.v1.assign(adj_info, minibatch.test_adj)
-        sess.run(val_adj_info.op)
-
-        print("Computing predictions...")
-        t_test = time.time()
-        finished = False
-        val_losses = []
-        val_preds = []
-        labels = []
-        nodes = []
-        iter_num = 0
-        while not finished:
-            feed_dict_val, batch_labels, finished, nodes_subset  = minibatch_iter.incremental_node_val_feed_dict(
-                    size, iter_num, test=True)
-            node_outs_val = sess.run([model.preds, model.loss],
-                                     feed_dict=feed_dict_val)
-            val_preds.append(node_outs_val[0])
-            labels.append(batch_labels)
-            val_losses.append(node_outs_val[1])
-            nodes.extend(nodes_subset)
-            iter_num += 1
-        val_preds = np.vstack(val_preds)
-        print("Computed.")
-
-        # Return only the embeddings of the test nodes
-        test_preds_ids = {}
-        for i, node in enumerate(nodes):
-            test_preds_ids[node] = i
-        test_nodes = [n for n in G.nodes() if G.node[n]['test']]
-        test_preds = val_preds[[test_preds_ids[id] for id in test_nodes]]
-        timer.toc()
-        sess.close()
-        return test_nodes, test_preds
-
     def train_sampler(self, train_data, sampler_name="ML"):
         features = train_data[1]
         batch_size = 512
@@ -911,6 +811,114 @@ class SupervisedModelRL:
 
         sess.close()
         tf.compat.v1.reset_default_graph()
+
+    def inference(self, test_data, sampler_name="FastML"):
+        print("Inference...")
+        timer = Timer()
+        timer.tic()
+
+        G = test_data[0]
+        features = test_data[1]
+        id_map = test_data[2]
+        class_map = test_data[4]
+
+        if isinstance(list(class_map.values())[0], list):
+            num_classes = len(list(class_map.values())[0])
+        else:
+            num_classes = len(set(class_map.values()))
+
+        if features is not None:
+            # pad with dummy zero vector
+            features = np.vstack([features, np.zeros((features.shape[1],))])
+
+        placeholders = self._construct_placeholders(num_classes)
+        minibatch = NodeMinibatchIterator(
+                G,
+                id_map,
+                placeholders,
+                class_map,
+                num_classes,
+                batch_size=self.batch_size,
+                max_degree=self.max_degree)
+        adj_info_ph = tf.compat.v1.placeholder(tf.int32,
+                                               shape=minibatch.adj.shape)
+        adj_info = tf.Variable(adj_info_ph, trainable=False, name="adj_info")
+
+        model = self._create_model(sampler_name, num_classes, placeholders,
+                                   features, adj_info, minibatch)
+
+        config = tf.compat.v1.ConfigProto(
+                log_device_placement=self.log_device_placement)
+        config.gpu_options.allow_growth = True
+        config.allow_soft_placement = True
+
+        # Initialize session
+        sess = tf.compat.v1.Session(config=config)
+        merged = tf.compat.v1.summary.merge_all()
+
+        # Initialize model saver
+        saver = tf.compat.v1.train.Saver()
+
+        # Init variables
+        sess.run(tf.compat.v1.global_variables_initializer(),
+                 feed_dict={adj_info_ph: minibatch.adj})
+
+        # Restore params of ML sampler model
+        if sampler_name == 'ML' or sampler_name == 'FastML':
+            sampler_vars = tf.compat.v1.get_collection(
+                    tf.compat.v1.GraphKeys.GLOBAL_VARIABLES, scope="MLsampler")
+            saver_sampler = tf.compat.v1.train.Saver(var_list=sampler_vars)
+            sampler_model_path = self._sampler_model_path()
+            saver_sampler.restore(sess, sampler_model_path + 'model.ckpt')
+
+        # Restore model
+        print("Restoring trained model.")
+        checkpoint_file = os.path.join(self._log_dir(sampler_name),
+                                       "model.ckpt")
+        ckpt = tf.compat.v1.train.get_checkpoint_state(checkpoint_file)
+        if checkpoint_file:
+            saver.restore(sess, checkpoint_file)
+            print("Model restored.")
+        else:
+            print("This model checkpoint does not exist. The model might " +
+                  "not be trained yet or the checkpoint is invalid.")
+
+        total_steps = 0
+        avg_time = 0.0
+
+        val_adj_info = tf.compat.v1.assign(adj_info, minibatch.test_adj)
+        sess.run(val_adj_info.op)
+
+        print("Computing predictions...")
+        t_test = time.time()
+        finished = False
+        val_losses = []
+        val_preds = []
+        labels = []
+        nodes = []
+        iter_num = 0
+        while not finished:
+            feed_dict_val, batch_labels, finished, nodes_subset  = minibatch_iter.incremental_node_val_feed_dict(
+                    size, iter_num, test=True)
+            node_outs_val = sess.run([model.preds, model.loss],
+                                     feed_dict=feed_dict_val)
+            val_preds.append(node_outs_val[0])
+            labels.append(batch_labels)
+            val_losses.append(node_outs_val[1])
+            nodes.extend(nodes_subset)
+            iter_num += 1
+        val_preds = np.vstack(val_preds)
+        print("Computed.")
+
+        # Return only the embeddings of the test nodes
+        test_preds_ids = {}
+        for i, node in enumerate(nodes):
+            test_preds_ids[node] = i
+        test_nodes = [n for n in G.nodes() if G.node[n]['test']]
+        test_preds = val_preds[[test_preds_ids[id] for id in test_nodes]]
+        timer.toc()
+        sess.close()
+        return test_nodes, test_preds
 
     def _sampler_model_path(self):
         if self.allhop_rewards:
