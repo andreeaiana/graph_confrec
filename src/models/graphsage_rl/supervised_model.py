@@ -813,7 +813,7 @@ class SupervisedModelRL:
         sess.close()
         tf.compat.v1.reset_default_graph()
 
-    def inference(self, test_data, sampler_name="FastML"):
+    def inference(self, test_data, sampler_name):
         print("Inference...")
         timer = Timer()
         timer.tic()

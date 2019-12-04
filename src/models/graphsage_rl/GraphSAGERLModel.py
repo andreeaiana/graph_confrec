@@ -32,6 +32,7 @@ class GraphSAGERLModel(AbstractModel):
 
         self.embedding_type = embedding_type
         self.graph_type = graph_type
+        self.fast_ver = fast_ver
         self.recs = recs
 
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -97,8 +98,12 @@ class GraphSAGERLModel(AbstractModel):
                 df_test, self.G_train, class_map=self.class_map_train)
 
         # Inference on test data
+        if self.fast_ver:
+            sampler_name = "FastML"
+        else:
+            sampler_name = "ML"
         predictions = self.graphsage_model.inference(
-                [graph, features, id_map, None, class_map])[1]
+                [graph, features, id_map, None, class_map], sampler_name)[1]
 
         # Compute predictions
         sorted_predictions = (-predictions).argsort(axis=1)
