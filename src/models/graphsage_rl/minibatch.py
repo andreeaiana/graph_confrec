@@ -303,10 +303,20 @@ class NodeMinibatchIterator(object):
     def incremental_node_val_feed_dict(self, size, iter_num, test=False):
         if test:
             val_nodes = self.test_nodes
+            # Handle case when there are fewer test nodes than the batch size
+            if len(val_nodes) < size:
+                val_nodes = val_nodes * size
         else:
             val_nodes = self.val_nodes
         val_node_subset = val_nodes[iter_num*size: min((iter_num+1)*size,
                                                        len(val_nodes))]
+
+        # Handle the case when the batch is smaller than the batch size
+        # (at the end of the training samples)
+        if len(val_nodes) < (iter_num + 1) * size:
+            val_node_subset = val_nodes[
+                    iter_num*size - ((iter_num + 1)*size - len(val_nodes)):min(
+                            (iter_num + 1)*size, len(val_nodes))]
 
         # add a dummy neighbor
         ret_val = self.batch_feed_dict(val_node_subset)

@@ -426,9 +426,10 @@ class SupervisedModelRL:
 #                self._log_dir(sampler_name), sess.graph)
 
         # Save model
-        model_vars = tf.compat.v1.get_collection(
-                tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES)
-        saver = tf.compat.v1.train.Saver(var_list=model_vars)
+#        model_vars = tf.compat.v1.get_collection(
+#                tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES)
+#        saver = tf.compat.v1.train.Saver(var_list=model_vars)
+        saver = tf.compat.v1.train.Saver()
         loss_node_path = self._loss_node_path(sampler_name)
 
         # Init variables
@@ -857,19 +858,13 @@ class SupervisedModelRL:
         merged = tf.compat.v1.summary.merge_all()
 
         # Initialize model saver
-        saver = tf.compat.v1.train.Saver()
+        model_vars = tf.compat.v1.get_collection(
+                tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES)
+        saver = tf.compat.v1.train.Saver(var_list=model_vars)
 
         # Init variables
         sess.run(tf.compat.v1.global_variables_initializer(),
                  feed_dict={adj_info_ph: minibatch.adj})
-
-        # Restore params of ML sampler model
-        if sampler_name == 'ML' or sampler_name == 'FastML':
-            sampler_vars = tf.compat.v1.get_collection(
-                    tf.compat.v1.GraphKeys.GLOBAL_VARIABLES, scope="MLsampler")
-            saver_sampler = tf.compat.v1.train.Saver(var_list=sampler_vars)
-            sampler_model_path = self._sampler_model_path()
-            saver_sampler.restore(sess, sampler_model_path + 'model.ckpt')
 
         # Restore model
         print("Restoring trained model.")
@@ -898,8 +893,8 @@ class SupervisedModelRL:
         nodes = []
         iter_num = 0
         while not finished:
-            feed_dict_val, batch_labels, finished, nodes_subset  = minibatch_iter.incremental_node_val_feed_dict(
-                    size, iter_num, test=True)
+            feed_dict_val, batch_labels, finished, nodes_subset  = minibatch.incremental_node_val_feed_dict(
+                    self.batch_size, iter_num, test=True)
             node_outs_val = sess.run([model.preds, model.loss],
                                      feed_dict=feed_dict_val)
             val_preds.append(node_outs_val[0])
@@ -1101,6 +1096,7 @@ class SupervisedModelRL:
             samples = [model.samples_1, model.samples_2, model.samples_3]
             numhop = np.count_nonzero(samples)
             for i in reversed(range(0, numhop)):
+                print(samples, dims)
                 model.dim_2 = dims[1]
                 model.dim_3 = dims[2]
                 model.samples_2 = samples[1]
