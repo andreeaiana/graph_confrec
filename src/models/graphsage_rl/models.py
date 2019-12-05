@@ -332,11 +332,13 @@ class SampleAndAggregate(GeneralizedModel):
             aweight.append(tf.reshape(aw, [support_size * batch_size, ]))
             num_nz.append(tf.reshape(
                     numnz,
-                    [int(support_size * batch_size / layer_infos[t].num_samples),
+                    [int(support_size * batch_size / layer_infos[t].num_samples
+                         ),
                      ]))
             out_mean.append(tf.reshape(
                     outmean,
-                    [int(support_size * batch_size / layer_infos[t].num_samples),
+                    [int(support_size * batch_size / layer_infos[t].num_samples
+                         ),
                      ]))
             support_sizes.append(support_size)
 

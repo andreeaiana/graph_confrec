@@ -426,9 +426,6 @@ class SupervisedModelRL:
 #                self._log_dir(sampler_name), sess.graph)
 
         # Save model
-#        model_vars = tf.compat.v1.get_collection(
-#                tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES)
-#        saver = tf.compat.v1.train.Saver(var_list=model_vars)
         saver = tf.compat.v1.train.Saver()
         loss_node_path = self._loss_node_path(sampler_name)
 
@@ -1096,7 +1093,6 @@ class SupervisedModelRL:
             samples = [model.samples_1, model.samples_2, model.samples_3]
             numhop = np.count_nonzero(samples)
             for i in reversed(range(0, numhop)):
-                print(samples, dims)
                 model.dim_2 = dims[1]
                 model.dim_3 = dims[2]
                 model.samples_2 = samples[1]
