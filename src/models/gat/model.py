@@ -353,9 +353,9 @@ class GATModel:
                     epoch_min_val, validation_losses[epoch_min_val]), f)
             self._print("Highest validation accuracy at epoch {} = {}.\n".format(
                     epoch_max_acc, validation_accuracies[epoch_max_acc]), f)
-
+            f.write("\n\n")
             for epoch in range(epochs):
-                f.write('Epoch: %.5f | Training: loss = %.5f, acc = %.5f | Val: loss = %.5f, acc = %.5f' %
+                f.write('Epoch: % | Training: loss = %.5f, acc = %.5f | Val: loss = %.5f, acc = %.5f\n' %
                         (epoch, train_losses[epoch], train_accuracies[epoch],
                          validation_losses[epoch], validation_accuracies[epoch]
                          ))
@@ -370,9 +370,9 @@ class GATModel:
                 "..", "..", "..", "data", "processed", "gat",
                 self.embedding_type, self.dataset)
         if self.Sparse:
-            sp = "_sparse"
+            sp = "sparse"
         else:
-            sp = ""
+            sp = "dense"
         hidden_units = "-".join(str(x) for x in self.hid_units)
         heads = "-".join(str(x) for x in self.n_heads)
         self.path_persistent += "/{hid_units:s}_{n_heads:s}_{lr:0.6f}_{wd:0.6f}_{sparse:s}/".format(
@@ -446,7 +446,7 @@ class GATModel:
         args = parser.parse_args()
 
         print("Starting...")
-        from gat_model import GATModel
+        from model import GATModel
         model = GATModel(args.embedding_type, args.dataset, args.hid_units,
                          args.n_heads, args.learning_rate, args.weight_decay,
                          args.epochs, args.batch_size, args.patience,

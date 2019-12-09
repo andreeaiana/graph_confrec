@@ -4,6 +4,7 @@ import sys
 import numpy as np
 import pickle as pkl
 import networkx as nx
+import tensorflow as tf
 import scipy.sparse as sp
 from scipy.sparse.linalg.eigen.arpack import eigsh
 
