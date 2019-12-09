@@ -33,7 +33,6 @@ class inference(tf.keras.layers.Layer):
                                           residual=residual))
 
         for i in range(1, len(hid_units)):
-            h_old = h_1
             sec_attns = []
             for j in range(n_heads[i]):
                 sec_attns.append(attned_head(hidden_dim=hid_units[i],

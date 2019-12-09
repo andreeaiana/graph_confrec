@@ -30,11 +30,11 @@ from TimerCounter import Timer
 
 class GATModel:
 
-    def __init__(self, embedding_type, dataset, hid_units=[8], n_heads=[8, 1],
-                 learning_rate=0.005, weight_decay=0.0005, epochs=100000,
-                 batch_size=1, patience=100, residual=False,
-                 nonlinearity=tf.nn.elu, sparse=False, ffd_drop=0.6,
-                 attn_drop=0.6, gpu=0):
+    def __init__(self, embedding_type, dataset, hid_units=[256, 256],
+                 n_heads=[4, 4, 1], learning_rate=0.005, weight_decay=0,
+                 epochs=100000, batch_size=1, patience=100, residual=False,
+                 nonlinearity=tf.nn.elu, sparse=False, ffd_drop=0, attn_drop=0,
+                 gpu=0):
 
         print("Initiating, using gpu {}.\n".format(gpu))
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -355,7 +355,7 @@ class GATModel:
                     epoch_max_acc, validation_accuracies[epoch_max_acc]), f)
             f.write("\n\n")
             for epoch in range(epochs):
-                f.write('Epoch: % | Training: loss = %.5f, acc = %.5f | Val: loss = %.5f, acc = %.5f\n' %
+                f.write('Epoch: %.f | Training: loss = %.5f, acc = %.5f | Val: loss = %.5f, acc = %.5f\n' %
                         (epoch, train_losses[epoch], train_accuracies[epoch],
                          validation_losses[epoch], validation_accuracies[epoch]
                          ))
@@ -397,13 +397,13 @@ class GATModel:
         parser.add_argument("--hid_units",
                             type=int,
                             nargs="+",
-                            default=[8],
+                            default=[256, 256],
                             help="Number of hidden units per each attention "
                             + "head in each layer.")
         parser.add_argument('--n_heads',
                             type=int,
                             nargs="+",
-                            default=[8, 1],
+                            default=[4, 4, 1],
                             help='Additional entry for the output layer.')
         parser.add_argument('--learning_rate',
                             type=float,
@@ -411,7 +411,7 @@ class GATModel:
                             help='Learning rate.')
         parser.add_argument('--weight_decay',
                             type=float,
-                            default=0.0005,
+                            default=0,
                             help='Weight decay.')
         parser.add_argument('--epochs',
                             type=int,
@@ -435,10 +435,10 @@ class GATModel:
                             help="Whether to use the sparse model version")
         parser.add_argument('--ffd_drop',
                             type=float,
-                            default=0.6)
+                            default=0)
         parser.add_argument('--attn_drop',
                             type=float,
-                            default=0.6)
+                            default=0)
         parser.add_argument('--gpu',
                             type=int,
                             default=0,
