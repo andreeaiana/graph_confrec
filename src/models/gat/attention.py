@@ -98,7 +98,8 @@ class sp_attn_head(tf.keras.layers.Layer):
                     dense_shape=coefs.dense_shape)
             seq_fts = self.in_dropout(seq_fts, training=training)
 
-        coefs = tf.compat.v2.sparse.reshape(coefs, [nb_nodes, nb_nodes])
+        coefs = tf.compat.v2.sparse.reshape(coefs,
+                                            [self.nb_nodes, self.nb_nodes])
 
         seq_fts = tf.squeeze(seq_fts)
         vals = tf.sparse.sparse_dense_matmul(coefs, seq_fts)
