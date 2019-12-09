@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 import tensorflow as tf
 
@@ -72,7 +73,6 @@ class inference(tf.keras.layers.Layer):
                                   training=training))
 
         logits = tf.add_n(out)/self.final_sum
-
         return logits
 
     def _choose_attn_head(self, Sparse):

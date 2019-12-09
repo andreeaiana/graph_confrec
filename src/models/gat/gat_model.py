@@ -1,13 +1,25 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import, print_function, division, unicode_literals
+
 import os
+import sys
 import time
+import math
 import argparse
 import numpy as np
 import tensorflow as tf
+import matplotlib.pyplot as plt
 
 from gat import GAT
+from layers import inference
 from process import load_data, preprocess_features
 from process import adj_to_bias, preprocess_adj_bias
+
+from tensorflow.python.ops import control_flow_util
+control_flow_util.ENABLE_CONTROL_FLOW_V2 = True
+
+sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "utils"))
+from TimerCounter import Timer
 
 # DISCLAIMER:
 # This code file is derived from https://github.com/PetarV-/GAT,
@@ -18,13 +30,13 @@ from process import adj_to_bias, preprocess_adj_bias
 
 class GATModel:
 
-    def __init__(self, embedding_type, dataset, hid_units=[8], n_heads=[8,1],
+    def __init__(self, embedding_type, dataset, hid_units=[8], n_heads=[8, 1],
                  learning_rate=0.005, weight_decay=0.0005, epochs=100000,
                  batch_size=1, patience=100, residual=False,
                  nonlinearity=tf.nn.elu, sparse=False, ffd_drop=0.6,
                  attn_drop=0.6, gpu=0):
 
-        print("Initiating, using gpu {}.".format(gpu))
+        print("Initiating, using gpu {}.\n".format(gpu))
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
 
@@ -46,12 +58,7 @@ class GATModel:
         self.ffd_drop = ffd_drop
         self.attn_drop = attn_drop
         self.optimizer = tf.keras.optimizers.Adam(lr=self.learning_rate)
-        self.path_persistent = os.path.join(
-                os.path.dirname(os.path.realpath(__file__)),
-                "..", "..", "..", "data", "processed", "gat",
-                self.embedding_type, self.dataset)
-        if not os.path.isdir(self.path_persistent):
-            os.mkdir(self.path_persistent)
+        self._get_folder()
 
         print('Model: ' + str('SpGAT' if self.Sparse else 'GAT'))
         print("Dataset: {}, Embedding: {}".format(self.dataset,
@@ -75,11 +82,10 @@ class GATModel:
                                            training=True)
         gradients = tape.gradient(loss, model.trainable_variables)
         gradient_variables = zip(gradients, model.trainable_variables)
-        self.optimizer.apply_gradient(gradient_variables)
-
+        self.optimizer.apply_gradients(gradient_variables)
         return logits, accuracy, loss
 
-    def evaluate(model, inputs, bias_mat, lbl_in, msk_in):
+    def evaluate(self, model, inputs, bias_mat, lbl_in, msk_in):
         logits, accuracy, loss = model(inputs=inputs,
                                        bias_mat=bias_mat,
                                        lbl_in=lbl_in,
@@ -107,8 +113,12 @@ class GATModel:
         val_mask = val_mask[np.newaxis]
         test_mask = test_mask[np.newaxis]
 
-        print("Parameters: batch size={}, nb_nodes={}, ft_size={}, nb_classes={}".format(
-                self.batch_size, nb_nodes, ft_size, nb_classes))
+        print("Training model...")
+        timer = Timer()
+        timer.tic()
+
+        print("Parameters: batch size={}, nb_nodes={}, ft_size={}, nb_classes={}\n".format(
+                        self.batch_size, nb_nodes, ft_size, nb_classes))
 
         if self.Sparse:
             biases = preprocess_adj_bias(adj)
@@ -118,9 +128,9 @@ class GATModel:
             biases = adj_to_bias(adj, [nb_nodes], nhood=1)
 
         model = GAT(self.hid_units, self.n_heads, nb_classes, nb_nodes,
-                    self.Sparse, ffd_drop=self.ffd_drop,
-                    attn_drop=self.attn_drop, activation=self.nonlinearity,
-                    residual=self.residual)
+                    self.Sparse, l2_coef=self.weight_decay,
+                    ffd_drop=self.ffd_drop, attn_drop=self.attn_drop,
+                    activation=self.nonlinearity, residual=self.residual)
 
         vlss_mn = np.inf
         vacc_mx = 0.0
@@ -131,9 +141,14 @@ class GATModel:
         val_loss_avg = 0
         val_acc_avg = 0
 
-        # Training the model
+        train_losses = []
+        val_losses = []
+        train_accuracies = []
+        val_accuracies = []
+
         for epoch in range(self.epochs):
-            print("###############  Epoch {}  ###############".format(epoch))
+            print("\nEpoch {}".format(epoch))
+
             # Training
             tr_step = 0
             tr_size = features.shape[0]
@@ -141,10 +156,11 @@ class GATModel:
                 if self.Sparse:
                     bbias = biases
                 else:
-                    bbias = biases[tr_step + self.batch_size: (
+                    bbias = biases[tr_step*self.batch_size: (
                             tr_step+1)*self.batch_size]
+
                 _, acc_tr, loss_value_tr = self._train(
-                        model,
+                        model=model,
                         inputs=features[tr_step*self.batch_size: (
                                 tr_step+1)*self.batch_size],
                         bias_mat=bbias,
@@ -165,8 +181,9 @@ class GATModel:
                 else:
                     bbias = biases[vl_step*self.batch_size: (
                             vl_step+1)*self.batch_size]
+
                 _, acc_vl, loss_value_vl = self.evaluate(
-                        model,
+                        model=model,
                         inputs=features[vl_step*self.batch_size: (
                                 vl_step+1)*self.batch_size],
                         bias_mat=bbias,
@@ -178,11 +195,15 @@ class GATModel:
                 val_acc_avg += acc_vl
                 vl_step += 1
 
-            print("Training: loss = %.5f, acc = %.5f | Val: loss = %.5f, acc = %.5f" % (
-                    train_loss_avg/tr_step, train_acc_avg/tr_step,
-                    val_loss_avg/vl_step, val_acc_avg/vl_step))
+            print('Training: loss = %.5f, acc = %.5f | Val: loss = %.5f, acc = %.5f' %
+                  (train_loss_avg/tr_step, train_acc_avg/tr_step,
+                   val_loss_avg/vl_step, val_acc_avg/vl_step))
+            train_losses.append(train_loss_avg/tr_step)
+            val_losses.append(val_loss_avg/vl_step)
+            train_accuracies.append(train_acc_avg/tr_step)
+            val_accuracies.append(val_acc_avg/vl_step)
 
-            # Early stopping
+            # Early Stopping
             if val_acc_avg/vl_step >= vacc_mx or val_loss_avg/vl_step <= vlss_mn:
                 if val_acc_avg/vl_step >= vacc_mx and val_loss_avg/vl_step <= vlss_mn:
                     vacc_early_model = val_acc_avg/vl_step
@@ -199,6 +220,8 @@ class GATModel:
                     print("Early stop model validation loass: {}, accuracy: {}".format(
                             vlss_early_model, vacc_early_model))
                     model.set_weights(working_weights)
+                    model.save_weights(self.path_persistent + 'model',
+                                       save_format='tf')
                     break
 
             train_loss_avg = 0
@@ -206,9 +229,19 @@ class GATModel:
             val_loss_avg = 0
             val_acc_avg = 0
 
-            # Save model
-            model.save_weights(self.path_persistent + '/model',
+            model.save_weights(self.path_persistent + 'model',
                                save_format='tf')
+        print("Training finished.")
+
+        training_time = timer.toc()
+        train_losses = [x.numpy() for x in train_losses]
+        val_losses = [x.numpy() for x in val_losses]
+        train_accuracies = [x.numpy() for x in train_accuracies]
+        val_accuracies = [x.numpy() for x in val_accuracies]
+        self._plot_losses(train_losses, val_losses)
+        self._plot_accuracies(train_accuracies, val_accuracies)
+        self._print_stats(train_losses, val_losses, train_accuracies,
+                          val_accuracies, training_time)
 
     def test(self):
         print("Loading data...")
@@ -243,7 +276,7 @@ class GATModel:
         # Restore model weights
         try:
             print("Loading model weights...")
-            model.load_weights(self.path_persistent + "/model")
+            model.load_weights(self.path_persistent + "model")
             print("Model weights restored.")
         except Exception as e:
             print("Failed loading model weights: {}".format(e))
@@ -275,6 +308,78 @@ class GATModel:
 
         predictions = tf.nn.softmax(logits)
         return predictions
+
+    def _plot_losses(self, train_losses, validation_losses):
+        # Plot the training and validation losses
+        ymax = max(max(train_losses), max(validation_losses))
+        ymin = min(min(train_losses), min(validation_losses))
+        plt.plot(train_losses, color='tab:blue')
+        plt.plot(validation_losses, color='tab:orange')
+        plt.xlabel("Epoch")
+        plt.ylabel("Loss")
+        plt.grid(True)
+        plt.legend(["train", "validation"], loc=3)
+        plt.ylim(ymin=ymin-0.5, ymax=ymax+0.5)
+        plt.savefig(self.path_persistent + "losses.png", bbox_inches="tight")
+
+    def _plot_accuracies(self, train_accuracies, val_accuracies):
+        # Plot the training and validation losses
+        ymax = max(max(train_accuracies), max(val_accuracies))
+        ymin = min(min(train_accuracies), min(val_accuracies))
+        plt.plot(train_accuracies, color='tab:blue')
+        plt.plot(val_accuracies, color='tab:orange')
+        plt.xlabel("Epoch")
+        plt.ylabel("Accuracy")
+        plt.grid(True)
+        plt.legend(["train", "validation"], loc=3)
+        plt.ylim(ymin=ymin-0.5, ymax=ymax+0.5)
+        plt.savefig(self.path_persistent + "accuracies.png",
+                    bbox_inches="tight")
+
+    def _print_stats(self, train_losses, validation_losses, train_accuracies,
+                     validation_accuracies, training_time):
+        epochs = len(train_losses)
+        time_per_epoch = training_time/epochs
+        epoch_min_val = validation_losses.index(min(validation_losses))
+        epoch_max_acc = validation_accuracies.index(max(validation_accuracies))
+
+        stats_file = self.path_persistent + "stats.txt"
+        with open(stats_file, "w") as f:
+            self._print("Total number of epochs trained: {}, average time per epoch: {} minutes.\n".format(
+                    epochs, round(time_per_epoch/60, 4)), f)
+            self._print("Total time trained: {} minutes.\n".format(
+                    round(training_time/60, 4)), f)
+            self._print("Lowest validation loss at epoch {} = {}.\n".format(
+                    epoch_min_val, validation_losses[epoch_min_val]), f)
+            self._print("Highest validation accuracy at epoch {} = {}.\n".format(
+                    epoch_max_acc, validation_accuracies[epoch_max_acc]), f)
+
+            for epoch in range(epochs):
+                f.write('Epoch: %.5f | Training: loss = %.5f, acc = %.5f | Val: loss = %.5f, acc = %.5f' %
+                        (epoch, train_losses[epoch], train_accuracies[epoch],
+                         validation_losses[epoch], validation_accuracies[epoch]
+                         ))
+
+    def _print(self, text, f):
+        print(text)
+        f.write(text)
+
+    def _get_folder(self):
+        self.path_persistent = os.path.join(
+                os.path.dirname(os.path.realpath(__file__)),
+                "..", "..", "..", "data", "processed", "gat",
+                self.embedding_type, self.dataset)
+        if self.Sparse:
+            sp = "_sparse"
+        else:
+            sp = ""
+        hidden_units = "-".join(str(x) for x in self.hid_units)
+        heads = "-".join(str(x) for x in self.n_heads)
+        self.path_persistent += "/{hid_units:s}_{n_heads:s}_{lr:0.6f}_{wd:0.6f}_{sparse:s}/".format(
+                hid_units=hidden_units, n_heads=heads,
+                lr=self.learning_rate, wd=self.weight_decay, sparse=sp)
+        if not os.path.exists(self.path_persistent):
+            os.makedirs(self.path_persistent)
 
     def main():
         parser = argparse.ArgumentParser(
@@ -341,7 +446,7 @@ class GATModel:
         args = parser.parse_args()
 
         print("Starting...")
-        from model_train import GATModel
+        from gat_model import GATModel
         model = GATModel(args.embedding_type, args.dataset, args.hid_units,
                          args.n_heads, args.learning_rate, args.weight_decay,
                          args.epochs, args.batch_size, args.patience,

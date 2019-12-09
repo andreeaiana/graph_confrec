@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 import tensorflow as tf
 
@@ -12,8 +13,8 @@ from layers import inference
 
 class GAT(tf.keras.Model):
     def __init__(self, hid_units, n_heads, nb_classes, nb_nodes, Sparse,
-                 ffd_drop=0.0, attn_drop=0.0, activation=tf.nn.elu,
-                 residual=False):
+                 l2_coef=0.0005, ffd_drop=0.0, attn_drop=0.0,
+                 activation=tf.nn.elu, residual=False):
         """
         hid_units: The number of hidden units per each attention head
                     in each layer. Array of hidden layer dimensions.
@@ -27,6 +28,7 @@ class GAT(tf.keras.Model):
         super(GAT, self).__init__()
 
         self.nb_classes = nb_classes
+        self.l2_coef = l2_coef
         self.inferencing = inference(
                 n_heads, hid_units, self.nb_classes, nb_nodes, Sparse=Sparse,
                 ffd_drop=ffd_drop, attn_drop=attn_drop, activation=activation,
@@ -105,7 +107,7 @@ class GAT(tf.keras.Model):
         loss = self.masked_softmax_cross_entropy(log_resh, lab_resh, msk_resh)
         lossL2 = tf.add_n([tf.nn.l2_loss(v) for v in self.trainable_variables
                            if v.name not in ['bias', 'gamma', 'b', 'g', 'beta']
-                           ]) * l2_coef
+                           ]) * self.l2_coef
         loss = loss+lossL2
         accuracy = self.masked_accuracy(log_resh, lab_resh, msk_resh)
 
