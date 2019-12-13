@@ -95,7 +95,7 @@ class GATModel:
 
     def train(self):
         print("Loading data...")
-        adj, features, y_train, y_val, y_test, train_mask, val_mask, test_mask = load_data(
+        adj, features, y_train, y_val, train_mask, val_mask = load_data(
                 self.embedding_type, self.dataset)
         print("Loaded.\n")
 
@@ -108,10 +108,8 @@ class GATModel:
         features = features[np.newaxis]
         y_train = y_train[np.newaxis]
         y_val = y_val[np.newaxis]
-        y_test = y_test[np.newaxis]
         train_mask = train_mask[np.newaxis]
         val_mask = val_mask[np.newaxis]
-        test_mask = test_mask[np.newaxis]
 
         print("Training model...")
         timer = Timer()

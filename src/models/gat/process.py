@@ -61,7 +61,7 @@ def load_data(embedding_type, dataset_str):
     path_persistent = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                    "..", "..", "..", "data", "interim", "gat",
                                    embedding_type)
-    names = ['x', 'y', 'tx', 'ty', 'allx', 'ally', 'graph']
+    names = ['x', 'y', 'allx', 'ally', 'graph']
     objects = []
     for i in range(len(names)):
         with open(path_persistent + "/ind.{}.{}".format(dataset_str, names[i]),
@@ -71,39 +71,33 @@ def load_data(embedding_type, dataset_str):
             else:
                 objects.append(pkl.load(f))
 
-    x, y, tx, ty, allx, ally, graph = tuple(objects)
+    x, y, allx, ally, graph = tuple(objects)
     print("Graph size: {}.".format(len(graph)))
 
-    test_idx_reorder = parse_index_file(
-            path_persistent + "/ind.{}.test.index".format(dataset_str))
-    test_idx_range = np.sort(test_idx_reorder)
-
-    features = sp.vstack((allx, tx)).tolil()
-    features[test_idx_reorder, :] = features[test_idx_range, :]
+    features = allx.tolil()
     adj = nx.adjacency_matrix(nx.from_dict_of_lists(graph))
 
     labels = np.vstack((ally, ty))
-    labels[test_idx_reorder, :] = labels[test_idx_range, :]
 
-    idx_test = test_idx_range.tolist()
     idx_train = range(len(y))
-    idx_val = range(len(y), len(y)+500)
+    idx_val = range(len(y), len(ally))
 
     train_mask = sample_mask(idx_train, labels.shape[0])
     val_mask = sample_mask(idx_val, labels.shape[0])
-    test_mask = sample_mask(idx_test, labels.shape[0])
 
     y_train = np.zeros(labels.shape)
     y_val = np.zeros(labels.shape)
-    y_test = np.zeros(labels.shape)
     y_train[train_mask, :] = labels[train_mask, :]
     y_val[val_mask, :] = labels[val_mask, :]
-    y_test[test_mask, :] = labels[test_mask, :]
 
     print("Adjacency matrix shape: {}.".format(adj.shape))
     print("Features matrix shape: {}.".format(features.shape))
+    print("Training data: {}.".format(len(train_mask[np.where(
+            train_mask is True)])))
+    print("Validation data: {}.".format(len(val_mask[np.where(
+            val_mask is True)])))
 
-    return adj, features, y_train, y_val, y_test, train_mask, val_mask, test_mask
+    return adj, features, y_train, y_val, train_mask, val_mask
 
 
 def sparse_to_tuple(sparse_mx):
