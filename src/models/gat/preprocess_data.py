@@ -10,6 +10,7 @@ import networkx as nx
 import scipy.sparse as sp
 from collections import defaultdict
 from sklearn.preprocessing import OneHotEncoder
+from process import sample_mask
 
 sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "utils"))
 sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "data"))
@@ -103,17 +104,22 @@ class Processor:
         # (as a collections.defaultdict object)
         print("Creating dictionary of neighbours.")
         graph = defaultdict(list)
-        for idx in range(len(train_val_data)):
-            graph[idx] = [train_val_data[
-                    train_val_data.chapter == citation].index.tolist()[0] for
-                    citation in train_val_data.chapter_citations.iloc[idx]]
+        with tqdm(desc="Adding neighbours: ",
+                  total=len(train_val_data)) as pbar:
+            for idx in range(len(train_val_data)):
+                citations_indices = [train_val_data[
+                        train_val_data.chapter == citation].index.tolist() for
+                        citation in train_val_data.chapter_citations.iloc[idx]]
+                graph[idx] = list(set([i[0] for i in citations_indices if i]))
+                pbar.update(1)
         print("Created.")
         print("Saving to disk...")
         graph_file = os.path.join(self.path_persistent,
                                   "ind." + self.dataset + ".graph")
         with open(graph_file, "wb") as f:
             pickle.dump(graph, f)
-        print("Saved.")
+        print("Saved.\n")
+        print("Finished creating training files.\n")
 
         print("Statistics")
         print("\tTraining data features: {}.".format(train_features.shape))
@@ -149,8 +155,57 @@ class Processor:
                   "wb") as f:
             pickle.dump(self.label_encoder, f)
 
-    def test_data(self):
-        pass
+    def test_data(self, df_test, train_features, train_labels,
+                  train_val_features, train_val_labels, graph):
+        print("Preprocessing data...")
+
+        # Create the indices of test instances in graph (as a list object)
+        test_indices = list(df_test.index)
+
+        # Create "fake" temporary labels for test data
+        test_labels = np.zeros(len(train_val_labels), dtype=int)
+
+        # Create feature vectors of test instances
+        print("Creating features for test data...")
+        test_features = self._create_features(df_test)
+        print("Created.")
+
+        # Update graph with test data
+
+        test_idx_range = np.sort(test_indices)
+        features = sp.vstack((train_val_features, test_features)).tolil()
+        features[test_indices, :] = features[test_idx_range, :]
+        adj = nx.adjacency_matrix(nx.from_dict_of_lists(graph))
+
+        labels = np.vstack((train_val_labels, test_labels))
+        labels[test_indices, :] = labels[test_idx_range, :]
+
+        idx_test = test_idx_range.tolist()
+        idx_train = range(len(train_labels))
+        idx_val = range(len(train_labels), len(train_val_labels))
+
+        train_mask = sample_mask(idx_train, labels.shape[0])
+        val_mask = sample_mask(idx_val, labels.shape[0])
+        test_mask = sample_mask(idx_test, labels.shape[0])
+
+        y_train = np.zeros(labels.shape)
+        y_val = np.zeros(labels.shape)
+        y_test = np.zeros(labels.shape)
+        y_train[train_mask, :] = labels[train_mask, :]
+        y_val[val_mask, :] = labels[val_mask, :]
+        y_test[test_mask, :] = labels[test_mask, :]
+        print("Finished preprocessing data.")
+
+        print("Adjacency matrix shape: {}.".format(adj.shape))
+        print("Features matrix shape: {}.".format(features.shape))
+        print("Training data: {}.".format(len(train_mask[np.where(
+                train_mask is True)])))
+        print("Validation data: {}.".format(len(val_mask[np.where(
+                val_mask is True)])))
+        print("Test data: {}.".format(len(test_mask[np.where(
+                test_mask is True)])))
+
+        return adj, features, y_train, y_val, y_test, train_mask, val_mask, test_mask
 
     def main():
         parser = argparse.ArgumentParser(
