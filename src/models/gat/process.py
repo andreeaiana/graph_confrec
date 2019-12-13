@@ -40,15 +40,6 @@ def adj_to_bias(adj, sizes, nhood=1):
 # This section of code adapted from tkipf/gcn #
 ###############################################
 
-
-def parse_index_file(filename):
-    """Parse index file."""
-    index = []
-    for line in open(filename):
-        index.append(int(line.strip()))
-    return index
-
-
 def sample_mask(idx, l):
     """Create mask."""
     mask = np.zeros(l)
