@@ -25,7 +25,10 @@ from SciBERTEmbeddingsParser import EmbeddingsParser
 
 class Processor():
 
-    def __init__(self, embedding_type, graph_type, gpu=None):
+    def __init__(self, embedding_type, graph_type, gpu=0):
+        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
+
         self.embedding_type = embedding_type
         self.graph_type = graph_type
         self.embeddings_parser = EmbeddingsParser(gpu)
@@ -357,7 +360,7 @@ class Processor():
                             + 'training data.')
         parser.add_argument('--gpu',
                             type=int,
-                            default=None,
+                            default=0,
                             help='Which gpu to use.')
         args = parser.parse_args()
         print("Starting...")
