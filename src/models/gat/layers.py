@@ -63,9 +63,9 @@ class inference(tf.keras.layers.Layer):
         for sec_attns in self.sec_attns:
             next_attn = []
             for indiv_attns in sec_attns:
-                next_attn.append(indiv_attn(seq=h_1, bias_mat=bias_mat,
+                next_attn.append(indiv_attns(seq=h_1, bias_mat=bias_mat,
                                             training=training))
-            h_1 = tf.concat(next_attns, axis=-1)
+            h_1 = tf.concat(next_attn, axis=-1)
 
         for indiv_attn in self.final_attns:
             out.append(indiv_attn(seq=h_1, bias_mat=bias_mat,

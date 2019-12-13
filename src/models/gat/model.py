@@ -4,7 +4,7 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 import os
 import sys
 import time
-import math
+import dill
 import argparse
 import numpy as np
 import tensorflow as tf
@@ -209,6 +209,9 @@ class GATModel:
                     vacc_early_model = val_acc_avg/vl_step
                     vlss_early_model = val_loss_avg/vl_step
                     working_weights = model.get_weights()
+                    print("Minimum validation loss ({}), maximum accuracy ({}) so far  at epoch {}.".format(
+                        val_loss_avg/vl_step, val_acc_avg/vl_step, epoch))
+                    self._save_model(model)
                 vacc_mx = np.max((val_acc_avg/vl_step, vacc_mx))
                 vlss_mn = np.min((val_loss_avg/vl_step, vlss_mn))
                 curr_step = 0
@@ -220,8 +223,6 @@ class GATModel:
                     print("Early stop model validation loass: {}, accuracy: {}".format(
                             vlss_early_model, vacc_early_model))
                     model.set_weights(working_weights)
-                    model.save_weights(self.path_persistent + 'model',
-                                       save_format='tf')
                     break
 
             train_loss_avg = 0
@@ -229,8 +230,6 @@ class GATModel:
             val_loss_avg = 0
             val_acc_avg = 0
 
-            model.save_weights(self.path_persistent + 'model',
-                               save_format='tf')
         print("Training finished.")
 
         training_time = timer.toc()
@@ -243,9 +242,9 @@ class GATModel:
         self._print_stats(train_losses, val_losses, train_accuracies,
                           val_accuracies, training_time)
 
-    def test(self):
+    def test(self, test_data):
         print("Loading data...")
-        adj, features, y_train, y_val, y_test, train_mask, val_mask, test_mask = load_data(self.dataset)
+        adj, features, y_train, y_test, train_mask, test_mask = test_data
         print("Loaded.\n")
 
         features, spars = preprocess_features(features)
@@ -274,12 +273,32 @@ class GATModel:
                     residual=self.residual)
 
         # Restore model weights
-        try:
-            print("Loading model weights...")
-            model.load_weights(self.path_persistent + "model")
-            print("Model weights restored.")
-        except Exception as e:
-            print("Failed loading model weights: {}".format(e))
+        model_weights_file = self.path_persistent + "model_weights"
+        model_file = self.path_persistent + "model"
+        if os.path.isfile(model_weights_file):
+            try:
+                print("Loading model weights...")
+                model.load_weights(model_weights_file)
+                print("Loaded.")
+            except Exception as e:
+                print("Failed loading model weights: {}".format(e))
+        elif os.path.isfile(model_file):
+            try:
+                print("Loading model weights...")
+                with open(model_file, "rb") as f:
+                    weights = dill.load(f)
+                print("Loaded.")
+                print("Restoring model weights...")
+                model_weights = [weights[i] for i in range(len(weights)) if
+                                 len(weights[i]) == self.hid_units[0]]
+                model_weights.append([weights[i] for i in range(len(weights))
+                                     if len(weights[i]) == nb_classes][0])
+                model.set_weights(model_weights)
+                print("Restored.")
+            except Exception as e:
+                print("Failed loading model weights: {}".format(e))
+        else:
+            raise ValueError("Model file is missing.")
 
         ts_step = 0
         ts_size = features.shape[0]
@@ -380,6 +399,26 @@ class GATModel:
                 lr=self.learning_rate, wd=self.weight_decay, sparse=sp)
         if not os.path.exists(self.path_persistent):
             os.makedirs(self.path_persistent)
+
+    def _save_model(self, model):
+        if len(self.n_heads) < 3:
+            try:
+                print("Saving model weights in TF format...")
+                model.save_weights(self.path_persistent + "model_weights",
+                                   save_format="tf")
+                print("Model weights saved.")
+            except Exception as e:
+                print("Model weights could not be saved: {}".format(e))
+        else:
+            try:
+                print("Pickling model weights.")
+                weights = model.get_weights()
+                with open(self.path_persistent + "model_weights.pkl",
+                          "wb") as f:
+                    dill.dump(weights, f, protocol=dill.HIGHEST_PROTOCOL)
+                print("Model saved to disk.")
+            except Exception as e:
+                print("Model weights could not be pickled: {}".format(e))
 
     def main():
         parser = argparse.ArgumentParser(
