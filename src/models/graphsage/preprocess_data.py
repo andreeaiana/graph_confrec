@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
-import pandas as pd
-import numpy as np
 import json
 import pickle
+import argparse
+import pandas as pd
+import numpy as np
 from tqdm import tqdm
 from collections import Counter
 from itertools import combinations
@@ -340,3 +341,30 @@ class Processor():
     def _print(self, text, f):
         print(text)
         f.write(text)
+
+    def main():
+        parser = argparse.ArgumentParser(
+                description='Arguments for data preprocessing.')
+        parser.add_argument('embedding_type',
+                            choices=["AVG_L", "AVG_2L", "AVG_SUM_L4",
+                                     "AVG_SUM_ALL", "MAX_2L",
+                                     "CONC_AVG_MAX_2L", "CONC_AVG_MAX_SUM_L4",
+                                     "SUM_L", "SUM_2L"
+                                     ],
+                            help="Type of embedding.")
+        parser.add_argument('dataset',
+                            help='Name of the object file that stores the '
+                            + 'training data.')
+        parser.add_argument('--gpu',
+                            type=int,
+                            default=None,
+                            help='Which gpu to use.')
+        args = parser.parse_args()
+        print("Starting...")
+        from preprocess_data import Processor
+        processor = Processor(args.embedding_type, args.dataset, args.gpu)
+        processor.training_data()
+        print("Finished.")
+
+    if __name__ == "__main__":
+        main()
