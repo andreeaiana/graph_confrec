@@ -34,11 +34,14 @@ class GATModel:
                  n_heads=[4, 4, 1], learning_rate=0.005, weight_decay=0,
                  epochs=100000, batch_size=1, patience=100, residual=False,
                  nonlinearity=tf.nn.elu, sparse=False, ffd_drop=0, attn_drop=0,
-                 gpu=0):
+                 gpu=None):
 
         print("Initiating, using gpu {}.\n".format(gpu))
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-        os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
+        if gpu is not None:
+            os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
+        else:
+            os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
         self.embedding_type = embedding_type
         self.dataset = dataset
@@ -272,7 +275,7 @@ class GATModel:
 
         # Restore model weights
         model_weights_file = self.path_persistent + "model_weights"
-        model_file = self.path_persistent + "model"
+        model_weights_pklfile = self.path_persistent + "model_weights.pkl"
         if os.path.isfile(model_weights_file):
             try:
                 print("Loading model weights...")
@@ -280,10 +283,10 @@ class GATModel:
                 print("Loaded.")
             except Exception as e:
                 print("Failed loading model weights: {}".format(e))
-        elif os.path.isfile(model_file):
+        elif os.path.isfile(model_weights_pklfile):
             try:
                 print("Loading model weights...")
-                with open(model_file, "rb") as f:
+                with open(model_weights_pklfile, "rb") as f:
                     weights = dill.load(f)
                 print("Loaded.")
                 print("Restoring model weights...")
@@ -478,7 +481,6 @@ class GATModel:
                             default=0)
         parser.add_argument('--gpu',
                             type=int,
-                            default=0,
                             help='Which gpu to use.')
         args = parser.parse_args()
 
