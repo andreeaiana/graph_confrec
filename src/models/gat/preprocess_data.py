@@ -158,6 +158,15 @@ class Processor:
     def test_data(self, df_test, train_features, train_labels,
                   train_val_features, train_val_labels, graph):
         print("Preprocessing data...")
+         # Load training and validation data
+        d_train = DataLoader()
+        df_train = d_train.training_data_with_abstracts_citations().data
+
+        d_val = DataLoader()
+        df_validation = d_val.validation_data_with_abstracts_citations().data
+
+        train_val_data = pd.concat((df_train, df_validation),
+                                   axis=0).reset_index(drop=True)
 
         # Create the indices of test instances in graph (as a list object)
         test_indices = list(df_test.index)
@@ -171,6 +180,15 @@ class Processor:
         print("Created.")
 
         # Update graph with test data
+        print("Updating graph information...")
+        with tqdm(desc="Adding neighbours: ", total=len(df_test)) as pbar:
+            for idx in range(len(df_test)):
+                citations_indices = [train_val_data[
+                        train_val_data.chapter == citation].index.tolist() for
+                        citation in df_test.chapter_citations.iloc[idx]]
+                graph[idx] = list(set([i[0] for i in citations_indices if i]))
+                pbar.update(1)
+        print("Updated.")
 
         test_idx_range = np.sort(test_indices)
         features = sp.vstack((train_val_features, test_features)).tolil()
@@ -204,8 +222,9 @@ class Processor:
                 val_mask is True)])))
         print("Test data: {}.".format(len(test_mask[np.where(
                 test_mask is True)])))
+        print("\tGraph size: {}.".format(len(graph)))
 
-        return adj, features, y_train, y_val, y_test, train_mask, val_mask, test_mask
+        return adj, features, y_train, y_test, train_mask, test_mask
 
     def main():
         parser = argparse.ArgumentParser(
