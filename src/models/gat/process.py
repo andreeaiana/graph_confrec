@@ -51,7 +51,7 @@ def load_data(embedding_type, dataset_str):
     """Load data."""
     path_persistent = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                    "..", "..", "..", "data", "interim", "gat",
-                                   embedding_type)
+                                   embedding_type, dataset_str)
     names = ['x', 'y', 'allx', 'ally', 'graph']
     objects = []
     for i in range(len(names)):
@@ -68,7 +68,7 @@ def load_data(embedding_type, dataset_str):
     features = allx.tolil()
     adj = nx.adjacency_matrix(nx.from_dict_of_lists(graph))
 
-    labels = np.vstack((ally, ty))
+    labels = ally
 
     idx_train = range(len(y))
     idx_val = range(len(y), len(ally))
@@ -83,10 +83,6 @@ def load_data(embedding_type, dataset_str):
 
     print("Adjacency matrix shape: {}.".format(adj.shape))
     print("Features matrix shape: {}.".format(features.shape))
-    print("Training data: {}.".format(len(train_mask[np.where(
-            train_mask is True)])))
-    print("Validation data: {}.".format(len(val_mask[np.where(
-            val_mask is True)])))
 
     return adj, features, y_train, y_val, train_mask, val_mask
 
