@@ -221,7 +221,7 @@ class GATModel:
                 if curr_step == self.patience:
                     print("Early stop! Min loss: {}, Max accuracy: {}".format(
                             vlss_mn, vacc_mx))
-                    print("Early stop model validation loass: {}, accuracy: {}".format(
+                    print("Early stop model validation loss: {}, accuracy: {}".format(
                             vlss_early_model, vacc_early_model))
                     model.set_weights(working_weights)
                     break
@@ -244,10 +244,7 @@ class GATModel:
                           val_accuracies, training_time)
 
     def test(self, test_data):
-        print("Loading data...")
         adj, features, y_train, y_test, train_mask, test_mask = test_data
-        print("Loaded.\n")
-
         features, spars = preprocess_features(features)
 
         nb_nodes = features.shape[0]
@@ -306,6 +303,7 @@ class GATModel:
         ts_loss = 0.0
         ts_acc = 0.0
 
+        print("Computing predictions...")
         while ts_step * self.batch_size < ts_size:
             if self.Sparse:
                 bbias = biases
@@ -325,8 +323,9 @@ class GATModel:
             ts_loss += loss_value_ts
             ts_acc += acc_ts
             ts_step += 1
-
         predictions = tf.nn.softmax(logits)
+        print("Computed.")
+
         return predictions
 
     def _plot_losses(self, train_losses, validation_losses):

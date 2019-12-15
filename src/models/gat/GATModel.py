@@ -39,6 +39,9 @@ class GATModel(AbstractModel):
         self.preprocessor = Processor(self.embedding_type, self.dataset, gpu)
         self.training_data = self._load_training_data()
 
+        if not self._load_label_encoder():
+            print("The label encoder does not exist.")
+
     def query_single(self, query):
         """Queries the model and returns a list of recommendations.
 
@@ -95,8 +98,8 @@ class GATModel(AbstractModel):
                 train_val_labels, graph)
 
         # Inference on test data
-        predictions = self.gat_model.test(test_data)
-        print("Predictions: {}.".format(len(predictions)))
+        predictions = self.gat_model.test(test_data).numpy()[0][
+                train_val_features.shape[0]:]
 
         # Compute predictions
         sorted_predictions = (-predictions).argsort(axis=1)
@@ -134,3 +137,16 @@ class GATModel(AbstractModel):
         x, y, allx, ally, graph = tuple(objects)
         return x, y, allx, ally, graph
         print("Loaded.")
+
+    def _load_label_encoder(self):
+        label_encoder_file = os.path.join(
+                os.path.dirname(os.path.realpath(__file__)),
+                "..", "..", "..", "data", "interim", "gat",
+                self.embedding_type, self.dataset, "label_encoder.pkl")
+        if os.path.isfile(label_encoder_file):
+            with open(label_encoder_file, "rb") as f:
+                print("Loading label encoder.")
+                self.label_encoder = pickle.load(f)
+            print("Loaded.")
+            return True
+        return False
