@@ -172,23 +172,24 @@ class Processor:
         test_indices = list(df_test.index)
 
         # Create "fake" temporary labels for test data
-        test_labels = np.zeros(len(train_val_labels), dtype=int)
+        test_labels = np.zeros(
+                (len(df_test), len(train_val_labels[0])), dtype=int)
+
+        # Update graph with test data
+        print("Updating graph information...")
+        with tqdm(desc="Adding neighbours: ", total=len(df_test)) as pbar:
+            for idx in list(df_test.index):
+                citations_indices = [train_val_data[
+                        train_val_data.chapter == citation].index.tolist() for
+                        citation in df_test.chapter_citations.loc[idx]]
+                graph[idx] = list(set([i[0] for i in citations_indices if i]))
+                pbar.update(1)
+        print("Updated.")
 
         # Create feature vectors of test instances
         print("Creating features for test data...")
         test_features = self._create_features(df_test)
         print("Created.")
-
-        # Update graph with test data
-        print("Updating graph information...")
-        with tqdm(desc="Adding neighbours: ", total=len(df_test)) as pbar:
-            for idx in range(len(df_test)):
-                citations_indices = [train_val_data[
-                        train_val_data.chapter == citation].index.tolist() for
-                        citation in df_test.chapter_citations.iloc[idx]]
-                graph[idx] = list(set([i[0] for i in citations_indices if i]))
-                pbar.update(1)
-        print("Updated.")
 
         test_idx_range = np.sort(test_indices)
         features = sp.vstack((train_val_features, test_features)).tolil()
@@ -216,13 +217,7 @@ class Processor:
 
         print("Adjacency matrix shape: {}.".format(adj.shape))
         print("Features matrix shape: {}.".format(features.shape))
-        print("Training data: {}.".format(len(train_mask[np.where(
-                train_mask is True)])))
-        print("Validation data: {}.".format(len(val_mask[np.where(
-                val_mask is True)])))
-        print("Test data: {}.".format(len(test_mask[np.where(
-                test_mask is True)])))
-        print("\tGraph size: {}.".format(len(graph)))
+        print("Graph size: {}.".format(len(graph)))
 
         return adj, features, y_train, y_test, train_mask, test_mask
 
