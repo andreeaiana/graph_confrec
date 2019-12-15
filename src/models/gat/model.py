@@ -273,14 +273,14 @@ class GATModel:
         # Restore model weights
         model_weights_file = self.path_persistent + "model_weights"
         model_weights_pklfile = self.path_persistent + "model_weights.pkl"
-        if os.path.isfile(model_weights_file):
+        if len(self.n_heads) < 3:
             try:
                 print("Loading model weights...")
                 model.load_weights(model_weights_file)
                 print("Loaded.")
             except Exception as e:
                 print("Failed loading model weights: {}".format(e))
-        elif os.path.isfile(model_weights_pklfile):
+        else:
             try:
                 print("Loading model weights...")
                 with open(model_weights_pklfile, "rb") as f:
@@ -295,8 +295,6 @@ class GATModel:
                 print("Restored.")
             except Exception as e:
                 print("Failed loading model weights: {}".format(e))
-        else:
-            raise ValueError("Model file is missing.")
 
         ts_step = 0
         ts_size = features.shape[0]
