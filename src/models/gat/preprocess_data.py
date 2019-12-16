@@ -21,12 +21,13 @@ from SciBERTEmbeddingsParser import EmbeddingsParser
 
 class Processor:
 
-    def __init__(self, embedding_type, dataset, gpu=0):
+    def __init__(self, embedding_type, dataset, graph_type="directed", gpu=0):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
 
         self.embedding_type = embedding_type
         self.dataset = dataset
+        self.graph_type = graph_type
         self.embeddings_parser = EmbeddingsParser(gpu)
         self.timer = Timer()
         self.path_persistent = os.path.join(
@@ -102,6 +103,22 @@ class Processor:
 
         # Create a dict in the format {index: [index_of_neighbor_nodes]}
         # (as a collections.defaultdict object)
+        if self.graph_type == "directed":
+            self._create_directed_graph(train_val_data)
+        else:
+            self._create_undirected_graph(train_val_data)
+        print("Finished creating training files.\n")
+
+        print("Statistics")
+#        print("\tTraining data features: {}.".format(train_features.shape))
+#        print("\tTraining data labels: {}.".format(len(train_labels)))
+#        print("\tTraining and validation data features: {}.".format(
+#                train_val_features.shape))
+#        print("\tTraining and validation data labels: {}.".format(
+#                len(train_val_labels)))
+        print("\tGraph size: {}.".format(len(graph)))
+
+    def _create_directed_graph(self, train_val_data):
         print("Creating dictionary of neighbours.")
         graph = defaultdict(list)
         with tqdm(desc="Adding neighbours: ",
@@ -115,20 +132,36 @@ class Processor:
         print("Created.")
         print("Saving to disk...")
         graph_file = os.path.join(self.path_persistent,
+                                  "ind." + self.dataset + ".graph_directed")
+        with open(graph_file, "wb") as f:
+            pickle.dump(graph, f)
+        print("Saved.\n")
+
+    def _create_undirected_graph(self, train_val_data):
+        print("Creating dictionary of neighbours.")
+        graph = defaultdict(list)
+        with tqdm(desc="Adding neighbours: ",
+                  total=len(train_val_data)) as pbar:
+            for idx in range(len(train_val_data)):
+                citations_indices = [train_val_data[
+                        train_val_data.chapter == citation].index.tolist() for
+                        citation in train_val_data.chapter_citations.iloc[idx]]
+                neighbours = [c[0] for c in citations_indices if c]
+                graph[idx].extend(neighbours)
+                for node in neighbours:
+                    graph[node].append(idx)
+                pbar.update(1)
+        with tqdm(desc="Removing duplicates: ", total=len(graph.keys())
+                  ) as pbar:
+            for idx in range(len(graph.keys())):
+                graph[idx] = list(set(graph[idx]))
+                pbar.update(1)
+        print("Saving to disk...")
+        graph_file = os.path.join(self.path_persistent,
                                   "ind." + self.dataset + ".graph")
         with open(graph_file, "wb") as f:
             pickle.dump(graph, f)
         print("Saved.\n")
-        print("Finished creating training files.\n")
-
-        print("Statistics")
-        print("\tTraining data features: {}.".format(train_features.shape))
-        print("\tTraining data labels: {}.".format(len(train_labels)))
-        print("\tTraining and validation data features: {}.".format(
-                train_val_features.shape))
-        print("\tTraining and validation data labels: {}.".format(
-                len(train_val_labels)))
-        print("\tGraph size: {}.".format(len(graph)))
 
     def _create_features(self, data):
         features = []
@@ -155,10 +188,38 @@ class Processor:
                   "wb") as f:
             pickle.dump(self.label_encoder, f)
 
+    def _update_directed_graph(self, graph, train_val_data, df_test):
+        with tqdm(desc="Adding neighbours: ", total=len(df_test)) as pbar:
+            for idx in list(df_test.index):
+                citations_indices = [train_val_data[
+                        train_val_data.chapter == citation].index.tolist() for
+                        citation in df_test.chapter_citations.loc[idx]]
+                graph[idx] = list(set([i[0] for i in citations_indices if i]))
+                pbar.update(1)
+        return graph
+
+    def _update_undirected_graph(self, graph, train_val_data, df_test):
+        with tqdm(desc="Adding neighbours: ", total=len(df_test)) as pbar:
+            for idx in list(df_test.index):
+                citations_indices = [train_val_data[
+                        train_val_data.chapter == citation].index.tolist() for
+                        citation in df_test.chapter_citations.loc[idx]]
+                neighbours = [c[0] for c in citations_indices if c]
+                graph[idx].extend(neighbours)
+                for node in neighbours:
+                    graph[node].append(idx)
+                pbar.update(1)
+        with tqdm(desc="Removing duplicates: ", total=len(graph.keys())
+                  ) as pbar:
+            for idx in range(len(graph.keys())):
+                graph[idx] = list(set(graph[idx]))
+                pbar.update(1)
+        return graph
+
     def test_data(self, df_test, train_features, train_labels,
                   train_val_features, train_val_labels, graph):
         print("Preprocessing data...")
-         # Load training and validation data
+        # Load training and validation data
         d_train = DataLoader()
         df_train = d_train.training_data_with_abstracts_citations().data
 
@@ -177,13 +238,11 @@ class Processor:
 
         # Update graph with test data
         print("Updating graph information...")
-        with tqdm(desc="Adding neighbours: ", total=len(df_test)) as pbar:
-            for idx in list(df_test.index):
-                citations_indices = [train_val_data[
-                        train_val_data.chapter == citation].index.tolist() for
-                        citation in df_test.chapter_citations.loc[idx]]
-                graph[idx] = list(set([i[0] for i in citations_indices if i]))
-                pbar.update(1)
+        if self.graph_type == "directed":
+            graph = self._update_directed_graph(graph, train_val_data, df_test)
+        else:
+            graph = self._update_undirected_graph(graph, train_val_data,
+                                                  df_test)
         print("Updated.")
 
         # Create feature vectors of test instances
@@ -234,6 +293,11 @@ class Processor:
         parser.add_argument('dataset',
                             help='Name of the object file that stores the '
                             + 'training data.')
+        parser.add_argument('--graph_type',
+                            choices=["directed", "undirected"],
+                            default="directed",
+                            help='The type of graph used ' +
+                            '(directed vs. undirected).')
         parser.add_argument('--gpu',
                             type=int,
                             default=0,
@@ -241,10 +305,10 @@ class Processor:
         args = parser.parse_args()
         print("Starting...")
         from preprocess_data import Processor
-        processor = Processor(args.embedding_type, args.dataset, args.gpu)
+        processor = Processor(args.embedding_type, args.dataset,
+                              args.graph_type, args.gpu)
         processor.training_data()
         print("Finished.")
 
     if __name__ == "__main__":
         main()
-

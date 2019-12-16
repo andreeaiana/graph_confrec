@@ -28,13 +28,13 @@ from TimerCounter import Timer
 # https://github.com/calciver/Graph-Attention-Networks/blob/master/Tensorflow_2_0_Graph_Attention_Networks_(GAT).ipynb
 
 
-class GATModel:
+class Model:
 
-    def __init__(self, embedding_type, dataset, hid_units=[256, 256],
-                 n_heads=[4, 4, 1], learning_rate=0.005, weight_decay=0,
-                 epochs=100000, batch_size=1, patience=100, residual=False,
-                 nonlinearity=tf.nn.elu, sparse=False, ffd_drop=0, attn_drop=0,
-                 gpu=None):
+    def __init__(self, embedding_type, dataset, graph_type="directed",
+                 hid_units=[256, 256], n_heads=[4, 4, 1], learning_rate=0.005,
+                 weight_decay=0, epochs=100000, batch_size=1, patience=100,
+                 residual=False, nonlinearity=tf.nn.elu, sparse=False,
+                 ffd_drop=0, attn_drop=0, gpu=None):
 
         print("Initiating, using gpu {}.\n".format(gpu))
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -45,6 +45,7 @@ class GATModel:
 
         self.embedding_type = embedding_type
         self.dataset = dataset
+        self.graph_type = graph_type
         self.hid_units = hid_units
         self.n_heads = n_heads
         self.learning_rate = learning_rate
@@ -99,7 +100,7 @@ class GATModel:
     def train(self):
         print("Loading data...")
         adj, features, y_train, y_val, train_mask, val_mask = load_data(
-                self.embedding_type, self.dataset)
+                self.embedding_type, self.dataset, self.graph_type)
         print("Loaded.\n")
 
         features, spars = preprocess_features(features)
@@ -392,9 +393,10 @@ class GATModel:
             sp = "dense"
         hidden_units = "-".join(str(x) for x in self.hid_units)
         heads = "-".join(str(x) for x in self.n_heads)
-        self.path_persistent += "/{hid_units:s}_{n_heads:s}_{lr:0.6f}_{wd:0.6f}_{sparse:s}/".format(
+        self.path_persistent += "/{hid_units:s}_{n_heads:s}_{lr:0.6f}_{wd:0.6f}_{sparse:s}_{gt:s}/".format(
                 hid_units=hidden_units, n_heads=heads,
-                lr=self.learning_rate, wd=self.weight_decay, sparse=sp)
+                lr=self.learning_rate, wd=self.weight_decay, sparse=sp,
+                gt=self.graph_type)
         if not os.path.exists(self.path_persistent):
             os.makedirs(self.path_persistent)
 
@@ -431,6 +433,11 @@ class GATModel:
         parser.add_argument('dataset',
                             help='Name of the object file that stores the '
                             + 'training data.')
+        parser.add_argument('--graph_type',
+                            choices=["directed", "undirected"],
+                            default="directed",
+                            help='The type of graph used ' +
+                            '(directed vs. undirected).')
         parser.add_argument("--hid_units",
                             type=int,
                             nargs="+",
@@ -482,12 +489,12 @@ class GATModel:
         args = parser.parse_args()
 
         print("Starting...")
-        from model import GATModel
-        model = GATModel(args.embedding_type, args.dataset, args.hid_units,
-                         args.n_heads, args.learning_rate, args.weight_decay,
-                         args.epochs, args.batch_size, args.patience,
-                         args.residual, args.nonlinearity, args.sparse,
-                         args.ffd_drop, args.attn_drop, args.gpu)
+        from model import Model
+        model = Model(args.embedding_type, args.dataset, args.graph_type,
+                         args.hid_units, args.n_heads, args.learning_rate,
+                         args.weight_decay, args.epochs, args.batch_size,
+                         args.patience, args.residual, args.nonlinearity,
+                         args.sparse, args.ffd_drop, args.attn_drop, args.gpu)
         model.train()
         print("Finished.")
 

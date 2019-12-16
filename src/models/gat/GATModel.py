@@ -16,27 +16,30 @@ sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "utils"))
 from TimerCounter import Timer
 from AbstractClasses import AbstractModel
 from preprocess_data import Processor
-from model import GATModel as GAT
+from model import Model as GAT
 from DataLoader import DataLoader
 
 
 class GATModel(AbstractModel):
 
-    def __init__(self, embedding_type, dataset, hid_units=[256, 256],
-                 n_heads=[4, 4, 1], learning_rate=0.005, weight_decay=0,
-                 epochs=100000, batch_size=1, patience=100, residual=False,
-                 nonlinearity=tf.nn.elu, sparse=False, ffd_drop=0, attn_drop=0,
-                 gpu=0, recs=10):
+    def __init__(self, embedding_type, dataset, graph_type="directed",
+                 hid_units=[256, 256], n_heads=[4, 4, 1], learning_rate=0.005,
+                 weight_decay=0, epochs=100000, batch_size=1, patience=100,
+                 residual=False, nonlinearity=tf.nn.elu, sparse=False,
+                 ffd_drop=0, attn_drop=0, gpu=0, recs=10):
 
         self.embedding_type = embedding_type
         self.dataset = dataset
+        self.graph_type = graph_type
         self.recs = recs
 
-        self.gat_model = GAT(embedding_type, dataset, hid_units, n_heads,
+        self.gat_model = GAT(self.embedding_type, self.dataset,
+                             self.graph_type, hid_units, n_heads,
                              learning_rate, weight_decay, epochs, batch_size,
                              patience, residual, nonlinearity, sparse,
                              ffd_drop, attn_drop, None)
-        self.preprocessor = Processor(self.embedding_type, self.dataset, gpu)
+        self.preprocessor = Processor(self.embedding_type, self.dataset,
+                                      self.graph_type, gpu)
         self.training_data = self._load_training_data()
 
         if not self._load_label_encoder():
@@ -128,7 +131,10 @@ class GATModel(AbstractModel):
                 os.path.dirname(os.path.realpath(__file__)),
                 "..", "..", "..", "data", "interim", "gat",
                 self.embedding_type, self.dataset)
-        names = ['x', 'y', 'allx', 'ally', 'graph']
+        if self.graph_type == "directed":
+            names = ['x', 'y', 'allx', 'ally', 'graph_directed']
+        else:
+            names = ['x', 'y', 'allx', 'ally', 'graph']
         objects = []
         for i in range(len(names)):
             with open(path_persistent + "/ind.{}.{}".format(

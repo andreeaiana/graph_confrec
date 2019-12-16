@@ -17,20 +17,20 @@ from GATModel import GATModel
 
 class GATModelEvaluation:
 
-    def __init__(self, embedding_type, dataset, hid_units=[256, 256],
-                 n_heads=[4, 4, 1], learning_rate=0.005, weight_decay=0,
-                 epochs=100000, batch_size=1, patience=100, residual=False,
-                 nonlinearity=tf.nn.elu, sparse=False, ffd_drop=0, attn_drop=0,
-                 gpu=0, recs=10):
+    def __init__(self, embedding_type, dataset, graph_type="directed",
+                 hid_units=[256, 256], n_heads=[4, 4, 1], learning_rate=0.005,
+                 weight_decay=0, epochs=100000, batch_size=1, patience=100,
+                 residual=False, nonlinearity=tf.nn.elu, sparse=False,
+                 ffd_drop=0, attn_drop=0, gpu=0, recs=10):
 
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
 
         self.d = DataLoader()
-        self.model = GATModel(embedding_type, dataset, hid_units, n_heads,
-                              learning_rate, weight_decay, epochs, batch_size,
-                              patience, residual, nonlinearity, sparse,
-                              ffd_drop, attn_drop, gpu, recs)
+        self.model = GATModel(embedding_type, dataset, graph_type, hid_units,
+                              n_heads, learning_rate, weight_decay, epochs,
+                              batch_size, patience, residual, nonlinearity,
+                              sparse, ffd_drop, attn_drop, gpu, recs)
 
     def evaluate(self):
         # Load test data
@@ -57,6 +57,11 @@ class GATModelEvaluation:
         parser.add_argument('dataset',
                             help='Name of the object file that stores the '
                             + 'training data.')
+        parser.add_argument('--graph_type',
+                            choices=["directed", "undirected"],
+                            default="directed",
+                            help='The type of graph used ' +
+                            '(directed vs. undirected).')
         parser.add_argument("--hid_units",
                             type=int,
                             nargs="+",
@@ -115,11 +120,11 @@ class GATModelEvaluation:
         from GATModelEvaluation import GATModelEvaluation
         print("Starting...")
         model = GATModelEvaluation(
-                args.embedding_type, args.dataset, args.hid_units,
-                args.n_heads, args.learning_rate, args.weight_decay,
-                args.epochs, args.batch_size, args.patience, args.residual,
-                args.nonlinearity, args.sparse, args.ffd_drop, args.attn_drop,
-                args.gpu, args.recs)
+                args.embedding_type, args.dataset, args.graph_type,
+                args.hid_units, args.n_heads, args.learning_rate,
+                args.weight_decay, args.epochs, args.batch_size, args.patience,
+                args.residual, args.nonlinearity, args.sparse, args.ffd_drop,
+                args.attn_drop, args.gpu, args.recs)
         model.evaluate()
         print("Finished.")
 

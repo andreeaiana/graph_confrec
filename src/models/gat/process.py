@@ -47,12 +47,15 @@ def sample_mask(idx, l):
     return np.array(mask, dtype=np.bool)
 
 
-def load_data(embedding_type, dataset_str):
+def load_data(embedding_type, dataset_str, graph_type):
     """Load data."""
     path_persistent = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                    "..", "..", "..", "data", "interim", "gat",
                                    embedding_type, dataset_str)
-    names = ['x', 'y', 'allx', 'ally', 'graph']
+    if graph_type == "directed":
+        names = ['x', 'y', 'allx', 'ally', 'graph_directed']
+    else:
+        names = ['x', 'y', 'allx', 'ally', 'graph']
     objects = []
     for i in range(len(names)):
         with open(path_persistent + "/ind.{}.{}".format(dataset_str, names[i]),
