@@ -104,18 +104,18 @@ class Processor:
         # Create a dict in the format {index: [index_of_neighbor_nodes]}
         # (as a collections.defaultdict object)
         if self.graph_type == "directed":
-            self._create_directed_graph(train_val_data)
+            graph = self._create_directed_graph(train_val_data)
         else:
-            self._create_undirected_graph(train_val_data)
+            graph = self._create_undirected_graph(train_val_data)
         print("Finished creating training files.\n")
 
         print("Statistics")
-#        print("\tTraining data features: {}.".format(train_features.shape))
-#        print("\tTraining data labels: {}.".format(len(train_labels)))
-#        print("\tTraining and validation data features: {}.".format(
-#                train_val_features.shape))
-#        print("\tTraining and validation data labels: {}.".format(
-#                len(train_val_labels)))
+        print("\tTraining data features: {}.".format(train_features.shape))
+        print("\tTraining data labels: {}.".format(len(train_labels)))
+        print("\tTraining and validation data features: {}.".format(
+                train_val_features.shape))
+        print("\tTraining and validation data labels: {}.".format(
+                len(train_val_labels)))
         print("\tGraph size: {}.".format(len(graph)))
 
     def _create_directed_graph(self, train_val_data):
@@ -136,6 +136,7 @@ class Processor:
         with open(graph_file, "wb") as f:
             pickle.dump(graph, f)
         print("Saved.\n")
+        return graph
 
     def _create_undirected_graph(self, train_val_data):
         print("Creating dictionary of neighbours.")
@@ -162,6 +163,7 @@ class Processor:
         with open(graph_file, "wb") as f:
             pickle.dump(graph, f)
         print("Saved.\n")
+        return graph
 
     def _create_features(self, data):
         features = []
