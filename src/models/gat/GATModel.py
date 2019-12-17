@@ -23,10 +23,10 @@ from DataLoader import DataLoader
 class GATModel(AbstractModel):
 
     def __init__(self, embedding_type, dataset, graph_type="directed",
-                 hid_units=[256, 256], n_heads=[4, 4, 1], learning_rate=0.005,
+                 hid_units=[8], n_heads=[8, 1], learning_rate=0.005,
                  weight_decay=0, epochs=100000, batch_size=1, patience=100,
                  residual=False, nonlinearity=tf.nn.elu, sparse=False,
-                 ffd_drop=0, attn_drop=0, gpu=0, recs=10):
+                 ffd_drop=0.6, attn_drop=0.6, gpu=0, recs=10):
 
         self.embedding_type = embedding_type
         self.dataset = dataset
@@ -141,8 +141,8 @@ class GATModel(AbstractModel):
                     self.dataset, names[i]), 'rb') as f:
                 objects.append(pickle.load(f, encoding='latin1'))
         x, y, allx, ally, graph = tuple(objects)
-        return x, y, allx, ally, graph
         print("Loaded.")
+        return x, y, allx, ally, graph
 
     def _load_label_encoder(self):
         label_encoder_file = os.path.join(

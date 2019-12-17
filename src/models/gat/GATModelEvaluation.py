@@ -18,10 +18,10 @@ from GATModel import GATModel
 class GATModelEvaluation:
 
     def __init__(self, embedding_type, dataset, graph_type="directed",
-                 hid_units=[256, 256], n_heads=[4, 4, 1], learning_rate=0.005,
+                 hid_units=[8], n_heads=[8, 1], learning_rate=0.005,
                  weight_decay=0, epochs=100000, batch_size=1, patience=100,
                  residual=False, nonlinearity=tf.nn.elu, sparse=False,
-                 ffd_drop=0, attn_drop=0, gpu=0, recs=10):
+                 ffd_drop=0.6, attn_drop=0.6, gpu=0, recs=10):
 
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
@@ -65,13 +65,13 @@ class GATModelEvaluation:
         parser.add_argument("--hid_units",
                             type=int,
                             nargs="+",
-                            default=[256, 256],
+                            default=[8],
                             help="Number of hidden units per each attention "
                             + "head in each layer.")
         parser.add_argument('--n_heads',
                             type=int,
                             nargs="+",
-                            default=[4, 4, 1],
+                            default=[8, 1],
                             help='Additional entry for the output layer.')
         parser.add_argument('--learning_rate',
                             type=float,
@@ -103,10 +103,10 @@ class GATModelEvaluation:
                             help="Whether to use the sparse model version")
         parser.add_argument('--ffd_drop',
                             type=float,
-                            default=0)
+                            default=0.6)
         parser.add_argument('--attn_drop',
                             type=float,
-                            default=0)
+                            default=0.6)
         parser.add_argument('--gpu',
                             type=int,
                             default=0,
@@ -130,5 +130,3 @@ class GATModelEvaluation:
 
     if __name__ == "__main__":
         main()
-
-
