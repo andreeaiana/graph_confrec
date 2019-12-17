@@ -2,17 +2,15 @@
 from __future__ import division
 from __future__ import print_function
 
+import os
 import time
 import argparse
-import os
 import tensorflow as tf
+import matplotlib.pyplot as plt
 
 from inits import *
 from sampler import *
 from models import GCNAdapt, GCNAdaptMix
-
-sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "utils"))
-from TimerCounter import Timer
 
 # DISCLAIMER:
 # This code file is derived from https://github.com/huangwb/AS-GCN
@@ -165,6 +163,8 @@ class Model:
         save_dir = self._save_dir()
         acc_val = []
         acc_train = []
+        losses_val = []
+        losses_train = []
         train_time = []
         train_time_sample = []
         max_acc = 0
@@ -198,6 +198,7 @@ class Model:
                 outs = sess.run([model.opt_op, model.loss, model.accuracy],
                                 feed_dict=feed_dict)
                 acc_train.append(outs[-2])
+                losses_train.append(outs[1])
 
             train_time_sample.append(time.time() - t1)
             train_time.append(time.time() - t1 - sample_time)
@@ -208,12 +209,13 @@ class Model:
                     [], placeholders)
 
             acc_val.append(acc)
+            losses_val.append(cost)
             if epoch > 1 and acc > max_acc:
                 max_acc = acc
-                print("Saving model at epoch: {}, accuracy: {}.".format(
-                        epoch, acc))
+                print("Saving model at epoch: {}, accuracy: {}, loss: {}.".format(
+                        epoch, acc, cost))
                 saver.save(sess, os.path.join(save_dir, "model.ckpt"))
-                print("Saved.")
+                print("Saved.\n")
 
             # Print results
             print("Epoch:", '%04d' % (epoch + 1),
@@ -221,10 +223,187 @@ class Model:
                   "train_acc=", "{:.5f}".format(outs[2]),
                   "val_loss=", "{:.5f}".format(cost),
                   "val_acc=", "{:.5f}".format(acc),
-                  "time=", "{:.5f}".format(train_time_sample[epoch]))
+                  "time=", "{:.5f}".format(train_time_sample[epoch]),
+                  "\n")
 
-        print("Training finished.")
-        train_duration = np.mean(np.array(train_time_sample))
+        print("Training finished.\n")
+        self._plot_losses(losses_train, losses_val)
+        self._plot_accuracies(acc_train, acc_val)
+        self._print_stats(losses_train, losses_val, acc_train, acc_val,
+                          train_time_sample)
+
+    def test(self, test_data):
+        # Prepare data
+        adj, adj_train, adj_val_train, features, train_features, y_train, y_test, test_index = test_data
+
+        rank1 = self.rank
+        rank0 = self.rank
+        num_train = adj_train.shape[0] - 1
+        input_dim = features.shape[1]
+        scope = 'test'
+
+        if self.model_name == 'gcn_adapt_mix':
+            num_supports = 1
+            propagator = GCNAdaptMix
+            test_supports = [sparse_to_tuple(adj[test_index, :])]
+            test_features = [features, features[test_index, :]]
+            test_probs = [np.ones(adj.shape[0])]
+            layer_sizes = [rank1, 256]
+        elif self.model_name == 'gcn_adapt':
+            num_supports = 2
+            propagator = GCNAdapt
+            test_supports = [sparse_to_tuple(adj),
+                             sparse_to_tuple(adj[test_index, :])]
+            test_features = [features, features, features[test_index, :]]
+            test_probs = [np.ones(adj.shape[0]), np.ones(adj.shape[0])]
+            layer_sizes = [rank0, rank1, 256]
+        else:
+            raise ValueError('Invalid argument for model: ' + str(
+                    self.model_name))
+
+        # Define placeholders
+        placeholders = {
+            'batch': tf.compat.v1.placeholder(tf.int32),
+            'adj': tf.compat.v1.placeholder(
+                    tf.int32, shape=(num_train+1, self.max_degree)),
+            'adj_val': tf.compat.v1.placeholder(
+                    tf.float32, shape=(num_train+1, self.max_degree)),
+            'features': tf.compat.v1.placeholder(
+                    tf.float32, shape=train_features.shape),
+            'support': [tf.compat.v1.sparse_placeholder(tf.float32) for _ in
+                        range(num_supports)],
+            'prob': [tf.compat.v1.placeholder(tf.float32) for _ in range(
+                    num_supports)],
+            'features_inputs': [tf.compat.v1.placeholder(
+                    tf.float32, shape=(None, input_dim)) for _ in range(
+                            num_supports+1)],
+            'labels': tf.compat.v1.placeholder(
+                    tf.float32, shape=(None, y_train.shape[1])),
+            'labels_mask': tf.compat.v1.placeholder(tf.int32),
+            'dropout': tf.compat.v1.placeholder_with_default(0., shape=()),
+            # helper variable for sparse dropout
+            'num_features_nonzero': tf.compat.v1.placeholder(tf.int32)
+        }
+
+        # Sampling parameters shared by the sampler and model
+        with tf.compat.v1.variable_scope(scope):
+            w_s = glorot([features.shape[-1], 2], name='sample_weights')
+
+        # Create sampler
+        if self.sampler_device == 'cpu':
+            with tf.device('/cpu:0'):
+                sampler_tf = SamplerAdapt(
+                        placeholders, input_dim=input_dim,
+                        layer_sizes=layer_sizes, scope=scope)
+                features_sampled, support_sampled, p_u_sampled = sampler_tf.sampling(
+                        placeholders['batch'])
+        else:
+            sampler_tf = SamplerAdapt(
+                    placeholders, input_dim=input_dim, layer_sizes=layer_sizes,
+                    scope=scope)
+            features_sampled, support_sampled, p_u_sampled = sampler_tf.sampling(
+                    placeholders['batch'])
+
+        # Create model
+        model = propagator(placeholders,
+                           input_dim=input_dim,
+                           learning_rate=self.learning_rate,
+                           weight_decay=self.weight_decay,
+                           hidden1=self.hidden1,
+                           var=self.var,
+                           logging=True,
+                           name=scope)
+
+        # Initialize session
+        config = tf.compat.v1.ConfigProto(device_count={"CPU": 1},
+                                          inter_op_parallelism_threads=0,
+                                          intra_op_parallelism_threads=0,
+                                          allow_soft_placement=True,
+                                          log_device_placement=False)
+        sess = tf.compat.v1.Session(config=config)
+
+        # Init variables
+        sess.run(tf.compat.v1.global_variables_initializer(),
+                 feed_dict={placeholders['adj']: adj_train,
+                            placeholders['adj_val']: adj_val_train,
+                            placeholders['features']: train_features})
+
+        # Prepare training
+        saver = tf.compat.v1.train.Saver()
+        save_dir = self._save_dir()
+
+        # Testing
+        print("Restoring model...")
+        if os.path.exists(os.path.join(save_dir, "model.ckpt.index")):
+            saver.restore(sess, os.path.join(save_dir, "model.ckpt"))
+            print('Model restored.\n')
+        else:
+            raise ValueError("Model checkpoint does not exist.\n")
+
+        print("Computing predictions...")
+        feed_dict_val = construct_feed_dict_with_prob(
+                test_features, test_supports, test_probs, y_test, [],
+                placeholders)
+        predictions = sess.run([model.preds], feed_dict=feed_dict_val)
+        print("Computed.\n")
+        return predictions
+
+    def _plot_losses(self, train_losses, validation_losses):
+        # Plot the training and validation losses
+        ymax = max(max(train_losses), max(validation_losses))
+        ymin = min(min(train_losses), min(validation_losses))
+        plt.plot(train_losses, color='tab:blue')
+        plt.plot(validation_losses, color='tab:orange')
+        plt.xlabel("Epoch")
+        plt.ylabel("Loss")
+        plt.grid(True)
+        plt.legend(["train", "validation"], loc=3)
+        plt.ylim(ymin=ymin-0.5, ymax=ymax+0.5)
+        plt.savefig(os.path.join(self._save_dir(), "losses.png"),
+                    bbox_inches="tight")
+
+    def _plot_accuracies(self, train_accuracies, val_accuracies):
+        # Plot the training and validation accuracies
+        ymax = max(max(train_accuracies), max(val_accuracies))
+        ymin = min(min(train_accuracies), min(val_accuracies))
+        plt.plot(train_accuracies, color='tab:blue')
+        plt.plot(val_accuracies, color='tab:orange')
+        plt.xlabel("Epoch")
+        plt.ylabel("Accuracy")
+        plt.grid(True)
+        plt.legend(["train", "validation"], loc=3)
+        plt.ylim(ymin=ymin-0.5, ymax=ymax+0.5)
+        plt.savefig(os.path.join(self._save_dir(), "accuracies.png"),
+                    bbox_inches="tight")
+
+    def _print_stats(self, train_losses, validation_losses, train_accuracies,
+                     validation_accuracies, train_time_sample):
+        epochs = len(validation_losses)
+        time_per_epoch = np.mean(np.array(train_time_sample))
+        total_time = np.sum(np.array(train_time_sample))
+        epoch_min_val = validation_losses.index(min(validation_losses))
+        epoch_max_acc = validation_accuracies.index(max(validation_accuracies))
+
+        stats_file = os.path.join(self._save_dir(), "stats.txt")
+        with open(stats_file, "w") as f:
+            self._print("Total number of epochs trained: {}, average time per epoch: {} minutes.\n".format(
+                    epochs, round(time_per_epoch/60, 4)), f)
+            self._print("Total time trained: {} minutes.\n".format(
+                    round(total_time/60, 4)), f)
+            self._print("Lowest validation loss at epoch {} = {}.\n".format(
+                    epoch_min_val, validation_losses[epoch_min_val]), f)
+            self._print("Highest validation accuracy at epoch {} = {}.\n".format(
+                    epoch_max_acc, validation_accuracies[epoch_max_acc]), f)
+            f.write("\n\n")
+            for epoch in range(epochs):
+                f.write('Epoch: %.f | Training: loss = %.5f, acc = %.5f | Val: loss = %.5f, acc = %.5f\n' %
+                        (epoch, train_losses[epoch], train_accuracies[epoch],
+                         validation_losses[epoch], validation_accuracies[epoch]
+                         ))
+
+    def _print(self, text, f):
+        print(text)
+        f.write(text)
 
     def _save_dir(self):
         model_dir = self.model_name + "_" + str(self.learning_rate) + "_" + \

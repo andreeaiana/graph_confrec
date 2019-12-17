@@ -11,7 +11,7 @@ import networkx as nx
 import scipy.sparse as sp
 from collections import defaultdict
 from sklearn.preprocessing import OneHotEncoder
-from process import sample_mask
+from utils import *
 
 sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "utils"))
 sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "data"))
@@ -28,7 +28,6 @@ class Processor:
 
         self.embedding_type = embedding_type
         self.dataset = dataset
-        self.graph_type = graph_type
         self.embeddings_parser = EmbeddingsParser(gpu)
         self.timer = Timer()
         self.path_persistent = os.path.join(
@@ -200,7 +199,6 @@ class Processor:
             for idx in range(len(graph.keys())):
                 graph[idx] = list(set(graph[idx]))
                 pbar.update(1)
-        return graph
         print("Updated.")
 
         # Create feature vectors of test instances
@@ -208,6 +206,7 @@ class Processor:
         test_features = self._create_features(df_test)
         print("Created.")
 
+        max_degree = len(max(graph.values(), key=len))
         test_idx_range = np.sort(test_indices)
         features = sp.vstack((train_val_features, test_features)).tolil()
         features[test_indices, :] = features[test_idx_range, :]
@@ -230,13 +229,40 @@ class Processor:
         y_train[train_mask, :] = labels[train_mask, :]
         y_val[val_mask, :] = labels[val_mask, :]
         y_test[test_mask, :] = labels[test_mask, :]
-        print("Finished preprocessing data.")
+        print("Finished preprocessing data.\n")
 
         print("Adjacency matrix shape: {}.".format(adj.shape))
         print("Features matrix shape: {}.".format(features.shape))
         print("Graph size: {}.".format(len(graph)))
+        print("Max degree: {}.\n".format(max_degree))
 
-        return adj, features, y_train, y_test, train_mask, test_mask
+        dataset = [adj, features, y_train, y_test, train_mask, test_mask]
+        prepared_test_data = self._prepare_test_data(dataset, max_degree)
+        return prepared_test_data, max_degree
+
+    def _prepare_test_data(self, dataset, max_degree):
+        print("Preparing test data...")
+        adj, features, y_train, y_test, train_mask, test_mask = dataset
+        train_index = np.where(train_mask)[0]
+        adj_train = adj[train_index, :][:, train_index]
+        y_train = y_train[train_index]
+        test_index = np.where(test_mask)[0]
+        y_test = y_test[test_index]
+
+        num_train = adj_train.shape[0]
+        input_dim = features.shape[1]
+
+        features = nontuple_preprocess_features(features).todense()
+        train_features = features[train_index]
+
+        norm_adj_train = nontuple_preprocess_adj(adj_train)
+        norm_adj = nontuple_preprocess_adj(adj)
+
+        adj_train, adj_val_train = compute_adjlist(norm_adj_train, max_degree)
+        train_features = np.concatenate((train_features,
+                                         np.zeros((1, input_dim))))
+        print("Prepared.\n")
+        return norm_adj, adj_train, adj_val_train, features, train_features, y_train, y_test, test_index
 
     def main():
         parser = argparse.ArgumentParser(

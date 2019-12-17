@@ -128,6 +128,7 @@ class MLP(Model):
         self.accuracy = masked_accuracy(
                 self.outputs, self.placeholders['labels'],
                 self.placeholders['labels_mask'])
+        self.preds = self.predict()
 
     def _build(self):
         self.layers.append(Dense(input_dim=self.input_dim,
@@ -182,9 +183,9 @@ class GCN(Model):
         self.accuracy = masked_accuracy(
                 self.outputs, self.placeholders['labels'],
                 self.placeholders['labels_mask'])
+        self.preds = self.predict()
 
     def _build(self):
-
         self.layers.append(GraphConvolution(input_dim=self.input_dim,
                                             output_dim=self.hidden1,
                                             placeholders=self.placeholders,
@@ -252,6 +253,7 @@ class GCNAdapt(Model):
 
     def _accuracy(self):
         self.accuracy = accuracy(self.outputs, self.placeholders['labels'])
+        self.preds = self.predict()
 
     def _attention(self, support, x_u, x_v, prob):
         sample_params = self.sample_params
@@ -275,7 +277,6 @@ class GCNAdapt(Model):
                 dropout=True,
                 sparse_inputs=False,
                 logging=self.logging))
-
         self.layers.append(GraphSampleConvolutionReg(
                 input_dim=self.hidden1,
                 output_dim=self.output_dim,
@@ -327,6 +328,7 @@ class GCNAdaptMix(Model):
 
     def _accuracy(self):
         self.accuracy = accuracy(self.outputs, self.placeholders['labels'])
+        self.preds = self.predict()
 
     def _attention(self, support, x_u, x_v, prob):
         sample_params = self.sample_params
@@ -347,7 +349,6 @@ class GCNAdaptMix(Model):
                                  dropout=True,
                                  sparse_inputs=False,
                                  logging=self.logging))
-
         self.layers.append(GraphSampleConvolutionReg(
                 input_dim=self.hidden1,
                 output_dim=self.output_dim,
