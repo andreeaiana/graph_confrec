@@ -27,7 +27,7 @@ class Model:
         if gpu is not None:
             os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
         else:
-            os.environ["CUDA_VISIBLE_DEVICES"] = ""
+            os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
         self.embedding_type = embedding_type
         self.dataset = dataset
@@ -227,9 +227,10 @@ class Model:
                   "\n")
 
         print("Training finished.\n")
-        self._plot_losses(losses_train, losses_val)
-        self._plot_accuracies(acc_train, acc_val)
-        self._print_stats(losses_train, losses_val, acc_train, acc_val,
+        self._plot_losses(np.array(losses_train), np.array(losses_val))
+        self._plot_accuracies(np.array(acc_train), np.array(acc_val))
+        self._print_stats(np.array(losses_train), np.array(losses_val),
+                          np.array(acc_train), np.array(acc_val),
                           train_time_sample)
 
     def test(self, test_data):
@@ -346,7 +347,7 @@ class Model:
                 placeholders)
         predictions = sess.run([model.preds], feed_dict=feed_dict_val)
         print("Computed.\n")
-        return predictions
+        return predictions[0]
 
     def _plot_losses(self, train_losses, validation_losses):
         # Plot the training and validation losses

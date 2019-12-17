@@ -22,7 +22,7 @@ class ASGCNModelEvaluation:
                  var=0.5, sampler_device="cpu", gpu=None, recs=10):
 
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-        os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
+        os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
         self.d = DataLoader()
         self.model = ASGCNModel(embedding_type, dataset, model_name,

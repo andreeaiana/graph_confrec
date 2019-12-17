@@ -6,7 +6,6 @@ import pickle
 import random
 import numpy as np
 import pandas as pd
-import tensorflow as tf
 from networkx.readwrite import json_graph
 from sklearn.preprocessing import LabelEncoder
 
