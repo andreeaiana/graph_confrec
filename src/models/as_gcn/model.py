@@ -207,15 +207,8 @@ class Model:
             cost, acc, duration = self._evaluate(
                     sess, model, val_features, val_supports, val_probs, y_val,
                     [], placeholders)
-
             acc_val.append(acc)
             losses_val.append(cost)
-            if epoch > 1 and acc > max_acc:
-                max_acc = acc
-                print("Saving model at epoch: {}, accuracy: {}, loss: {}.".format(
-                        epoch, acc, cost))
-                saver.save(sess, os.path.join(save_dir, "model.ckpt"))
-                print("Saved.\n")
 
             # Print results
             print("Epoch:", '%04d' % (epoch + 1),
@@ -226,11 +219,17 @@ class Model:
                   "time=", "{:.5f}".format(train_time_sample[epoch]),
                   "\n")
 
+            if acc > max_acc:
+                max_acc = acc
+                print("Saving model at epoch: {}, accuracy: {}, loss: {}.".format(
+                        epoch+1, acc, cost))
+                saver.save(sess, os.path.join(save_dir, "model.ckpt"))
+                print("Saved.\n")
+
         print("Training finished.\n")
-        self._plot_losses(np.array(losses_train), np.array(losses_val))
-        self._plot_accuracies(np.array(acc_train), np.array(acc_val))
-        self._print_stats(np.array(losses_train), np.array(losses_val),
-                          np.array(acc_train), np.array(acc_val),
+        self._plot_losses(losses_train, losses_val)
+        self._plot_accuracies(acc_train, acc_val)
+        self._print_stats(losses_train, losses_val, acc_train, acc_val,
                           train_time_sample)
 
     def test(self, test_data):
