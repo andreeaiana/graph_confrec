@@ -33,7 +33,7 @@ class Model(object):
         self.accuracy = 0
         self.optimizer = None
         self.opt_op = None
-        self.skip = 1
+        self.skip =1
 
     def _build(self):
         raise NotImplementedError
@@ -47,12 +47,13 @@ class Model(object):
         self.activations.append(self.inputs)
 
         # uncomment the following to enable skip connection
-        hidden_12, reg_loss_12 = self.layers[0](self.inputs)
-        hidden_23, reg_loss_23 = self.layers[1](hidden_12)
-        self.outputs = hidden_23
-        hidden_13, reg_loss_13 = self.layers[2](self.inputs)
-        self.outputs += self.skip*hidden_13
-        self.reg_loss = reg_loss_23
+#        if self.skip > 0:
+#            hidden_12, reg_loss_12 = self.layers[0](self.inputs)
+#            hidden_23, reg_loss_23 = self.layers[1](hidden_12)
+#            self.outputs = hidden_23
+#            hidden_13, reg_loss_13 = self.layers[2](self.inputs)
+#            self.outputs += self.skip*hidden_13
+#            self.reg_loss = reg_loss_23
         #
         for layer in self.layers:
             hidden, reg_loss = layer(self.activations[-1])
@@ -236,11 +237,9 @@ class GCNAdapt(Model):
         self.support_32 = self._attention(self.supports[1], self.features[1],
                                           self.features[2], self.probs[1])
         # for skip connection
-        self.attention_31 = tf.sparse_tensor_dense_matmul(
-                self.attention_32,
-                tf.sparse_tensor_to_dense(self.attention_21,
-                                          validate_indices=False)
-                )
+#        self.support_31 = tf.sparse.sparse_dense_matmul(
+#                self.support_32,
+#                tf.sparse.to_dense(self.support_21, validate_indices=False))
 
         self.build()
 
@@ -283,7 +282,7 @@ class GCNAdapt(Model):
                 logging=self.logging))
         self.layers.append(GraphSampleConvolutionReg(
                 input_dim=self.hidden1,
-                output_dim=self.output_dim,
+                output_dim=self.hidden1,
                 placeholders=self.placeholders,
                 support=self.support_32,
                 act=lambda x: x,

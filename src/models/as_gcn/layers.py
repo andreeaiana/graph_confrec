@@ -376,5 +376,3 @@ class GraphSampleConvolutionSkip(Layer):
             output += self.vars['bias']
 
         return self.act(output), 0
-
-
