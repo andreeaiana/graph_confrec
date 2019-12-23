@@ -21,17 +21,22 @@ class GraphSAGERLModelEvaluation():
                  nonlinear_sampler=True, fast_ver=False, allhop_rewards=False,
                  model_size="small", learning_rate=0.001, epochs=10,
                  dropout=0.0, weight_decay=0.0, max_degree=100, samples_1=25,
-                 samples_2=10, samples_3=0, dim_1=128, dim_2=128, dim_3=0,
-                 batch_size=512, sigmoid=False, identity_dim=0,
+                 samples_2=10, samples_3=0, dim_1=512, dim_2=512, dim_3=0,
+                 batch_size=128, sigmoid=False, identity_dim=0,
                  base_log_dir='../../../data/processed/graphsage_rl/',
-                 validate_iter=5000, validate_batch_size=512, gpu=0,
+                 validate_iter=5000, validate_batch_size=128, gpu=0,
                  print_every=5, max_total_steps=10**10,
-                 log_device_placement=False, recs=10):
+                 log_device_placement=False, recs=10, threshold=2):
 
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
 
+        self.graph_type = graph_type
+
         self.d = DataLoader()
+        if self.graph_type == "citations_authors_het_edges":
+            self.d_authors = DataLoader()
+
         self.model = GraphSAGERLModel(
                 embedding_type, graph_type, train_prefix, model_name,
                 nonlinear_sampler, fast_ver, allhop_rewards, model_size,
@@ -39,14 +44,23 @@ class GraphSAGERLModelEvaluation():
                 samples_1, samples_2, samples_3, dim_1, dim_2, dim_3,
                 batch_size, sigmoid, identity_dim, base_log_dir,
                 validate_iter, validate_batch_size, gpu, print_every,
-                max_total_steps, log_device_placement, recs)
+                max_total_steps, log_device_placement, recs, threshold)
 
     def evaluate(self):
-        # Load test data
-        query_test, truth = self.d.evaluation_data_with_abstracts_citations()
+        if self.graph_type == "citations":
+            # Load test data
+            query_test, truth = self.d.evaluation_data_with_abstracts_citations()
+            # Retrieve predictions
+            recommendation = self.model.query_batch(query_test)
 
-        # Retrieve predictions
-        recommendation = self.model.query_batch(query_test)
+        if self.graph_type == "citations_authors_het_edges":
+            # Load test data
+            query_test, truth = self.d.evaluation_data_with_abstracts_citations()
+            query_test_authors = self.d_authors.test_data_with_abstracts_citations(
+                    ).author_names().data[["author_name", "chapter"]]
+            # Retrieve predictions
+            recommendation = self.model.query_batch((query_test,
+                                                     query_test_authors))
 
         # Evaluate
         print("Evaluating...")
@@ -64,7 +78,8 @@ class GraphSAGERLModelEvaluation():
                                      ],
                             help="Type of embedding.")
         parser.add_argument('graph_type',
-                            choices=["citations", "authors"],
+                            choices=["citations", "authors",
+                                     "citations_authors_het_edges"],
                             help="The type of graph used.")
         parser.add_argument('train_prefix',
                             help='Name of the object file that stores the '
@@ -133,12 +148,12 @@ class GraphSAGERLModelEvaluation():
                             '(Only for mean model)')
         parser.add_argument('--dim_1',
                             type=int,
-                            default=128,
+                            default=512,
                             help='Size of output dim ' +
                             '(final is 2x this, if using concat)')
         parser.add_argument('--dim_2',
                             type=int,
-                            default=128,
+                            default=512,
                             help='Size of output dim ' +
                             '(final is 2x this, if using concat)')
         parser.add_argument('--dim_3',
@@ -148,7 +163,7 @@ class GraphSAGERLModelEvaluation():
                             '(final is 2x this, if using concat)')
         parser.add_argument('--batch_size',
                             type=int,
-                            default=512,
+                            default=128,
                             help='Minibatch size.')
         parser.add_argument('--sigmoid',
                             action="store_true",
@@ -169,7 +184,7 @@ class GraphSAGERLModelEvaluation():
                             help='How often to run a validation minibatch.')
         parser.add_argument('--validate_batch_size',
                             type=int,
-                            default=512,
+                            default=128,
                             help='How many nodes per validation sample.')
         parser.add_argument('--gpu',
                             type=int,
@@ -191,6 +206,11 @@ class GraphSAGERLModelEvaluation():
                             type=int,
                             default=10,
                             help='Number of recommendations.')
+        parser.add_argument('--threshold',
+                            type=int,
+                            default=2,
+                            help='Threshold for edge weights in ' +
+                            'heterogeneous graph.')
         args = parser.parse_args()
 
         from GraphSAGERLModelEvaluation import GraphSAGERLModelEvaluation

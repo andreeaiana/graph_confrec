@@ -25,12 +25,13 @@ from SciBERTEmbeddingsParser import EmbeddingsParser
 
 class Processor():
 
-    def __init__(self, embedding_type, graph_type, gpu=0):
+    def __init__(self, embedding_type, graph_type, threshold=2, gpu=0):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
 
         self.embedding_type = embedding_type
         self.graph_type = graph_type
+        self.threshold = threshold
         self.embeddings_parser = EmbeddingsParser(gpu)
         self.timer = Timer()
         self.path_persistent = os.path.join(
@@ -58,16 +59,49 @@ class Processor():
         # Add nodes and edges
         print("Adding training nodes.")
         self._add_nodes(df_train, test=False, val=False)
+
         print("Adding training edges.")
-        if self.graph_type == "authors":
+        if self.graph_type == "citations" or self.graph_type == "authors":
+            if self.graph_type == "authors":
+                df_train = d_train.author_names().data
+            self._add_edges(df_train)
+        elif self.graph_type == "citations_authors_het_edges":
+            # Adding heterogeneous edges
+            # Add citation edges
+            self._add_weighted_edges_citations(df_train)
+            # Add author edges
             df_train = d_train.author_names().data
-        self._add_edges(df_train)
+            self._add_weighted_edges_authors(df_train)
+        else:
+            raise KeyError("Graph type unknown.")
+
         print("Adding validation nodes.")
         self._add_nodes(df_validation, test=False, val=True)
+
         print("Adding validation edges.")
-        if self.graph_type == "authors":
+        if self.graph_type == "citations" or self.graph_type == "authors":
+            if self.graph_type == "authors":
+                df_validation = d_val.author_names().data
+            self._add_edges(df_validation)
+        elif self.graph_type == "citations_authors_het_edges":
+            # Add citation edges
+            self._add_weighted_edges_citations(df_validation)
+            # Add author edges
             df_validation = d_val.author_names().data
-        self._add_edges(df_validation)
+            self._add_weighted_edges_authors(df_validation)
+        else:
+            raise KeyError("Graph type unknown.")
+
+        if self.graph_type == "citations_authors_het_edges":
+            # Remove edges with weight lower than threshold
+            remove_edges = [(u, v) for u, v, e in self.G.edges(data=True) if
+                            e["weight"] < self.threshold]
+            self.G.remove_edges_from(remove_edges)
+            # Clear edge attributes
+            for n1, n2, d in self.G.edges(data=True):
+                d.clear()
+            print("Edges in graph: {}.\n".format(self.G.number_of_edges()))
+
         print("Removing nodes without features.")
         for node in list(self.G.nodes()):
             if "feature" not in self.G.nodes[node].keys():
@@ -123,14 +157,42 @@ class Processor():
         # Add nodes and edges
         print("Adding test nodes.")
         self._add_nodes(df_test, test=True, val=False)
+
         print("Adding test edges.")
-        if self.graph_type == "authors":
+        if self.graph_type == "citations" or self.graph_type == "authors":
+            if self.graph_type == "authors":
+                if authors_df is not None:
+                    df_test = pd.merge(df_test, authors_df, how="left",
+                                       on=["chapter", "chapter"])
+                else:
+                    raise ValueError("Chapter authors are missing.")
+            self._add_edges(df_test)
+        elif self.graph_type == "citations_authors_het_edges":
+            # Adding heterogeneous edges
+            # Add citation edges
+            self._add_weighted_edges_citations(df_test)
+
+            # Add author edges
             if authors_df is not None:
                 df_test = pd.merge(df_test, authors_df, how="left",
                                    on=["chapter", "chapter"])
             else:
                 raise ValueError("Chapter authors are missing.")
-        self._add_edges(df_test)
+            self._add_weighted_edges_authors(df_test)
+
+            # Remove edges with weight lower than threshold
+            remove_edges = [(u, v) for u, v, e in self.G.edges(data=True) if
+                            "weight" in e.keys() and
+                            e["weight"] < self.threshold]
+            self.G.remove_edges_from(remove_edges)
+
+            # Clear edge attributes
+            for n1, n2, d in self.G.edges(data=True):
+                d.clear()
+            print("Edges in graph: {}.\n".format(self.G.number_of_edges()))
+        else:
+            raise KeyError("Graph type unknown.")
+
         print("Removing nodes without features.")
         for node in list(self.G.nodes()):
             if "feature" not in self.G.nodes[node].keys():
@@ -234,6 +296,20 @@ class Processor():
                 pbar.update(1)
         print("Edges in graph: {}.\n".format(self.G.number_of_edges()))
 
+    def _add_weighted_edges_citations(self, data):
+        """Adds edges between papers that share a citation.
+        """
+        with tqdm(desc="Adding edges: ", total=len(data)) as pbar:
+            for idx in range(len(data)):
+                self.G.add_edges_from(
+                        [(data.chapter.iloc[idx],
+                          data.chapter_citations.iloc[idx][i])
+                         for i in range(
+                                len(data.chapter_citations.iloc[idx]))],
+                        weight=100)
+                pbar.update(1)
+        print("Edges in graph: {}.\n".format(self.G.number_of_edges()))
+
     def _add_edges_authors(self, data):
         """Adds edges between papers sharing an author.
         """
@@ -243,6 +319,22 @@ class Processor():
             for idx in range(len(data_grouped)):
                 self.G.add_edges_from(combinations(
                         data_grouped.iloc[idx].chapter, 2))
+                pbar.update(1)
+        print("Edges in graph: {}.\n".format(self.G.number_of_edges()))
+
+    def _add_weighted_edges_authors(self, data):
+        """Adds edges between papers sharing an author.
+        """
+        data_grouped = data.groupby("author_name")["chapter"].agg(
+                list).reset_index()
+        with tqdm(desc="Adding edges: ", total=len(data_grouped)) as pbar:
+            for idx in range(len(data_grouped)):
+                edges = combinations(data_grouped.iloc[idx].chapter, 2)
+                for edge in edges:
+                    if self.G.has_edge(edge[0], edge[1]):
+                        self.G[edge[0]][edge[1]]["weight"] += 1
+                    else:
+                        self.G.add_edge(edge[0], edge[1], weight=1)
                 pbar.update(1)
         print("Edges in graph: {}.\n".format(self.G.number_of_edges()))
 
@@ -358,6 +450,11 @@ class Processor():
         parser.add_argument('dataset',
                             help='Name of the object file that stores the '
                             + 'training data.')
+        parser.add_argument('--threshold',
+                            type=int,
+                            default=2,
+                            help='Threshold for edge weights in ' +
+                            'heterogeneous graph.')
         parser.add_argument('--gpu',
                             type=int,
                             default=0,
@@ -365,7 +462,8 @@ class Processor():
         args = parser.parse_args()
         print("Starting...")
         from preprocess_data import Processor
-        processor = Processor(args.embedding_type, args.dataset, args.gpu)
+        processor = Processor(args.embedding_type, args.dataset,
+                              args.threshold, args.gpu)
         processor.training_data()
         print("Finished.")
 

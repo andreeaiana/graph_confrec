@@ -157,14 +157,42 @@ class Processor():
         # Add nodes and edges
         print("Adding test nodes.")
         self._add_nodes(df_test, test=True, val=False)
+
         print("Adding test edges.")
-        if self.graph_type == "authors":
+        if self.graph_type == "citations" or self.graph_type == "authors":
+            if self.graph_type == "authors":
+                if authors_df is not None:
+                    df_test = pd.merge(df_test, authors_df, how="left",
+                                       on=["chapter", "chapter"])
+                else:
+                    raise ValueError("Chapter authors are missing.")
+            self._add_edges(df_test)
+        elif self.graph_type == "citations_authors_het_edges":
+            # Adding heterogeneous edges
+            # Add citation edges
+            self._add_weighted_edges_citations(df_test)
+
+            # Add author edges
             if authors_df is not None:
                 df_test = pd.merge(df_test, authors_df, how="left",
                                    on=["chapter", "chapter"])
             else:
                 raise ValueError("Chapter authors are missing.")
-        self._add_edges(df_test)
+            self._add_weighted_edges_authors(df_test)
+
+            # Remove edges with weight lower than threshold
+            remove_edges = [(u, v) for u, v, e in self.G.edges(data=True) if
+                            "weight" in e.keys() and
+                            e["weight"] < self.threshold]
+            self.G.remove_edges_from(remove_edges)
+
+            # Clear edge attributes
+            for n1, n2, d in self.G.edges(data=True):
+                d.clear()
+            print("Edges in graph: {}.\n".format(self.G.number_of_edges()))
+        else:
+            raise KeyError("Graph type unknown.")
+
         print("Removing nodes without features.")
         for node in list(self.G.nodes()):
             if "feature" not in self.G.nodes[node].keys():

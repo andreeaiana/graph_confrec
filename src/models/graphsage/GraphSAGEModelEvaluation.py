@@ -15,35 +15,48 @@ from GraphSAGEModel import GraphSAGEModel
 
 class GraphSAGEModelEvaluation():
 
-    def __init__(self, embedding_type, graph_type, model_checkpoint,
-                 train_prefix, model_name, model_size="small",
-                 learning_rate=0.001, epochs=10, dropout=0.0,
-                 weight_decay=0.0, max_degree=100, samples_1=25, samples_2=10,
-                 samples_3=0, dim_1=128, dim_2=128, batch_size=512,
-                 sigmoid=False, identity_dim=0,
+    def __init__(self, embedding_type, graph_type, train_prefix, model_name,
+                 model_size="small", learning_rate=0.001, epochs=10,
+                 dropout=0.0, weight_decay=0.0, max_degree=100, samples_1=25,
+                 samples_2=10, samples_3=0, dim_1=128, dim_2=128,
+                 batch_size=512, sigmoid=False, identity_dim=0,
                  base_log_dir='../../../data/processed/graphsage/',
                  validate_iter=5000, validate_batch_size=256, gpu=0,
                  print_every=5, max_total_steps=10**10,
-                 log_device_placement=False, recs=10):
+                 log_device_placement=False, recs=10, threshold=2):
 
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
 
+        self.graph_type = graph_type
+
         self.d = DataLoader()
+        if self.graph_type == "citations_authors_het_edges":
+            self.d_authors = DataLoader()
+
         self.model = GraphSAGEModel(
-                embedding_type, graph_type, model_checkpoint, train_prefix,
-                model_name, model_size, learning_rate, epochs, dropout,
-                weight_decay, max_degree, samples_1, samples_2, samples_3,
-                dim_1, dim_2, batch_size, sigmoid, identity_dim, base_log_dir,
+                embedding_type, graph_type, train_prefix, model_name,
+                model_size, learning_rate, epochs, dropout, weight_decay,
+                max_degree, samples_1, samples_2, samples_3, dim_1, dim_2,
+                batch_size, sigmoid, identity_dim, base_log_dir,
                 validate_iter, validate_batch_size, gpu, print_every,
-                max_total_steps, log_device_placement, recs)
+                max_total_steps, log_device_placement, recs, threshold)
 
     def evaluate(self):
-        # Load test data
-        query_test, truth = self.d.evaluation_data_with_abstracts_citations()
+        if self.graph_type == "citations":
+            # Load test data
+            query_test, truth = self.d.evaluation_data_with_abstracts_citations()
+            # Retrieve predictions
+            recommendation = self.model.query_batch(query_test)
 
-        # Retrieve predictions
-        recommendation = self.model.query_batch(query_test)
+        if self.graph_type == "citations_authors_het_edges":
+            # Load test data
+            query_test, truth = self.d.evaluation_data_with_abstracts_citations()
+            query_test_authors = self.d_authors.test_data_with_abstracts_citations(
+                    ).author_names().data[["author_name", "chapter"]]
+            # Retrieve predictions
+            recommendation = self.model.query_batch((query_test,
+                                                     query_test_authors))
 
         # Evaluate
         print("Evaluating...")
@@ -61,10 +74,9 @@ class GraphSAGEModelEvaluation():
                                      ],
                             help="Type of embedding.")
         parser.add_argument('graph_type',
-                            choices=["citations", "authors"],
+                            choices=["citations", "authors",
+                                     "citations_authors_het_edges"],
                             help="The type of graph used.")
-        parser.add_argument('model_checkpoint',
-                            help='Name of the GraphSAGE model checkpoint.')
         parser.add_argument('train_prefix',
                             help='Name of the object file that stores the '
                             + 'training data.')
@@ -165,20 +177,25 @@ class GraphSAGEModelEvaluation():
                             type=int,
                             default=10,
                             help='Number of recommendations.')
+        parser.add_argument('--threshold',
+                            type=int,
+                            default=2,
+                            help='Threshold for edge weights in ' +
+                            'heterogeneous graph.')
         args = parser.parse_args()
 
         from GraphSAGEModelEvaluation import GraphSAGEModelEvaluation
         print("Starting...")
         model = GraphSAGEModelEvaluation(
-                args.embedding_type, args.graph_type, args.model_checkpoint,
-                args.train_prefix, args.model_name, args.model_size,
-                args.learning_rate, args.epochs, args.dropout,
-                args.weight_decay, args.max_degree, args.samples_1,
-                args.samples_2, args.samples_3, args.dim_1, args.dim_2,
-                args.batch_size, args.sigmoid, args.identity_dim,
+                args.embedding_type, args.graph_type, args.train_prefix,
+                args.model_name, args.model_size, args.learning_rate,
+                args.epochs, args.dropout, args.weight_decay, args.max_degree,
+                args.samples_1, args.samples_2, args.samples_3, args.dim_1,
+                args.dim_2, args.batch_size, args.sigmoid, args.identity_dim,
                 args.base_log_dir, args.validate_iter,
                 args.validate_batch_size, args.gpu, args.print_every,
-                args.max_total_steps, args.log_device_placement, args.recs)
+                args.max_total_steps, args.log_device_placement, args.recs,
+                args.threshold)
         model.evaluate()
         print("Finished.")
 

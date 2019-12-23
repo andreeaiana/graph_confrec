@@ -19,20 +19,18 @@ from supervised_model import SupervisedModel
 
 class GraphSAGEModel(AbstractModel):
 
-    def __init__(self, embedding_type, graph_type, model_checkpoint,
-                 train_prefix, model_name, model_size="small",
-                 learning_rate=0.001, epochs=10, dropout=0.0,
-                 weight_decay=0.0, max_degree=100, samples_1=25, samples_2=10,
-                 samples_3=0, dim_1=128, dim_2=128, batch_size=512,
-                 sigmoid=False, identity_dim=0,
+    def __init__(self, embedding_type, graph_type, train_prefix, model_name,
+                 model_size="small", learning_rate=0.001, epochs=10,
+                 dropout=0.0, weight_decay=0.0, max_degree=100, samples_1=25,
+                 samples_2=10, samples_3=0, dim_1=128, dim_2=128,
+                 batch_size=512, sigmoid=False, identity_dim=0,
                  base_log_dir='../../../data/processed/graphsage/',
                  validate_iter=5000, validate_batch_size=256, gpu=0,
                  print_every=5, max_total_steps=10**10,
-                 log_device_placement=False, recs=10):
+                 log_device_placement=False, recs=10, threshold=2):
 
         self.embedding_type = embedding_type
         self.graph_type = graph_type
-        self.model_checkpoint = model_checkpoint
         self.recs = recs
 
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -45,7 +43,7 @@ class GraphSAGEModel(AbstractModel):
                 base_log_dir, validate_iter, validate_batch_size, gpu,
                 print_every, max_total_steps, log_device_placement)
         self.preprocessor = Processor(self.embedding_type, self.graph_type,
-                                      gpu)
+                                      threshold, gpu)
 
         if not self._load_training_graph():
             print("The training graph does not exist.")
@@ -70,11 +68,25 @@ class GraphSAGEModel(AbstractModel):
         # Generate an ID for the query
         query_id = "new_node_id:" + "-".join(
                 [str(i) for i in random.sample(range(0, 10000), 5)])
-        if len(query) < 3:
-            raise ValueError("The input does not contain enough data; " +
-                             "chapter title chapter abstract, and chapter " +
-                             "citations are required.")
-        return self.query_batch([(query_id, query[0], query[1], query[2])])
+
+        if self.graph_type == "citations":
+            if len(query) < 3:
+                raise ValueError("The input does not contain enough data; " +
+                                 "chapter  title chapter abstract, and " +
+                                 "chapter citations are required.")
+            return self.query_batch([(query_id, query[0], query[1], query[2])])
+        elif self.graph_type == "citations_authors_het_edges":
+            if len(query) < 4:
+                raise ValueError("The input does not contain enough data; " +
+                                 "chapter title chapter abstract, chapter " +
+                                 "citations, and chapter authors are required."
+                                 )
+            authors_df = pd.DataFrame({"author_name": query[3],
+                                       "chapter": [query_id]*len(query[3])})
+            return self.query_batch([(query_id, query[0], query[1], query[2])],
+                                    authors_df)
+        else:
+            raise ValueError("Graph type not recognised.")
 
     def query_batch(self, batch):
         """Queries the model and returns a lis of recommendations.
@@ -88,18 +100,31 @@ class GraphSAGEModel(AbstractModel):
             list: ids of the conferences
             double: confidence scores
         """
-        df_test = pd.DataFrame(batch, columns=["chapter", "chapter_title",
-                                               "chapter_abstract",
-                                               "chapter_citations"])
+        if self.graph_type == "citations":
+            df_test = pd.DataFrame(batch, columns=["chapter", "chapter_title",
+                                                   "chapter_abstract",
+                                                   "chapter_citations"])
 
-        # Preprocess the data
-        graph, features, id_map, class_map = self.preprocessor.test_data(
-                df_test, self.G_train, class_map=self.class_map_train)
+            # Preprocess the data
+            graph, features, id_map, class_map = self.preprocessor.test_data(
+                    df_test, self.G_train, class_map=self.class_map_train)
+
+        elif self.graph_type == "citations_authors_het_edges":
+            df_test = pd.DataFrame(batch[0],
+                                   columns=["chapter", "chapter_title",
+                                            "chapter_abstract",
+                                            "chapter_citations"])
+            authors_df = batch[1]
+            # Preprocess the data
+            graph, features, id_map, class_map = self.preprocessor.test_data(
+                    df_test, self.G_train, authors_df=authors_df,
+                    class_map=self.class_map_train)
+        else:
+            raise ValueError("Graph type not recognised.")
 
         # Inference on test data
         predictions = self.graphsage_model.inference(
-                [graph, features, id_map, None, class_map],
-                self.model_checkpoint)[1]
+                [graph, features, id_map, None, class_map])[1]
 
         # Compute predictions
         sorted_predictions = (-predictions).argsort(axis=1)
