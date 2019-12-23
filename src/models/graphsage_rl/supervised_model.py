@@ -38,10 +38,10 @@ class SupervisedModelRL:
                  fast_ver=False, allhop_rewards=False, model_size="small",
                  learning_rate=0.001, epochs=10, dropout=0.0, weight_decay=0.0,
                  max_degree=100, samples_1=25, samples_2=10, samples_3=0,
-                 dim_1=128, dim_2=128, dim_3=0, batch_size=512, sigmoid=False,
+                 dim_1=512, dim_2=512, dim_3=0, batch_size=128, sigmoid=False,
                  identity_dim=0,
                  base_log_dir='../../../data/processed/graphsage_rl/',
-                 validate_iter=5000, validate_batch_size=512, gpu=0,
+                 validate_iter=5000, validate_batch_size=128, gpu=0,
                  print_every=5, max_total_steps=10**10,
                  log_device_placement=False):
 
@@ -1005,12 +1005,12 @@ class SupervisedModelRL:
                             '(Only for mean model)')
         parser.add_argument('--dim_1',
                             type=int,
-                            default=128,
+                            default=512,
                             help='Size of output dim ' +
                             '(final is 2x this, if using concat)')
         parser.add_argument('--dim_2',
                             type=int,
-                            default=128,
+                            default=512,
                             help='Size of output dim ' +
                             '(final is 2x this, if using concat)')
         parser.add_argument('--dim_3',
@@ -1020,7 +1020,7 @@ class SupervisedModelRL:
                             '(final is 2x this, if using concat)')
         parser.add_argument('--batch_size',
                             type=int,
-                            default=512,
+                            default=128,
                             help='Minibatch size.')
         parser.add_argument('--sigmoid',
                             action="store_true",
@@ -1041,7 +1041,7 @@ class SupervisedModelRL:
                             help='How often to run a validation minibatch.')
         parser.add_argument('--validate_batch_size',
                             type=int,
-                            default=512,
+                            default=128,
                             help='How many nodes per validation sample.')
         parser.add_argument('--gpu',
                             type=int,
