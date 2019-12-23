@@ -418,10 +418,14 @@ class SupervisedModel:
             validation_losses.append(
                     sum(validation_loss_epoch)/len(validation_loss_epoch))
 
-            # Save model at each epoch
-            print("Saving model at epoch {}.".format(epoch))
-            saver.save(sess, os.path.join(
-                       self._log_dir(), "model_epoch_" + str(epoch) + ".ckpt"))
+            # If the epoch has the lowest validation loss so far
+            if validation_losses[-1] == min(validation_losses):
+                print("Minimum validation loss so far ({}) at epoch {}.".format(
+                        validation_losses[-1], epoch))
+                # Save model at each epoch
+                print("Saving model at epoch {}.".format(epoch))
+                saver.save(sess, os.path.join(
+                           self._log_dir(), "model.ckpt"))
 
             if total_steps > self.max_total_steps:
                 break
@@ -444,7 +448,7 @@ class SupervisedModel:
             fp.write("loss={:.5f} f1_micro={:.5f} f1_macro={:.5f} time={:.5f}".
                      format(val_cost, val_f1_mic, val_f1_mac, duration))
 
-    def inference(self, test_data, model_checkpoint, gpu_mem_fraction=None):
+    def inference(self, test_data, gpu_mem_fraction=None):
         print("Inference.")
         timer = Timer()
         timer.tic()
@@ -498,7 +502,7 @@ class SupervisedModel:
 
         # Restore model
         print("Restoring trained model.")
-        checkpoint_file = os.path.join(self._log_dir(), model_checkpoint)
+        checkpoint_file = os.path.join(self._log_dir(), "model.ckpt")
         ckpt = tf.compat.v1.train.get_checkpoint_state(checkpoint_file)
         if checkpoint_file:
             saver.restore(sess, checkpoint_file)
