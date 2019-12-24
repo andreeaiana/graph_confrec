@@ -21,23 +21,38 @@ class GATModelEvaluation:
                  hid_units=[8], n_heads=[8, 1], learning_rate=0.005,
                  weight_decay=0, epochs=100000, batch_size=1, patience=100,
                  residual=False, nonlinearity=tf.nn.elu, sparse=False,
-                 ffd_drop=0.6, attn_drop=0.6, gpu=0, recs=10):
+                 ffd_drop=0.6, attn_drop=0.6, gpu=0, recs=10, threshold=2):
 
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
 
+        self.graph_type = graph_type
+
         self.d = DataLoader()
+        if self.graph_type == "citations_authors_het_edges":
+            self.d_authors = DataLoader()
+
         self.model = GATModel(embedding_type, dataset, graph_type, hid_units,
                               n_heads, learning_rate, weight_decay, epochs,
                               batch_size, patience, residual, nonlinearity,
-                              sparse, ffd_drop, attn_drop, gpu, recs)
+                              sparse, ffd_drop, attn_drop, gpu, recs, threshold
+                              )
 
     def evaluate(self):
-        # Load test data
-        query_test, truth = self.d.evaluation_data_with_abstracts_citations()
+        if self.graph_type == "citations":
+            # Load test data
+            query_test, truth = self.d.evaluation_data_with_abstracts_citations()
+            # Retrieve predictions
+            recommendation = self.model.query_batch(query_test)
 
-        # Retrieve predictions
-        recommendation = self.model.query_batch(query_test)
+        if self.graph_type == "citations_authors_het_edges":
+            # Load test data
+            query_test, truth = self.d.evaluation_data_with_abstracts_citations()
+            query_test_authors = self.d_authors.test_data_with_abstracts_citations(
+                    ).author_names().data[["author_name", "chapter"]]
+            # Retrieve predictions
+            recommendation = self.model.query_batch((query_test,
+                                                     query_test_authors))
 
         # Evaluate
         print("Evaluating...")
@@ -115,6 +130,11 @@ class GATModelEvaluation:
                             type=int,
                             default=10,
                             help='Number of recommendations.')
+         parser.add_argument('--threshold',
+                            type=int,
+                            default=2,
+                            help='Threshold for edge weights in ' +
+                            'heterogeneous graph.')
         args = parser.parse_args()
 
         from GATModelEvaluation import GATModelEvaluation
@@ -124,7 +144,7 @@ class GATModelEvaluation:
                 args.hid_units, args.n_heads, args.learning_rate,
                 args.weight_decay, args.epochs, args.batch_size, args.patience,
                 args.residual, args.nonlinearity, args.sparse, args.ffd_drop,
-                args.attn_drop, args.gpu, args.recs)
+                args.attn_drop, args.gpu, args.recs, args.threshold)
         model.evaluate()
         print("Finished.")
 

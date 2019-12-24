@@ -11,6 +11,7 @@ import scipy.sparse as sp
 from collections import defaultdict
 from sklearn.preprocessing import OneHotEncoder
 from process import sample_mask
+from itertools import combinations
 
 sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "utils"))
 sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "data"))
@@ -21,13 +22,15 @@ from SciBERTEmbeddingsParser import EmbeddingsParser
 
 class Processor:
 
-    def __init__(self, embedding_type, dataset, graph_type="directed", gpu=0):
+    def __init__(self, embedding_type, dataset, graph_type="directed",
+                 threshold=2, gpu=0):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
 
         self.embedding_type = embedding_type
         self.dataset = dataset
         self.graph_type = graph_type
+        self.threshold = threshold
         self.embeddings_parser = EmbeddingsParser(gpu)
         self.timer = Timer()
         self.path_persistent = os.path.join(
@@ -103,10 +106,25 @@ class Processor:
 
         # Create a dict in the format {index: [index_of_neighbor_nodes]}
         # (as a collections.defaultdict object)
-        if self.graph_type == "directed":
-            graph = self._create_directed_graph(train_val_data)
-        else:
-            graph = self._create_undirected_graph(train_val_data)
+        if self.dataset == "citations":
+            if self.graph_type == "directed":
+                graph = self._create_directed_graph(train_val_data)
+            else:
+                graph = self._create_undirected_graph(train_val_data)
+        if self.dataset == "citations_authors_het_edges":
+            df_train_authors = d_train.author_names().data
+            df_val_authors = d_val.author_names().data
+            train_val_authors_data = pd.concat(
+                    (df_train_authors, df_val_authors), axis=0).reset_index(
+                            drop=True)
+            data_authors = train_val_authors_data.groupby(
+                    "author_name")["chapter"].agg(list).reset_index()
+            if self.graph_type == "directed":
+                graph = self._create_heterogeneous_directed_graph(
+                        train_val_data[:100], data_authors[:100])
+            else:
+                graph = self._create_heterogeneous_undirected_graph(
+                        train_val_data, data_authors)
         print("Finished creating training files.\n")
 
         print("Statistics")
@@ -117,6 +135,8 @@ class Processor:
         print("\tTraining and validation data labels: {}.".format(
                 len(train_val_labels)))
         print("\tGraph size: {}.".format(len(graph)))
+        print("\tMax node degree: {}.".format(len(max(graph.values(),
+              key=len))))
 
     def _create_directed_graph(self, train_val_data):
         print("Creating dictionary of neighbours.")
@@ -133,6 +153,98 @@ class Processor:
         print("Saving to disk...")
         graph_file = os.path.join(self.path_persistent,
                                   "ind." + self.dataset + ".graph_directed")
+        with open(graph_file, "wb") as f:
+            pickle.dump(graph, f)
+        print("Saved.\n")
+        return graph
+
+    def _create_heterogeneous_directed_graph(self, train_val_data,
+                                             data_authors):
+        print("Creating dictionary of neighbours.")
+        graph = defaultdict(list)
+        # Add citation edges between papers
+        with tqdm(desc="Adding citation neighbours: ",
+                  total=len(train_val_data)) as pbar:
+            for idx in range(len(train_val_data)):
+                citations_indices = [train_val_data[
+                        train_val_data.chapter == citation].index.tolist() for
+                        citation in train_val_data.chapter_citations.iloc[idx]]
+                graph[idx] = [(i[0], 100) for i in citations_indices if i]
+                pbar.update(1)
+
+        # Add edges between papers if they share an author
+        with tqdm(desc="Adding author neighbours: ",
+                  total=len(data_authors)) as pbar:
+            for idx in range(len(data_authors)):
+                authors_indices = [train_val_data[
+                        train_val_data.chapter == paper].index.tolist() for
+                        paper in data_authors.chapter.iloc[idx]]
+                authors_indices = [i[0] for i in authors_indices if i]
+                edges = [i for i in combinations(authors_indices, 2)]
+                for edge in edges:
+                    graph[edge[0]].append((edge[1], 1))
+
+        # Removed edges with weights below the threshold
+        for key in graph.keys():
+            d = defaultdict(int)
+            for x, y in graph[key]:
+                d[x] += y
+            graph[key] = [k for k, v in d.items() if v >= self.threshold]
+        print("Created.")
+
+        print("Saving to disk...")
+        graph_file = os.path.join(self.path_persistent,
+                                  "ind." + self.dataset + ".graph_directed")
+        with open(graph_file, "wb") as f:
+            pickle.dump(graph, f)
+        print("Saved.\n")
+        return graph
+
+    def _create_heterogeneous_undirected_graph(self, train_val_data,
+                                               data_authors):
+        print("Creating dictionary of neighbours.")
+        graph = defaultdict(list)
+        # Add citation edges between papers
+        with tqdm(desc="Adding citation neighbours: ",
+                  total=len(train_val_data)) as pbar:
+            for idx in range(len(train_val_data)):
+                citations_indices = [train_val_data[
+                        train_val_data.chapter == citation].index.tolist() for
+                        citation in train_val_data.chapter_citations.iloc[idx]]
+                neighbours = [(c[0], 100) for c in citations_indices if c]
+                graph[idx].extend(neighbours)
+                for node in neighbours:
+                    graph[node].append((idx, 100))
+                pbar.update(1)
+        with tqdm(desc="Removing duplicates: ", total=len(graph.keys())
+                  ) as pbar:
+            for idx in range(len(graph.keys())):
+                graph[idx] = list(set(graph[idx]))
+                pbar.update(1)
+
+        # Add edges between papers if they share an author
+        with tqdm(desc="Adding author neighbours: ",
+                  total=len(data_authors)) as pbar:
+            for idx in range(len(data_authors)):
+                authors_indices = [train_val_data[
+                        train_val_data.chapter == paper].index.tolist() for
+                        paper in data_authors.chapter.iloc[idx]]
+                authors_indices = [i[0] for i in authors_indices if i]
+                edges = [i for i in combinations(authors_indices, 2)]
+                for edge in edges:
+                    graph[edge[0]].append((edge[1], 1))
+
+        # Removed edges with weights below the threshold
+        for key in graph.keys():
+            d = defaultdict(int)
+            for x, y in graph[key]:
+                d[x] += y
+            graph[key] = [k for k, v in d.items() if v >= self.threshold]
+        print("Created.")
+
+        print("Saving to disk...")
+        graph_file = os.path.join(self.path_persistent,
+                                  "ind." + self.dataset + ".graph")
         with open(graph_file, "wb") as f:
             pickle.dump(graph, f)
         print("Saved.\n")
@@ -157,6 +269,7 @@ class Processor:
             for idx in range(len(graph.keys())):
                 graph[idx] = list(set(graph[idx]))
                 pbar.update(1)
+        print("Created.")
         print("Saving to disk...")
         graph_file = os.path.join(self.path_persistent,
                                   "ind." + self.dataset + ".graph")
@@ -219,7 +332,8 @@ class Processor:
         return graph
 
     def test_data(self, df_test, train_features, train_labels,
-                  train_val_features, train_val_labels, graph):
+                  train_val_features, train_val_labels, graph,
+                  authors_df=None):
         print("Preprocessing data...")
         # Load training and validation data
         d_train = DataLoader()
@@ -300,6 +414,11 @@ class Processor:
                             default="directed",
                             help='The type of graph used ' +
                             '(directed vs. undirected).')
+        parser.add_argument('--threshold',
+                            type=int,
+                            default=2,
+                            help='Threshold for edge weights in ' +
+                            'heterogeneous graph.')
         parser.add_argument('--gpu',
                             type=int,
                             default=0,
@@ -308,7 +427,7 @@ class Processor:
         print("Starting...")
         from preprocess_data import Processor
         processor = Processor(args.embedding_type, args.dataset,
-                              args.graph_type, args.gpu)
+                              args.graph_type, args.threshold, args.gpu)
         processor.training_data()
         print("Finished.")
 

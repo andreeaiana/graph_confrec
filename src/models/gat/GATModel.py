@@ -26,7 +26,7 @@ class GATModel(AbstractModel):
                  hid_units=[8], n_heads=[8, 1], learning_rate=0.005,
                  weight_decay=0, epochs=100000, batch_size=1, patience=100,
                  residual=False, nonlinearity=tf.nn.elu, sparse=False,
-                 ffd_drop=0.6, attn_drop=0.6, gpu=0, recs=10):
+                 ffd_drop=0.6, attn_drop=0.6, gpu=0, recs=10, threshold=2):
 
         self.embedding_type = embedding_type
         self.dataset = dataset
@@ -39,7 +39,7 @@ class GATModel(AbstractModel):
                              patience, residual, nonlinearity, sparse,
                              ffd_drop, attn_drop, None)
         self.preprocessor = Processor(self.embedding_type, self.dataset,
-                                      self.graph_type, gpu)
+                                      self.graph_type, threshold, gpu)
         self.training_data = self._load_training_data()
 
         if not self._load_label_encoder():
@@ -56,12 +56,26 @@ class GATModel(AbstractModel):
             list: ids of the conferences
             double: confidence scores
         """
-        # Generate an ID for the query
-        if len(query) < 3:
-            raise ValueError("The input does not contain enough data; " +
-                             "chapter title, chapter abstract, and chapter " +
-                             "citations are required.")
-        return self.query_batch([(query[0], query[1], query[2])])
+        if self.graph_type == "citations":
+            if len(query) < 3:
+                raise ValueError("The input does not contain enough data; " +
+                                 "chapter title, chapter abstract, and " +
+                                 "chapter citations are required.")
+            return self.query_batch([(query[0], query[1], query[2])])
+        elif self.graph_type == "citations_authors_het_edges":
+            if len(query) < 4:
+                raise ValueError("The input does not contain enough data; " +
+                                 "chapter title, chapter abstract, chapter " +
+                                 "citations, and chapter authors are required."
+                                 )
+                query_id = "new_node_id:" + "-".join(
+                        [str(i) for i in random.sample(range(0, 10000), 5)])
+                authors_df = pd.DataFrame({"author_name": query[3],
+                                          "chapter": [query_id]*len(query[3])})
+            return self.query_batch([(query_id, query[0], query[1], query[2])],
+                                    authors_df)
+        else:
+            raise ValueError("Graph type not recognised.")
 
     def query_batch(self, batch):
         """Queries the model and returns a lis of recommendations.
@@ -75,19 +89,41 @@ class GATModel(AbstractModel):
             list: ids of the conferences
             double: confidence scores
         """
-        if len(batch) == 3:
-            df_test = pd.DataFrame(batch,
-                                   columns=["chapter_title",
+        if self.graph_type == "citations":
+            if len(batch) == 3:
+                df_test = pd.DataFrame(batch,
+                                       columns=["chapter_title",
+                                                "chapter_abstract",
+                                                "chapter_citations"])
+            else:
+                df_test_extended = pd.DataFrame(batch,
+                                                columns=["chapter",
+                                                         "chapter_title",
+                                                         "chapter_abstract",
+                                                         "chapter_citations"])
+                df_test = df_test_extended[["chapter_title",
                                             "chapter_abstract",
-                                            "chapter_citations"])
+                                            "chapter_citations"]]
+            authors_df = None
+        elif self.graph_type == "citations_authors_het_edges":
+            if len(batch) == 4:
+                df_test = pd.DataFrame(batch[0],
+                                       columns=["chapter_title",
+                                                "chapter_abstract",
+                                                "chapter_citations"])
+            else:
+                df_test_extended = pd.DataFrame(batch[0],
+                                                columns=["chapter",
+                                                         "chapter_title",
+                                                         "chapter_abstract",
+                                                         "chapter_citations"])
+                df_test = df_test_extended[["chapter_title",
+                                            "chapter_abstract",
+                                            "chapter_citations"]]
+            authors_df = batch[1]
         else:
-            df_test_extended = pd.DataFrame(batch,
-                                            columns=["chapter",
-                                                     "chapter_title",
-                                                     "chapter_abstract",
-                                                     "chapter_citations"])
-            df_test = df_test_extended[["chapter_title", "chapter_abstract",
-                                        "chapter_citations"]]
+            raise ValueError("Graph type not recognised.")
+
         train_features, train_labels, train_val_features, train_val_labels, graph = self.training_data
 
         # Reindex test dataframe such that indices follow those from the
@@ -98,7 +134,7 @@ class GATModel(AbstractModel):
         # Preprocess the data
         test_data = self.preprocessor.test_data(
                 df_test, train_features, train_labels, train_val_features,
-                train_val_labels, graph)
+                train_val_labels, graph, authors_df)
 
         # Inference on test data
         predictions = self.gat_model.test(test_data).numpy()[0][
