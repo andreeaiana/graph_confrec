@@ -28,7 +28,7 @@ class GraphSAGERLModel(AbstractModel):
                  base_log_dir='../../../data/processed/graphsage_rl/',
                  validate_iter=5000, validate_batch_size=128, gpu=0,
                  print_every=5, max_total_steps=10**10,
-                 log_device_placement=False, recs=10, threshold):
+                 log_device_placement=False, recs=10, threshold=2):
 
         self.embedding_type = embedding_type
         self.graph_type = graph_type

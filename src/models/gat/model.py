@@ -31,10 +31,10 @@ from TimerCounter import Timer
 class Model:
 
     def __init__(self, embedding_type, dataset, graph_type="directed",
-                 hid_units=[8], n_heads=[8, 1], learning_rate=0.005,
+                 hid_units=[64], n_heads=[8, 1], learning_rate=0.005,
                  weight_decay=0, epochs=100000, batch_size=1, patience=100,
                  residual=False, nonlinearity=tf.nn.elu, sparse=False,
-                 ffd_drop=0.6, attn_drop=0.6, gpu=None):
+                 ffd_drop=0.5, attn_drop=0.5, gpu=None):
 
         print("Initiating, using gpu {}.\n".format(gpu))
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
