@@ -121,7 +121,7 @@ class Processor:
                     "author_name")["chapter"].agg(list).reset_index()
             if self.graph_type == "directed":
                 graph = self._create_heterogeneous_directed_graph(
-                        train_val_data[:100], data_authors[:100])
+                        train_val_data, data_authors)
             else:
                 graph = self._create_heterogeneous_undirected_graph(
                         train_val_data, data_authors)
@@ -183,6 +183,7 @@ class Processor:
                 edges = [i for i in combinations(authors_indices, 2)]
                 for edge in edges:
                     graph[edge[0]].append((edge[1], 1))
+                pbar.update(1)
 
         # Removed edges with weights below the threshold
         for key in graph.keys():
@@ -233,6 +234,7 @@ class Processor:
                 edges = [i for i in combinations(authors_indices, 2)]
                 for edge in edges:
                     graph[edge[0]].append((edge[1], 1))
+                pbar.update(1)
 
         # Removed edges with weights below the threshold
         for key in graph.keys():
@@ -313,6 +315,46 @@ class Processor:
                 pbar.update(1)
         return graph
 
+    def _update_heterogeneous_directed_graph(self, graph, train_val_data,
+                                             df_test, data_authors):
+        with tqdm(desc="Adding citation neighbours: ",
+                  total=len(df_test)) as pbar:
+            for idx in list(df_test.index):
+                citations_indices = [train_val_data[
+                        train_val_data.chapter == citation].index.tolist() for
+                        citation in df_test.chapter_citations.loc[idx]]
+                graph[idx] = [(i[0], 100) for i in citations_indices if i]
+                pbar.update(1)
+
+        with tqdm(desc="Adding author neighbours: ",
+                  total=len(data_authors)) as pbar:
+            for idx in range(len(data_authors)):
+                authors_indices = [train_val_data[
+                        train_val_data.chapter == paper].index.tolist() for
+                        paper in data_authors.chapter.iloc[idx]]
+                authors_indices = [i[0] for i in authors_indices if i]
+                edges = [i for i in combinations(authors_indices, 2)]
+                for edge in edges:
+                    graph[edge[0]].append((edge[1], 1))
+                pbar.update(1)
+
+        for key in graph.keys():
+            d = defaultdict(int)
+            for e in reversed(graph[key]):
+                if type(e) is tuple:
+                    if e[0] in d.keys():
+                        d[e[0]] += e[1]
+                    else:
+                        d[e[0]] = e[1]
+                graph[key].remove(e)
+            graph[key].extend([k for k, v in d.items() if v >= self.threshold])
+
+        return graph
+
+    def _update_heterogeneous_undirected_graph(self, graph, train_val_data,
+                                               df_test, df_authors):
+        pass
+
     def _update_undirected_graph(self, graph, train_val_data, df_test):
         with tqdm(desc="Adding neighbours: ", total=len(df_test)) as pbar:
             for idx in list(df_test.index):
@@ -354,11 +396,22 @@ class Processor:
 
         # Update graph with test data
         print("Updating graph information...")
-        if self.graph_type == "directed":
-            graph = self._update_directed_graph(graph, train_val_data, df_test)
-        else:
-            graph = self._update_undirected_graph(graph, train_val_data,
-                                                  df_test)
+        if self.dataset == "citations":
+            if self.graph_type == "directed":
+                graph = self._update_directed_graph(graph, train_val_data,
+                                                    df_test)
+            else:
+                graph = self._update_undirected_graph(graph, train_val_data,
+                                                      df_test)
+        if self.dataset == "citations_authors_het_edges":
+            data_authors = authors_df.groupby("author_name")["chapter"].agg(
+                    list).reset_index()
+            if self.graph_type == "directed":
+                graph = self._update_heterogeneous_directed_graph(
+                        graph, train_val_data, df_test, data_authors)
+            else:
+                graph = self._update_heterogeneous_undirected_graph(
+                        graph, train_val_data, df_test, data_authors)
         print("Updated.")
 
         # Create feature vectors of test instances
