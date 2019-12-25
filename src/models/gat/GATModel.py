@@ -23,10 +23,10 @@ from DataLoader import DataLoader
 class GATModel(AbstractModel):
 
     def __init__(self, embedding_type, dataset, graph_type="directed",
-                 hid_units=[8], n_heads=[8, 1], learning_rate=0.005,
+                 hid_units=[64], n_heads=[8, 1], learning_rate=0.005,
                  weight_decay=0, epochs=100000, batch_size=1, patience=100,
                  residual=False, nonlinearity=tf.nn.elu, sparse=False,
-                 ffd_drop=0.6, attn_drop=0.6, gpu=0, recs=10, threshold=2):
+                 ffd_drop=0.5, attn_drop=0.5, gpu=0, recs=10, threshold=2):
 
         self.embedding_type = embedding_type
         self.dataset = dataset
@@ -56,13 +56,13 @@ class GATModel(AbstractModel):
             list: ids of the conferences
             double: confidence scores
         """
-        if self.graph_type == "citations":
+        if self.dataset == "citations":
             if len(query) < 3:
                 raise ValueError("The input does not contain enough data; " +
                                  "chapter title, chapter abstract, and " +
                                  "chapter citations are required.")
             return self.query_batch([(query[0], query[1], query[2])])
-        elif self.graph_type == "citations_authors_het_edges":
+        elif self.dataset == "citations_authors_het_edges":
             if len(query) < 4:
                 raise ValueError("The input does not contain enough data; " +
                                  "chapter title, chapter abstract, chapter " +
@@ -75,7 +75,7 @@ class GATModel(AbstractModel):
             return self.query_batch([(query_id, query[0], query[1], query[2])],
                                     authors_df)
         else:
-            raise ValueError("Graph type not recognised.")
+            raise ValueError("Dataset not recognised.")
 
     def query_batch(self, batch):
         """Queries the model and returns a lis of recommendations.
@@ -89,7 +89,7 @@ class GATModel(AbstractModel):
             list: ids of the conferences
             double: confidence scores
         """
-        if self.graph_type == "citations":
+        if self.dataset == "citations":
             if len(batch) == 3:
                 df_test = pd.DataFrame(batch,
                                        columns=["chapter_title",
@@ -105,7 +105,7 @@ class GATModel(AbstractModel):
                                             "chapter_abstract",
                                             "chapter_citations"]]
             authors_df = None
-        elif self.graph_type == "citations_authors_het_edges":
+        elif self.dataset == "citations_authors_het_edges":
             if len(batch) == 4:
                 df_test = pd.DataFrame(batch[0],
                                        columns=["chapter_title",
@@ -122,7 +122,7 @@ class GATModel(AbstractModel):
                                             "chapter_citations"]]
             authors_df = batch[1]
         else:
-            raise ValueError("Graph type not recognised.")
+            raise ValueError("Dataset not recognised.")
 
         train_features, train_labels, train_val_features, train_val_labels, graph = self.training_data
 

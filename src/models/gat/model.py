@@ -441,7 +441,7 @@ class Model:
         parser.add_argument("--hid_units",
                             type=int,
                             nargs="+",
-                            default=[8],
+                            default=[64],
                             help="Number of hidden units per each attention "
                             + "head in each layer.")
         parser.add_argument('--n_heads',
@@ -479,10 +479,10 @@ class Model:
                             help="Whether to use the sparse model version")
         parser.add_argument('--ffd_drop',
                             type=float,
-                            default=0.6)
+                            default=0.5)
         parser.add_argument('--attn_drop',
                             type=float,
-                            default=0.6)
+                            default=0.5)
         parser.add_argument('--gpu',
                             type=int,
                             help='Which gpu to use.')

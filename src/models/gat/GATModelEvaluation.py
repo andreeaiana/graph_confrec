@@ -18,18 +18,18 @@ from GATModel import GATModel
 class GATModelEvaluation:
 
     def __init__(self, embedding_type, dataset, graph_type="directed",
-                 hid_units=[8], n_heads=[8, 1], learning_rate=0.005,
+                 hid_units=[64], n_heads=[8, 1], learning_rate=0.005,
                  weight_decay=0, epochs=100000, batch_size=1, patience=100,
                  residual=False, nonlinearity=tf.nn.elu, sparse=False,
-                 ffd_drop=0.6, attn_drop=0.6, gpu=0, recs=10, threshold=2):
+                 ffd_drop=0.5, attn_drop=0.5, gpu=0, recs=10, threshold=2):
 
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
 
-        self.graph_type = graph_type
+        self.dataset = dataset
 
         self.d = DataLoader()
-        if self.graph_type == "citations_authors_het_edges":
+        if self.dataset == "citations_authors_het_edges":
             self.d_authors = DataLoader()
 
         self.model = GATModel(embedding_type, dataset, graph_type, hid_units,
@@ -39,13 +39,12 @@ class GATModelEvaluation:
                               )
 
     def evaluate(self):
-        if self.graph_type == "citations":
+        if self.dataset == "citations":
             # Load test data
             query_test, truth = self.d.evaluation_data_with_abstracts_citations()
             # Retrieve predictions
             recommendation = self.model.query_batch(query_test)
-
-        if self.graph_type == "citations_authors_het_edges":
+        elif self.dataset == "citations_authors_het_edges":
             # Load test data
             query_test, truth = self.d.evaluation_data_with_abstracts_citations()
             query_test_authors = self.d_authors.test_data_with_abstracts_citations(
@@ -53,6 +52,8 @@ class GATModelEvaluation:
             # Retrieve predictions
             recommendation = self.model.query_batch((query_test,
                                                      query_test_authors))
+        else:
+            raise ValueError("Dataset not recognised.")
 
         # Evaluate
         print("Evaluating...")
@@ -80,7 +81,7 @@ class GATModelEvaluation:
         parser.add_argument("--hid_units",
                             type=int,
                             nargs="+",
-                            default=[8],
+                            default=[64],
                             help="Number of hidden units per each attention "
                             + "head in each layer.")
         parser.add_argument('--n_heads',
@@ -118,10 +119,10 @@ class GATModelEvaluation:
                             help="Whether to use the sparse model version")
         parser.add_argument('--ffd_drop',
                             type=float,
-                            default=0.6)
+                            default=0.5)
         parser.add_argument('--attn_drop',
                             type=float,
-                            default=0.6)
+                            default=0.5)
         parser.add_argument('--gpu',
                             type=int,
                             default=0,
@@ -130,7 +131,7 @@ class GATModelEvaluation:
                             type=int,
                             default=10,
                             help='Number of recommendations.')
-         parser.add_argument('--threshold',
+        parser.add_argument('--threshold',
                             type=int,
                             default=2,
                             help='Threshold for edge weights in ' +
