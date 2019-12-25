@@ -352,8 +352,48 @@ class Processor:
         return graph
 
     def _update_heterogeneous_undirected_graph(self, graph, train_val_data,
-                                               df_test, df_authors):
-        pass
+                                               df_test, data_authors):
+        with tqdm(desc="Adding citation neighbours: ",
+                  total=len(df_test)) as pbar:
+            for idx in list(df_test.index):
+                citations_indices = [train_val_data[
+                        train_val_data.chapter == citation].index.tolist() for
+                        citation in df_test.chapter_citations.loc[idx]]
+                neighbours = [(c[0], 100) for c in citations_indices if c]
+                graph[idx].extend(neighbours)
+                for node in neighbours:
+                    graph[node].append((idx, 100))
+                pbar.update(1)
+        with tqdm(desc="Removing duplicates: ", total=len(graph.keys())
+                  ) as pbar:
+            for idx in range(len(graph.keys())):
+                graph[idx] = list(set(graph[idx]))
+                pbar.update(1)
+
+        with tqdm(desc="Adding author neighbours: ",
+                  total=len(data_authors)) as pbar:
+            for idx in range(len(data_authors)):
+                authors_indices = [train_val_data[
+                        train_val_data.chapter == paper].index.tolist() for
+                        paper in data_authors.chapter.iloc[idx]]
+                authors_indices = [i[0] for i in authors_indices if i]
+                edges = [i for i in combinations(authors_indices, 2)]
+                for edge in edges:
+                    graph[edge[0]].append((edge[1], 1))
+                pbar.update(1)
+
+        for key in graph.keys():
+            d = defaultdict(int)
+            for e in reversed(graph[key]):
+                if type(e) is tuple:
+                    if e[0] in d.keys():
+                        d[e[0]] += e[1]
+                    else:
+                        d[e[0]] = e[1]
+                graph[key].remove(e)
+            graph[key].extend([k for k, v in d.items() if v >= self.threshold])
+
+        return graph
 
     def _update_undirected_graph(self, graph, train_val_data, df_test):
         with tqdm(desc="Adding neighbours: ", total=len(df_test)) as pbar:
