@@ -123,8 +123,8 @@ class Processor:
                 graph = self._create_heterogeneous_directed_graph(
                         train_val_data, data_authors)
             else:
-                graph = self._create_heterogeneous_undirected_graph(
-                        train_val_data, data_authors)
+                raise ValueError("Graph type incompatible. Only directed " +
+                                 "graph is suported.")
         print("Finished creating training files.\n")
 
         print("Statistics")
@@ -196,57 +196,6 @@ class Processor:
         print("Saving to disk...")
         graph_file = os.path.join(self.path_persistent,
                                   "ind." + self.dataset + ".graph_directed")
-        with open(graph_file, "wb") as f:
-            pickle.dump(graph, f)
-        print("Saved.\n")
-        return graph
-
-    def _create_heterogeneous_undirected_graph(self, train_val_data,
-                                               data_authors):
-        print("Creating dictionary of neighbours.")
-        graph = defaultdict(list)
-        # Add citation edges between papers
-        with tqdm(desc="Adding citation neighbours: ",
-                  total=len(train_val_data)) as pbar:
-            for idx in range(len(train_val_data)):
-                citations_indices = [train_val_data[
-                        train_val_data.chapter == citation].index.tolist() for
-                        citation in train_val_data.chapter_citations.iloc[idx]]
-                neighbours = [(c[0], 100) for c in citations_indices if c]
-                graph[idx].extend(neighbours)
-                for node in neighbours:
-                    graph[node].append((idx, 100))
-                pbar.update(1)
-        with tqdm(desc="Removing duplicates: ", total=len(graph.keys())
-                  ) as pbar:
-            for idx in range(len(graph.keys())):
-                graph[idx] = list(set(graph[idx]))
-                pbar.update(1)
-
-        # Add edges between papers if they share an author
-        with tqdm(desc="Adding author neighbours: ",
-                  total=len(data_authors)) as pbar:
-            for idx in range(len(data_authors)):
-                authors_indices = [train_val_data[
-                        train_val_data.chapter == paper].index.tolist() for
-                        paper in data_authors.chapter.iloc[idx]]
-                authors_indices = [i[0] for i in authors_indices if i]
-                edges = [i for i in combinations(authors_indices, 2)]
-                for edge in edges:
-                    graph[edge[0]].append((edge[1], 1))
-                pbar.update(1)
-
-        # Removed edges with weights below the threshold
-        for key in graph.keys():
-            d = defaultdict(int)
-            for x, y in graph[key]:
-                d[x] += y
-            graph[key] = [k for k, v in d.items() if v >= self.threshold]
-        print("Created.")
-
-        print("Saving to disk...")
-        graph_file = os.path.join(self.path_persistent,
-                                  "ind." + self.dataset + ".graph")
         with open(graph_file, "wb") as f:
             pickle.dump(graph, f)
         print("Saved.\n")
@@ -351,50 +300,6 @@ class Processor:
 
         return graph
 
-    def _update_heterogeneous_undirected_graph(self, graph, train_val_data,
-                                               df_test, data_authors):
-        with tqdm(desc="Adding citation neighbours: ",
-                  total=len(df_test)) as pbar:
-            for idx in list(df_test.index):
-                citations_indices = [train_val_data[
-                        train_val_data.chapter == citation].index.tolist() for
-                        citation in df_test.chapter_citations.loc[idx]]
-                neighbours = [(c[0], 100) for c in citations_indices if c]
-                graph[idx].extend(neighbours)
-                for node in neighbours:
-                    graph[node].append((idx, 100))
-                pbar.update(1)
-        with tqdm(desc="Removing duplicates: ", total=len(graph.keys())
-                  ) as pbar:
-            for idx in range(len(graph.keys())):
-                graph[idx] = list(set(graph[idx]))
-                pbar.update(1)
-
-        with tqdm(desc="Adding author neighbours: ",
-                  total=len(data_authors)) as pbar:
-            for idx in range(len(data_authors)):
-                authors_indices = [train_val_data[
-                        train_val_data.chapter == paper].index.tolist() for
-                        paper in data_authors.chapter.iloc[idx]]
-                authors_indices = [i[0] for i in authors_indices if i]
-                edges = [i for i in combinations(authors_indices, 2)]
-                for edge in edges:
-                    graph[edge[0]].append((edge[1], 1))
-                pbar.update(1)
-
-        for key in graph.keys():
-            d = defaultdict(int)
-            for e in reversed(graph[key]):
-                if type(e) is tuple:
-                    if e[0] in d.keys():
-                        d[e[0]] += e[1]
-                    else:
-                        d[e[0]] = e[1]
-                graph[key].remove(e)
-            graph[key].extend([k for k, v in d.items() if v >= self.threshold])
-
-        return graph
-
     def _update_undirected_graph(self, graph, train_val_data, df_test):
         with tqdm(desc="Adding neighbours: ", total=len(df_test)) as pbar:
             for idx in list(df_test.index):
@@ -450,8 +355,8 @@ class Processor:
                 graph = self._update_heterogeneous_directed_graph(
                         graph, train_val_data, df_test, data_authors)
             else:
-                graph = self._update_heterogeneous_undirected_graph(
-                        graph, train_val_data, df_test, data_authors)
+                raise ValueError("Graph type incompatible. Only directed " +
+                                 "graph is suported.")
         print("Updated.")
 
         # Create feature vectors of test instances
