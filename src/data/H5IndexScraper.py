@@ -49,9 +49,9 @@ class Scraper:
         max_len = df["len"].max()
         print("\tMean number of subcategories: {}.".format(df["len"].mean()))
         print("\tMin number of subcategories is {} for category {}.".format(
-                min_len, df[df["len"] == min_len]))
-        print("\tMax number of subcategories is {} for category {}.".format(
-                max_len, df[df["len"] == max_len]))
+                min_len, list(df[df["len"] == min_len].category)[0]))
+        print("\tMax number of subcategories is {} for category {}.\n".format(
+                max_len, list(df[df["len"] == max_len].category)[0]))
 
     def _scrape_categories(self):
         print("Scraping categories...")
@@ -132,7 +132,6 @@ class Scraper:
                     data = requests.get(url)
                 except Exception as e:
                     print(str(e))
-                print(data.status_code)
                 if data.status_code != 200:
                     raise ConnectionError(
                             "Failed to open url: {} (status code: {}).".format(
