@@ -108,7 +108,8 @@ class GraphSAGEClassifierModelEvaluation():
 
     def main():
         parser = argparse.ArgumentParser(
-                description='Arguments for unsupervised GraphSAGE model.')
+                description='Arguments for GraphSAGE classfier model ' +
+                'evaluation.')
         parser.add_argument("classifier_name",
                             choices=["GaussianNB", "RandomForest", "KNN",
                                      "MLP", "MultinomialLogisticRegression"],

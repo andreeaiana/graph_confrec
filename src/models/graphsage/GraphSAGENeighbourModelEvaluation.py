@@ -54,7 +54,8 @@ class GraphSAGENeighbourModelEvaluation():
 
     def main():
         parser = argparse.ArgumentParser(
-                description='Arguments for unsupervised GraphSAGE model.')
+                description='Arguments for unsupervised GraphSAGE neighbour ' +
+                'model evaluation.')
         parser.add_argument('embedding_type',
                             choices=["AVG_L", "AVG_2L", "AVG_SUM_L4",
                                      "AVG_SUM_ALL", "MAX_2L",

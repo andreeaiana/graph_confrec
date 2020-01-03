@@ -937,7 +937,7 @@ class SupervisedModelRL:
 
     def main():
         parser = argparse.ArgumentParser(
-                description='Arguments for unsupervised GraphSAGE model.')
+                description='Arguments for supervised GraphSAGE_RL model.')
         parser.add_argument('train_prefix',
                             help='Name of the object file that stores the '
                             + 'training data.')
