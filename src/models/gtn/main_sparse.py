@@ -21,11 +21,12 @@ from utils import f1_score
 
 class Model:
 
-    def __init__(self, embedding_type, epochs=40, node_dim=64,
+    def __init__(self, embedding_type, dataset, epochs=40, node_dim=64,
                  num_channels=2, learning_rate=0.005, weight_decay=0.001,
                  num_layers=3, norm=True, adaptive_lr=False, gpu=0):
 
         self.embedding_type = embedding_type
+        self.dataset = dataset
         self.epochs = epochs
         self.node_dim = node_dim
         self.num_channels = num_channels
@@ -40,6 +41,7 @@ class Model:
             print("Using GPU device: {}.\n".format(str(gpu)))
 
         print("Embedding type: {}".format(self.embedding_type))
+        print("Dataset: {}".format(dataset))
         print("----- Hyperparameters -----")
         print("\tEpochs: {}".format(self.epochs))
         print("\tNode dimension: {}".format(self.node_dim))
@@ -240,7 +242,7 @@ class Model:
         save_dir = os.path.join(
                 os.path.dirname(os.path.realpath(__file__)),
                 "..", "..", "..", "data", "processed", "gtn",
-                self.embedding_type)
+                self.embedding_type, self.dataset)
         if self.adaptive_lr:
             adapt_lr = "adaptive_lr"
         else:
@@ -260,8 +262,8 @@ class Model:
     def _load_data(self):
         path_persistent_raw = os.path.join(
                 os.path.dirname(os.path.realpath(__file__)),
-                "..", "..", "..", "data", "interim", "gtn", self.embedding_type
-                )
+                "..", "..", "..", "data", "interim", "gtn",
+                self.embedding_type, self.dataset)
         node_features_file = os.path.join(
                 path_persistent_raw, "node_features.pkl")
         edges_file = os.path.join(
@@ -301,6 +303,9 @@ class Model:
                                      "SUM_L", "SUM_2L"
                                      ],
                             help="Type of embedding.")
+        parser.add_argument('dataset',
+                            help='Name of the object file that stores the '
+                            + 'training data.')
         parser.add_argument('--epochs',
                             type=int,
                             default=40,
@@ -341,9 +346,10 @@ class Model:
 
         print("Starting...")
         from main_sparse import Model
-        model = Model(args.embedding_type, args.epochs, args.node_dim,
-                      args.num_channels, args.learning_rate, args.weight_decay,
-                      args.num_layers, args.norm, args.adaptive_lr, args.gpu)
+        model = Model(args.embedding_type, args.dataset, args.epochs,
+                      args.node_dim,  args.num_channels, args.learning_rate,
+                      args.weight_decay, args.num_layers, args.norm,
+                      args.adaptive_lr, args.gpu)
         model.train()
         print("Finished.")
 
