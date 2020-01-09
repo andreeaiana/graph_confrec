@@ -287,6 +287,7 @@ class Model:
                                      ],
                             help="Type of embedding.")
         parser.add_argument('dataset',
+                            choices=["AP", "APT"],
                             help='Name of the object file that stores the '
                             + 'training data.')
         parser.add_argument('--epochs',
