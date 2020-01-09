@@ -33,6 +33,17 @@ class Processor:
             os.makedirs(self.path_persistent)
 
     def training_data(self):
+        if self.dataset == "AP":
+            self._training_data_AP()
+        elif self.dataset == "APT":
+            self._training_data_APT()
+        else:
+            raise ValueError("Dataset name not recognised.")
+
+    def _training_data_APT(self):
+        pass
+
+    def _training_data_AP(self):
         print("Creating training files.\n")
 
         # Load training and validation data
@@ -55,32 +66,26 @@ class Processor:
 
         # Create adjacency matrices
         print("Creating adjacency matrices...")
-        papers = train_val_papers[["chapter"]]
         authors = train_val_authors.groupby("author_name")["chapter"].agg(
                 list).reset_index()
-        authors.index = range(papers.shape[0], papers.shape[0]+len(authors))
-        conferences = train_val_authors.groupby("conferenceseries")[
-                "chapter"].agg(list).reset_index()
-        conferences.index = range(
-                papers.shape[0]+authors.shape[0],
-                papers.shape[0]+authors.shape[0]+len(conferences))
-        count_nodes = len(papers) + len(authors) + len(conferences)
+        papers = train_val_papers[["chapter", "chapter_citations"]]
+        papers.index = range(authors.shape[0], authors.shape[0] + len(papers))
+        count_nodes = len(papers) + len(authors)
         print("\tNumber of papers: {}".format(len(papers)))
         print("\tNumber of authors: {}".format(len(authors)))
-        print("\tNumber of conferences: {}".format(len(conferences)))
         print("\tTotal number of nodes: {}".format(count_nodes))
         indices_pa = self._papers_authors_adjacency(papers, authors)
-        indices_pc = self._papers_conferences_adjacency(papers, conferences)
+        indices_pp = self._papers_papers_adjacency(papers)
 
         print("Transforming adjacency lists to matrices...")
         A_pa = self._adj_list_to_matrix(indices_pa, count_nodes)
         A_ap = A_pa.T
-        A_pc = self._adj_list_to_matrix(indices_pc, count_nodes)
-        A_cp = A_pc.T
+        A_pp = self._adj_list_to_matrix(indices_pp, count_nodes)
+        A_pp_rev = A_pp.T
         edges = [A_pa[:count_nodes, :count_nodes],
                  A_ap[:count_nodes, :count_nodes],
-                 A_pc[:count_nodes, :count_nodes],
-                 A_cp[:count_nodes, :count_nodes]]
+                 A_pp[:count_nodes, :count_nodes],
+                 A_pp_rev[:count_nodes, :count_nodes]]
         print("Edges: ", edges)
         print("Transformed.")
         print("Saving edges to disk...")
@@ -95,12 +100,8 @@ class Processor:
         data_authors = train_val_authors.groupby("author_name")[
                 "chapter_abstract"].agg(list).reset_index()
         author_features = self._create_authors_features(data_authors)
-        data_conferences = train_val_papers.groupby("conferenceseries")[
-                "chapter_abstract"].agg(list).reset_index()
-        conference_features = self._create_conference_features(
-                data_conferences)
-        node_features = np.concatenate(
-                [paper_features, author_features, conference_features], axis=0)
+        node_features = np.concatenate([author_features, paper_features],
+                                       axis=0)
         print("\tCreated a total of {} node features.".format(
                 len(node_features)))
         print("Created.")
@@ -110,7 +111,6 @@ class Processor:
         with open(node_features_file, "wb") as f:
             pickle.dump(node_features, f)
         print("Saved.")
-
         print("Created")
 
     def _create_paper_features(self, data):
@@ -147,26 +147,6 @@ class Processor:
         print("\tCreated {} author features.".format(len(author_features)))
         return np.asarray(author_features)
 
-    def _create_conference_features(self, data):
-        conference_features = []
-        with tqdm(desc="Creating conference features: ",
-                  total=len(data)) as pbar:
-            for idx in range(len(data)):
-                conference_features.append(np.concatenate((
-                        np.mean([self.embeddings_parser.embed_sequence(
-                                data.iloc[idx].chapter_abstract[i],
-                                self.embedding_type) for i in range(
-                                        len(data.iloc[idx].chapter_abstract))],
-                                axis=0),
-                        self.embeddings_parser.embed_sequence(
-                                data.iloc[idx].conferenceseries,
-                                self.embedding_type)),
-                        axis=0).tolist())
-                pbar.update(1)
-        print("\tCreated {} conference features.".format(len(
-                conference_features)))
-        return np.asarray(conference_features)
-
     def _adj_list_to_matrix(self, indices, count_nodes):
         row = np.array(indices)[:, 0]
         col = np.array(indices)[:, 1]
@@ -186,20 +166,31 @@ class Processor:
                 indices_pa.extend([[i, idx] for i in paper_indices])
                 pbar.update(1)
         print("Paper-author edges: {}".format(len(indices_pa)))
+        print("Saving adjacency list to disk...")
+        adj_list_file = os.path.join(self.path_persistent, "PA_adj_list.pkl")
+        with open(adj_list_file, "wb") as f:
+            pickle.dump(indices_pa, f)
+        print("Saved.\n")
         return indices_pa
 
-    def _papers_conferences_adjacency(self, papers, conferences):
-        indices_pc = []
-        with tqdm(desc="Creating paper-conference adjacency matrix",
-                  total=len(conferences)) as pbar:
-            for idx in list(conferences.index):
-                paper_indices = [papers[papers.chapter == paper].index.tolist()
-                                 for paper in conferences.chapter.loc[idx]]
-                paper_indices = [i[0] for i in paper_indices if i]
-                indices_pc.extend([[i, idx] for i in paper_indices])
+    def _papers_papers_adjacency(self, papers):
+        indices_pp = []
+        with tqdm(desc="Creating paper-paper adjacency matrix",
+                  total=len(papers)) as pbar:
+            for idx in list(papers.index):
+                citations_indices = [
+                        papers[papers.chapter == paper].index.tolist()
+                        for paper in papers.chapter_citations.loc[idx]]
+                citations_indices = [i[0] for i in citations_indices if i]
+                indices_pp.extend([[i, idx] for i in citations_indices])
                 pbar.update(1)
-        print("Paper-conference edges: {}".format(len(indices_pc)))
-        return indices_pc
+        print("Paper-paper edges: {}".format(len(indices_pp)))
+        print("Saving adjacency list to disk...")
+        adj_list_file = os.path.join(self.path_persistent, "PP_adj_list.pkl")
+        with open(adj_list_file, "wb") as f:
+            pickle.dump(indices_pp, f)
+        print("Saved.\n")
+        return indices_pp
 
     def _create_labels(self, train_val_data, train_data):
         print("Creating labels...")
@@ -232,6 +223,7 @@ class Processor:
                                      ],
                             help="Type of embedding.")
         parser.add_argument('dataset',
+                            choices=["AP", "APT"],
                             help='Name of the object file that stores the '
                             + 'training data.')
         parser.add_argument('--gpu',
