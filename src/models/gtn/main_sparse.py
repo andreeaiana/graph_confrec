@@ -23,7 +23,7 @@ class Model:
 
     def __init__(self, embedding_type, dataset, epochs=40, node_dim=64,
                  num_channels=2, learning_rate=0.005, weight_decay=0.001,
-                 num_layers=3, norm=True, adaptive_lr=False, gpu=0):
+                 num_layers=3, norm=True, adaptive_lr=False):
 
         self.embedding_type = embedding_type
         self.dataset = dataset
@@ -35,10 +35,6 @@ class Model:
         self.num_layers = num_layers
         self.norm = norm
         self.adaptive_lr = adaptive_lr
-
-        if torch.cuda.is_available():
-            os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
-            print("Using GPU device: {}.\n".format(str(gpu)))
 
         print("Embedding type: {}".format(self.embedding_type))
         print("Dataset: {}".format(dataset))
@@ -64,26 +60,26 @@ class Model:
         for i, edge in enumerate(edges):
             edge_tmp = torch.from_numpy(
                     np.vstack((edge.nonzero()[0], edge.nonzero()[1]))).type(
-                            torch.cuda.LongTensor)
+                            torch.LongTensor)
             value_tmp = torch.ones(edge_tmp.shape[1]).type(
-                    torch.cuda.FloatTensor)
+                    torch.FloatTensor)
             A.append((edge_tmp, value_tmp))
         edge_tmp = torch.stack(
                 (torch.arange(0, num_nodes), torch.arange(0, num_nodes))).type(
-                        torch.cuda.LongTensor)
-        value_tmp = torch.ones(num_nodes).type(torch.cuda.FloatTensor)
+                        torch.LongTensor)
+        value_tmp = torch.ones(num_nodes).type(torch.FloatTensor)
         A.append((edge_tmp, value_tmp))
 
         node_features = torch.from_numpy(node_features).type(
-                torch.cuda.FloatTensor)
+                torch.FloatTensor)
         train_node = torch.from_numpy(np.array(labels[0])[:, 0]).type(
-                torch.cuda.LongTensor)
+                torch.LongTensor)
         train_target = torch.from_numpy(np.array(labels[0])[:, 1]).type(
-                torch.cuda.LongTensor)
+                torch.LongTensor)
         valid_node = torch.from_numpy(np.array(labels[1])[:, 0]).type(
-                torch.cuda.LongTensor)
+                torch.LongTensor)
         valid_target = torch.from_numpy(np.array(labels[1])[:, 1]).type(
-                torch.cuda.LongTensor)
+                torch.LongTensor)
 
         num_classes = torch.max(train_target).item()+1
         print("\tTraining nodes: {}".format(train_node.shape))
@@ -104,7 +100,6 @@ class Model:
                     num_class=num_classes,
                     num_nodes=node_features.shape[0],
                     num_layers=self.num_layers)
-        model.cuda()
         if self.adaptive_lr is False:
             optimizer = torch.optim.Adam(
                     model.parameters(),
@@ -160,7 +155,6 @@ class Model:
                                   i+1, best_train_loss, best_val_loss))
                     torch.save(model.state_dict(), model_file)
                     print("Saved.\n")
-            torch.cuda.empty_cache()
 
         print('---------------Best Results--------------------')
         print('Train - Loss: {}, Macro_F1: {}'.format(
@@ -180,24 +174,24 @@ class Model:
         for i, edge in enumerate(edges):
             edge_tmp = torch.from_numpy(
                     np.vstack((edge.nonzero()[0], edge.nonzero()[1]))).type(
-                            torch.cuda.LongTensor)
+                            torch.LongTensor)
             value_tmp = torch.ones(edge_tmp.shape[1]).type(
-                    torch.cuda.FloatTensor)
+                    torch.FloatTensor)
             A.append((edge_tmp, value_tmp))
         edge_tmp = torch.stack(
                 (torch.arange(0, num_nodes), torch.arange(0, num_nodes))).type(
-                        torch.cuda.LongTensor)
-        value_tmp = torch.ones(num_nodes).type(torch.cuda.FloatTensor)
+                        torch.LongTensor)
+        value_tmp = torch.ones(num_nodes).type(torch.FloatTensor)
         A.append((edge_tmp, value_tmp))
 
         node_features = torch.from_numpy(node_features).type(
-                torch.cuda.FloatTensor)
+                torch.FloatTensor)
         train_target = torch.from_numpy(np.array(labels[0])[:, 1]).type(
-                torch.cuda.LongTensor)
+                torch.LongTensor)
         test_node = torch.from_numpy(np.array(labels[2])[:, 0]).type(
-                torch.cuda.LongTensor)
+                torch.LongTensor)
         test_target = torch.from_numpy(np.array(labels[2])[:, 1]).type(
-                torch.cuda.LongTensor)
+                torch.LongTensor)
         num_classes = torch.max(train_target).item() + 1
         print("Processed.\n")
 
@@ -208,7 +202,6 @@ class Model:
                     num_class=num_classes,
                     num_nodes=node_features.shape[0],
                     num_layers=self.num_layers)
-        model.cuda()
 
         print("Loading saved model...")
         model_file = self._get_model_file()
@@ -339,10 +332,6 @@ class Model:
                             default=False,
                             action='store_true',
                             help='Whether to use an adaptive learning rate.')
-        parser.add_argument('--gpu',
-                            type=int,
-                            default=0,
-                            help='Which gpu to use.')
         args = parser.parse_args()
 
         print("Starting...")
@@ -350,7 +339,7 @@ class Model:
         model = Model(args.embedding_type, args.dataset, args.epochs,
                       args.node_dim,  args.num_channels, args.learning_rate,
                       args.weight_decay, args.num_layers, args.norm,
-                      args.adaptive_lr, args.gpu)
+                      args.adaptive_lr)
         model.train()
         print("Finished.")
 
