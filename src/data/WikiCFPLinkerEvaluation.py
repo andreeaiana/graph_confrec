@@ -3,6 +3,7 @@ import os
 import sys
 import csv
 import pickle
+import argparse
 import pandas as pd
 from WikiCFPLinker import WikiCFPLinker
 
@@ -17,11 +18,11 @@ class WikiCFPLinkerEvaluation():
 
         self.gold_standard_file = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
-            "..", "..", "data", "interim", "gold_standard.csv")
+            "..", "..", "data", "interim", "WikiCFP", "gold_standard.csv")
 
         self.persistent_file = os.path.join(
                 os.path.dirname(os.path.realpath(__file__)),
-                "..", "..", "data", "interim", "gold_standard.pkl")
+                "..", "..", "data", "interim", "WikiCFP", "gold_standard.pkl")
 
     def evaluate(self):
         gold_standard = self._get_gold_standard()
@@ -36,7 +37,7 @@ class WikiCFPLinkerEvaluation():
             if sg_series in list(correspondences["conferenceseries"]):
                 predicted = correspondences[
                         correspondences["conferenceseries"] == sg_series][
-                                "wikicfp_conferenceseries"].tolist()[0]
+                                "WikiCFP_conferenceseries"].tolist()[0]
                 truth = gold_standard[gold_standard[
                         "scigraph_conferenceseries"] == sg_series][
                         "wikicfp_conferenceseries"].tolist()[0]
@@ -95,3 +96,31 @@ class WikiCFPLinkerEvaluation():
         print("Saving the gold standard to disk.")
         with open(self.persistent_file, "wb") as f:
             pickle.dump(self.gold_standard, f)
+
+    def main():
+        parser = argparse.ArgumentParser(
+                description='Arguments for WikiCFPLinker.')
+        parser.add_argument('--similarity_metric',
+                            choices=["levenshtein", "damerau_levenshtein",
+                                     "jaro", "jaro_winkler"],
+                            default="damerau_levenshtein",
+                            help="Type of similarity metric used.")
+        parser.add_argument('--match_threshold',
+                            default=0.885,
+                            help='The matching threshold.')
+        parser.add_argument('--remove_stopwords',
+                            default=True,
+                            action="store_false",
+                            help='The type of graph used ' +
+                            '(directed vs. undirected).')
+        args = parser.parse_args()
+        print("Starting...")
+        from WikiCFPLinkerEvaluation import WikiCFPLinkerEvaluation
+        evaluator = WikiCFPLinkerEvaluation(
+                args.similarity_metric, args.match_threshold,
+                args.remove_stopwords)
+        evaluator.evaluate()
+        print("Finished.")
+
+    if __name__ == "__main__":
+        main()

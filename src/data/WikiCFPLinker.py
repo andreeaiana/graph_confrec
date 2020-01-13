@@ -2,6 +2,7 @@
 import os
 import pickle
 import operator
+import argparse
 import pandas as pd
 from tqdm import tqdm
 import jellyfish as jf
@@ -12,7 +13,8 @@ from WikiCFPCrawler import WikiCFPCrawler
 
 class WikiCFPLinker():
 
-    def __init__(self, similarity_metric, match_threshold,
+    def __init__(self, similarity_metric="damerau_levenshtein",
+                 match_threshold=0.885,
                  remove_stopwords=True):
         self.crawler = WikiCFPCrawler()
         self.match_threshold = match_threshold
@@ -35,19 +37,23 @@ class WikiCFPLinker():
 
         self.persistent_file = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
-            "..", "..", "data", "interim", "matched_conference_series.pkl")
+            "..", "..", "data", "interim", "WikiCFP",
+            "matched_conference_series.pkl")
 
         self.matched_conf_file = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
-            "..", "..", "data", "interim", "matched_conference_series.csv")
+            "..", "..", "data", "interim", "WikiCFP",
+            "matched_conference_series.csv")
 
         self.scigraph_notmatched_file = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
-            "..", "..", "data", "interim", "scigraph_notmatched_series.csv")
+            "..", "..", "data", "interim", "WikiCFP",
+            "scigraph_notmatched_series.csv")
 
         self.wikicfp_notmatched_file = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
-            "..", "..", "data", "interim", "wikicfp_notmatched_conf.csv")
+            "..", "..", "data", "interim", "WikiCFP",
+            "wikicfp_notmatched_conf.csv")
 
     def _get_similarity_measure(self, similarity_metric):
         """Returns the similarity measure for the chosen metric.
@@ -440,3 +446,30 @@ class WikiCFPLinker():
         print("Saving to disk.")
         with open(self.persistent_file, "wb") as f:
             pickle.dump(self.correspondences, f)
+
+    def main():
+        parser = argparse.ArgumentParser(
+                description='Arguments for WikiCFPLinker.')
+        parser.add_argument('--similarity_metric',
+                            choices=["levenshtein", "damerau_levenshtein",
+                                     "jaro", "jaro_winkler"],
+                            default="damerau_levenshtein",
+                            help="Type of similarity metric used.")
+        parser.add_argument('--match_threshold',
+                            default=0.885,
+                            help='The matching threshold.')
+        parser.add_argument('--remove_stopwords',
+                            default=True,
+                            action="store_false",
+                            help='The type of graph used ' +
+                            '(directed vs. undirected).')
+        args = parser.parse_args()
+        print("Starting...")
+        from WikiCFPLinker import WikiCFPLinker
+        linker = WikiCFPLinker(args.similarity_metric, args.match_threshold,
+                               args.remove_stopwords)
+        linker.match_conferences()
+        print("Finished.")
+
+    if __name__ == "__main__":
+        main()

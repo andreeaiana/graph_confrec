@@ -186,8 +186,7 @@ class WikiCFPCrawler():
         except Exception as e:
             print(str(e))
         if data.status_code != 200:
-            print("Can't connect to WikiCFP! (status code: "
-                                              + response.status_code + ")")
+            print("Can't connect to WikiCFP!")
 
         conferences = pd.DataFrame(
                 columns=['event_id', 'conference', 'name',
@@ -523,8 +522,9 @@ class WikiCFPCrawler():
                                 str(item.text.encode('ascii',
                                                      'ignore').strip()), "\n"])
                         if item.a:
-                            description = " ".join([
-                                    description, item.a['href'],  "\n"])
+                            if "href" in item.a.attrs:
+                                description = " ".join([
+                                        description, item.a['href'],  "\n"])
 
         if description:
             return description.split("' b\'")
