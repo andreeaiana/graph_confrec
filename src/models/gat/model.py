@@ -491,10 +491,10 @@ class Model:
         print("Starting...")
         from model import Model
         model = Model(args.embedding_type, args.dataset, args.graph_type,
-                         args.hid_units, args.n_heads, args.learning_rate,
-                         args.weight_decay, args.epochs, args.batch_size,
-                         args.patience, args.residual, args.nonlinearity,
-                         args.sparse, args.ffd_drop, args.attn_drop, args.gpu)
+                      args.hid_units, args.n_heads, args.learning_rate,
+                      args.weight_decay, args.epochs, args.batch_size,
+                      args.patience, args.residual, args.nonlinearity,
+                      args.sparse, args.ffd_drop, args.attn_drop, args.gpu)
         model.train()
         print("Finished.")
 
