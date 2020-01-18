@@ -59,9 +59,11 @@ def load_data(embedding_type):
             else:
                 objects.append(pkl.load(f))
 
-    train_idx, val_idx, features, labels, PAP, PCP = tuple(objects)
+    train_idx, val_idx, features, labels, PAP_graph, PCP_graph = tuple(objects)
     N = features.shape[0]
-    row_networks = [PCP - np.eye(N), PAP - np.eye(N)]
+    PAP = nx.adjacency_matrix(nx.from_dict_of_lists(PAP_graph))
+    PCP = nx.adjacency_matrix(nx.from_dict_of_lists(PCP_graph))
+    row_networks = [PCP, PAP]
 
     train_mask = sample_mask(train_idx, labels.shape[0])
     val_mask = sample_mask(val_idx, labels.shape[0])
@@ -74,6 +76,7 @@ def load_data(embedding_type):
     print("Features: {}".format(features.shape))
     print("y_train: {}, y_val: {}, train_idx: {}, val_idx: {}".format(
             y_train.shape, y_val.shape, train_idx.shape, val_idx.shape))
+    print("PCP: {}; PAP: {}".format(PCP.shape, PAP.shape))
 
     features_list = [features, features, features]
     return row_networks, features_list, y_train, y_val, train_mask, val_mask
@@ -136,3 +139,15 @@ def preprocess_adj(adj):
         conversion to tuple representation."""
     adj_normalized = normalize_adj(adj + sp.eye(adj.shape[0]))
     return sparse_to_tuple(adj_normalized)
+
+
+def preprocess_adj_bias(adj):
+    num_nodes = adj.shape[0]
+    adj = adj + sp.eye(num_nodes)  # self-loop
+    adj[adj > 0.0] = 1.0
+    if not sp.isspmatrix_coo(adj):
+        adj = adj.tocoo()
+    adj = adj.astype(np.float32)
+    indices = np.vstack((adj.col, adj.row)).transpose()
+    return tf.SparseTensor(indices=indices, values=adj.data,
+                           dense_shape=adj.shape)

@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 
 import attention
 from han import HAN
-from process import load_data, adj_to_bias
+from process import load_data, preprocess_adj_bias
 from layers import HeteGAT_inference, HeteGAT_multi_inference
 
 from tensorflow.python.ops import control_flow_util
@@ -102,14 +102,11 @@ class Model:
         nb_classes = y_train.shape[1]
 
         features_list = [features[np.newaxis] for features in features_list]
-        adj_list = [adj[np.newaxis] for adj in adj_list]
         y_train = y_train[np.newaxis]
         y_val = y_val[np.newaxis]
         train_mask = train_mask[np.newaxis]
         val_mask = val_mask[np.newaxis]
-
-        biases_list = [adj_to_bias(adj, [nb_nodes], nhood=1) for
-                       adj in adj_list]
+        biases_list = [preprocess_adj_bias(adj) for adj in adj_list]
 
         print("Training model...")
         timer = Timer()
@@ -144,8 +141,6 @@ class Model:
             tr_step = 0
             tr_size = features_list[0].shape[0]
             while tr_step * self.batch_size < tr_size:
-                bbias_list = [biases[tr_step*self.batch_size: (
-                        tr_step+1)*self.batch_size] for biases in biases_list]
                 feats_list = [features[tr_step*self.batch_size: (
                             tr_step+1)*self.batch_size] for features in
                             features_list]
@@ -153,7 +148,7 @@ class Model:
                 _, train_embed, att_val, acc_tr, loss_value_tr = self._train(
                         model=model,
                         inputs_list=feats_list,
-                        bias_mat_list=bbias_list,
+                        bias_mat_list=biases_list,
                         lbl_in=y_train[tr_step*self.batch_size: (
                                 tr_step+1)*self.batch_size],
                         msk_in=train_mask[tr_step*self.batch_size: (
@@ -168,8 +163,6 @@ class Model:
             vl_size = features_list[0].shape[0]
 
             while vl_step * self.batch_size < vl_size:
-                bbias_list = [biases[vl_step*self.batch_size: (
-                        vl_step+1)*self.batch_size] for biases in biases_list]
                 feats_list = [features[vl_step*self.batch_size: (
                         vl_step+1)*self.batch_size] for features in
                         features_list]
@@ -177,12 +170,11 @@ class Model:
                 _, val_embed, att_val, acc_vl, loss_value_vl = self.evaluate(
                         model=model,
                         inputs_list=feats_list,
-                        bias_mat_list=bbias_list,
+                        bias_mat_list=biases_list,
                         lbl_in=y_val[vl_step*self.batch_size: (
                                 vl_step+1)*self.batch_size],
                         msk_in=val_mask[vl_step*self.batch_size: (
                                 vl_step+1)*self.batch_size])
-
 
                 val_loss_avg += loss_value_vl
                 val_acc_avg += acc_vl
@@ -234,6 +226,82 @@ class Model:
         self._plot_accuracies(train_accuracies, val_accuracies)
         self._print_stats(train_losses, val_losses, train_accuracies,
                           val_accuracies, training_time)
+
+    def test(self, test_data):
+        adj_list, features_list, y_train, y_test, train_mask, test_mask = test_data
+
+        nb_nodes = features_list[0].shape[0]
+        ft_size = features_list[0].shape[1]
+        nb_classes = y_train.shape[1]
+
+        features_list = [features[np.newaxis] for features in features_list]
+        y_train = y_train[np.newaxis]
+        y_test = y_test[np.newaxis]
+        train_mask = train_mask[np.newaxis]
+        test_mask = test_mask[np.newaxis]
+
+        biases_list = [preprocess_adj_bias(adj) for adj in adj_list]
+
+        print("Parameters: batch size={}, nb_nodes={}, ft_size={}, nb_classes={}".format(
+                self.batch_size, nb_nodes, ft_size, nb_classes))
+
+        model = HAN(self.model, self.hid_units, self.n_heads, nb_classes,
+                    nb_nodes, l2_coef=self.weight_decay,
+                    ffd_drop=self.ffd_drop, attn_drop=self.attn_drop,
+                    activation=self.nonlinearity, residual=self.residual)
+
+        # Restore model weights
+        model_weights_file = self.path_persistent + "model_weights"
+        model_weights_pklfile = self.path_persistent + "model_weights.pkl"
+        if len(self.n_heads) < 3:
+            try:
+                print("Loading model weights...")
+                model.load_weights(model_weights_file)
+                print("Loaded.")
+            except Exception as e:
+                print("Failed loading model weights: {}".format(e))
+        else:
+            try:
+                print("Loading model weights...")
+                with open(model_weights_pklfile, "rb") as f:
+                    weights = dill.load(f)
+                print("Loaded.")
+                print("Restoring model weights...")
+                model_weights = [weights[i] for i in range(len(weights)) if
+                                 len(weights[i]) == self.hid_units[0]]
+                model_weights.append([weights[i] for i in range(len(weights))
+                                     if len(weights[i]) == nb_classes][0])
+                model.set_weights(model_weights)
+                print("Restored.")
+            except Exception as e:
+                print("Failed loading model weights: {}".format(e))
+
+        ts_step = 0
+        ts_size = features_list[0].shape[0]
+        ts_loss = 0.0
+        ts_acc = 0.0
+
+        print("Computing predictions...")
+        while ts_step * self.batch_size < ts_size:
+            feeats_list = [features[ts_step * self.batch_size:(
+                    ts_step + 1)*self.batch_size] for features in
+                    features_list]
+
+            logits, embed, att_val, acc_ts, loss_value_ts = self.evaluate(
+                    model=model,
+                    inputs=feats_list,
+                    bias_mat=biases_list,
+                    lbl_in=y_test[ts_step * self.batch_size:(
+                            ts_step + 1)*self.batch_size],
+                    msk_in=test_mask[ts_step*self.batch_size:(
+                            ts_step + 1)*self.batch_size])
+            ts_loss += loss_value_ts
+            ts_acc += acc_ts
+            ts_step += 1
+        predictions = tf.nn.softmax(logits)
+        print("Computed.")
+
+        return predictions
 
     def _plot_losses(self, train_losses, validation_losses):
         # Plot the training and validation losses
