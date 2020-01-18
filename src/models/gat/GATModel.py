@@ -68,10 +68,10 @@ class GATModel(AbstractModel):
                                  "chapter title, chapter abstract, chapter " +
                                  "citations, and chapter authors are required."
                                  )
-                query_id = "new_node_id:" + "-".join(
-                        [str(i) for i in random.sample(range(0, 10000), 5)])
-                authors_df = pd.DataFrame({"author_name": query[3],
-                                          "chapter": [query_id]*len(query[3])})
+            query_id = "new_node_id:" + "-".join(
+                    [str(i) for i in random.sample(range(0, 10000), 5)])
+            authors_df = pd.DataFrame({"author_name": query[3],
+                                      "chapter": [query_id]*len(query[3])})
             return self.query_batch([(query_id, query[0], query[1], query[2])],
                                     authors_df)
         else:
