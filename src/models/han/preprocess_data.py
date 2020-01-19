@@ -112,8 +112,61 @@ class Processor:
         print("\tMax node degree: {}.".format(len(max(PAP.values(),
               key=len))))
 
-    def test_data(self):
-        pass
+    def test_data(self, df_test, authors_df, train_idx, features, labels,
+                  PCP, PAP):
+        print("Preprocessing data...")
+        # Load training and validation data
+        d_train = DataLoader()
+        df_train = d_train.training_data_with_abstracts_citations().data
+
+        d_val = DataLoader()
+        df_validation = d_val.validation_data_with_abstracts_citations().data
+
+        train_val_data = pd.concat((df_train, df_validation),
+                                   axis=0).reset_index(drop=True)
+        data_authors = authors_df.groupby("author_name")["chapter"].agg(
+                    list).reset_index()
+
+        # Create the indices of test instances in graph (as a list object)
+        test_idx = np.asarray(list(df_test.index))
+        test_idx = np.asarray([test_idx])
+
+        # Create "fake" temporary labels for test data
+        test_labels = np.zeros(
+                (len(df_test), len(labels[0])), dtype=int)
+        labels = np.vstack((labels, test_labels))
+
+        train_mask = sample_mask(train_idx, labels.shape[0])
+        test_mask = sample_mask(test_idx, labels.shape[0])
+        y_train = np.zeros(labels.shape)
+        y_test = np.zeros(labels.shape)
+        y_train[train_mask, :] = labels[train_mask, :]
+        y_test[test_mask, :] = labels[test_mask, :]
+
+        # Update graph with test data
+        print("Updating graph information...")
+        PCP_graph = self._update_PCP_adjacency(PCP, train_val_data, df_test)
+        PAP_graph = self._update_PAP_adjacency(PAP, train_val_data, df_test,
+                                               data_authors)
+        print("Updated.")
+        PAP = nx.adjacency_matrix(nx.from_dict_of_lists(PAP_graph))
+        PCP = nx.adjacency_matrix(nx.from_dict_of_lists(PCP_graph))
+        row_networks = [PCP, PAP]
+        print("PCP: {}; PAP: {}".format(PCP.shape, PAP.shape))
+
+        # Create feature vectors of test instances
+        print("Creating features for test data...")
+        test_features = self._create_features(df_test)
+        features = np.vstack((features, test_features))
+        print("Features: {}".format(features.shape))
+        print("Created.")
+
+        print("Finished preprocessing data.")
+        print("y_train: {}, y_test: {}, train_idx: {}, test_idx: {}".format(
+            y_train.shape, y_test.shape, train_idx.shape, test_idx.shape))
+
+        features_list = [features, features, features]
+        return row_networks, features_list, y_train, y_test, train_mask, test_mask
 
     def _create_PCP_adjacency(self, data):
         print("Creating paper-citation-paper adjacency lists.")
@@ -131,6 +184,18 @@ class Processor:
         with open(graph_file, "wb") as f:
             pickle.dump(graph, f)
         print("Saved.\n")
+        return graph
+
+    def _update_PCP_adjacency(self, graph, data, df_test):
+        print("Updating paper-citation-paper adjacency lists.")
+        with tqdm(desc="Adding neighbours: ", total=len(df_test)) as pbar:
+            for idx in list(df_test.index):
+                citations_indices = [data[
+                        data.chapter == citation].index.tolist() for
+                        citation in df_test.chapter_citations.loc[idx]]
+                graph[idx] = list(set([i[0] for i in citations_indices if i]))
+                pbar.update(1)
+        print("Updated.")
         return graph
 
     def _create_PAP_adjacency(self, data, data_authors):
@@ -154,6 +219,22 @@ class Processor:
         with open(graph_file, "wb") as f:
             pickle.dump(graph, f)
         print("Saved.\n")
+        return graph
+
+    def _update_PAP_adjacency(self, graph, data, df_test, data_authors):
+        print("Updating paper-author-paper adjacency lists.")
+        for idx in df_test.index:
+            graph[idx] = []
+        with tqdm(desc="Adding neighbours: ", total=len(data_authors)) as pbar:
+            for idx in range(len(data_authors)):
+                authors_indices = [data[data.chapter == paper].index.tolist()
+                                   for paper in data_authors.chapter.iloc[idx]]
+                authors_indices = [i[0] for i in authors_indices if i]
+                edges = [i for i in combinations(authors_indices, 2)]
+                for edge in edges:
+                    graph[edge[0]].append(edge[1])
+                pbar.update(1)
+        print("Updated.")
         return graph
 
     def _create_features(self, data):

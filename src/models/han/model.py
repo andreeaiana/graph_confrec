@@ -283,14 +283,14 @@ class Model:
 
         print("Computing predictions...")
         while ts_step * self.batch_size < ts_size:
-            feeats_list = [features[ts_step * self.batch_size:(
+            feats_list = [features[ts_step * self.batch_size:(
                     ts_step + 1)*self.batch_size] for features in
                     features_list]
 
             logits, embed, att_val, acc_ts, loss_value_ts = self.evaluate(
                     model=model,
-                    inputs=feats_list,
-                    bias_mat=biases_list,
+                    inputs_list=feats_list,
+                    bias_mat_list=biases_list,
                     lbl_in=y_test[ts_step * self.batch_size:(
                             ts_step + 1)*self.batch_size],
                     msk_in=test_mask[ts_step*self.batch_size:(
