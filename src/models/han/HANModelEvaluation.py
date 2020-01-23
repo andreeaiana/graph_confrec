@@ -18,9 +18,10 @@ from HANModel import HANModel
 class HANModelEvaluation:
 
     def __init__(self, model, embedding_type, hid_units=[64], n_heads=[8, 1],
-                 learning_rate=0.005, weight_decay=0, epochs=200, batch_size=1,
-                 patience=100, residual=False, nonlinearity=tf.nn.elu,
-                 ffd_drop=0.5, attn_drop=0.5, gpu=0, recs=10):
+                 learning_rate=0.005, weight_decay=0, epochs=10000,
+                 batch_size=1, patience=100, residual=False,
+                 nonlinearity=tf.nn.elu, ffd_drop=0.5, attn_drop=0.5, gpu=0,
+                 recs=10):
 
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
@@ -81,7 +82,7 @@ class HANModelEvaluation:
                             help='Weight decay.')
         parser.add_argument('--epochs',
                             type=int,
-                            default=200,
+                            default=10000,
                             help='Number of epochs to train.')
         parser.add_argument('--batch_size',
                             type=int,

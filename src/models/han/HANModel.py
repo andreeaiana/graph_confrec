@@ -23,9 +23,10 @@ from DataLoader import DataLoader
 class HANModel(AbstractModel):
 
     def __init__(self, model, embedding_type, hid_units=[64], n_heads=[8, 1],
-                 learning_rate=0.005, weight_decay=0, epochs=200, batch_size=1,
-                 patience=100, residual=False, nonlinearity=tf.nn.elu,
-                 ffd_drop=0.5, attn_drop=0.5, gpu=0, recs=10):
+                 learning_rate=0.005, weight_decay=0, epochs=10000,
+                 batch_size=1, patience=100, residual=False,
+                 nonlinearity=tf.nn.elu, ffd_drop=0.5, attn_drop=0.5, gpu=0,
+                 recs=10):
 
         self.embedding_type = embedding_type
         self.recs = recs
@@ -95,16 +96,17 @@ class HANModel(AbstractModel):
 
         # Reindex test dataframe such that indices follow those from the
         # train data
-        df_test.index = range(len(train_idx)+len(val_idx),
-                              len(train_idx)+len(val_idx) + len(df_test))
+        df_test.index = range(len(train_idx[0]) + len(val_idx[0]),
+                              len(train_idx[0]) + len(val_idx[0]) +
+                              len(df_test))
 
         # Preprocess the data
         test_data = self.preprocessor.test_data(
                 df_test, authors_df, train_idx, features, labels, PCP, PAP)
 
         # Inference on test data
-        predictions = self.han_model.test(test_data).numpy()[0][
-                len(train_idx)+len(val_idx):]
+        predictions = self.han_model.test(test_data).numpy()
+        predictions = predictions[0][len(train_idx[0])+len(val_idx[0]):]
 
         # Compute predictions
         sorted_predictions = (-predictions).argsort(axis=1)
