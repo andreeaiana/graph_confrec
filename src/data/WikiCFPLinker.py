@@ -14,8 +14,7 @@ from WikiCFPCrawler import WikiCFPCrawler
 class WikiCFPLinker():
 
     def __init__(self, similarity_metric="damerau_levenshtein",
-                 match_threshold=0.885,
-                 remove_stopwords=True):
+                 match_threshold=0.885, remove_stopwords=True):
         self.crawler = WikiCFPCrawler()
         self.match_threshold = match_threshold
         self.similarity_measure = self._get_similarity_measure(
@@ -461,8 +460,7 @@ class WikiCFPLinker():
         parser.add_argument('--remove_stopwords',
                             default=True,
                             action="store_false",
-                            help='The type of graph used ' +
-                            '(directed vs. undirected).')
+                            help='Whether to remove stopwords.')
         args = parser.parse_args()
         print("Starting...")
         from WikiCFPLinker import WikiCFPLinker
