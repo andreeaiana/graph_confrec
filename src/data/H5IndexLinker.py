@@ -53,8 +53,9 @@ class H5IndexLinker:
             # (i.e. keep matches with highest similarity score)
             self.correspondences = pd.DataFrame(
                 self.matches,
-                columns=["conferenceseries", "publication", "category",
-                         "subcategory", "h5_index", "h5_median", "similarity"])
+                columns=["conferenceseries", "conferenceseries_name",
+                         "publication", "category", "subcategory", "h5_index",
+                         "h5_median", "similarity"])
             self.correspondences = self.correspondences.sort_values(
                     "similarity", ascending=False)
             self.correspondences = self.correspondences.drop_duplicates(
@@ -93,6 +94,7 @@ class H5IndexLinker:
                                     ].index.tolist()[0]
                             self.matches.append([
                                     conf_series,
+                                    conf_name,
                                     pub_name,
                                     self.rankings.loc[idx].category,
                                     self.rankings.loc[idx].subcategory,
@@ -128,6 +130,7 @@ class H5IndexLinker:
                                     ].index.tolist()[0]
                             self.matches.append([
                                     conf_series,
+                                    conf_name,
                                     pub_name,
                                     self.rankings.loc[idx].category,
                                     self.rankings.loc[idx].subcategory,

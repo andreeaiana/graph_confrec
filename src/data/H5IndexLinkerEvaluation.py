@@ -49,6 +49,7 @@ class H5IndexLinkerEvaluation:
         print("Evaluated.")
         print("Precision: {}, Recall: {}, F1-Measure: {}".format(
                 precision, recall, f1_measure))
+        self.linker.get_statistics()
 
     def _get_gold_standard(self):
         if not self._load_gold_standard():
