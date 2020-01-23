@@ -85,6 +85,7 @@ class H5IndexLinkerEvaluation:
                             default="damerau_levenshtein",
                             help="Type of similarity metric used.")
         parser.add_argument('--threshold',
+                            type=float,
                             default=0.9,
                             help='The matching threshold.')
         args = parser.parse_args()
