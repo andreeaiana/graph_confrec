@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+import pandas as pd
+
 sys.path.insert(0, os.path.join(os.getcwd(), ".."))
 from AbstractClasses import AbstractModel
 
@@ -20,7 +22,7 @@ class AuthorsModel(AbstractModel):
             str[]: name of the conference.
             double[]: confidence scores
         """
-        return self.query_batch([authors])[0]
+        return self.query_batch([authors])
 
     def query_batch(self, batch):
         """Queries the model and returns a list of recommendations for each
@@ -43,6 +45,7 @@ class AuthorsModel(AbstractModel):
         confidence = list()
 
         for index, authors in enumerate(batch):
+            print(index, authors)
             result = self.data[
                     self.data["author_name"].isin(authors)
                     ][["conferenceseries", "count"]].groupby(
@@ -64,6 +67,7 @@ class AuthorsModel(AbstractModel):
         Args:
             data (pandas.DataFrame): the data used by the model.
         """
+        AbstractModel.train(self, data)
         for check in ["author_name", "conferenceseries"]:
             if check not in data.columns:
                 raise IndexError(
