@@ -1,0 +1,47 @@
+<html>
+	<head>
+		<title>Recommender System</title>
+		<link rel="stylesheet" href="static/jquery-ui/jquery-ui.css">
+		<link rel="stylesheet" href="static/style.css">
+		<script type="text/javascript" src="static/jquery-3.3.1.min.js"></script>
+		<script type="text/javascript" src="static/jquery-ui/jquery-ui.min.js"></script>
+		<script type="text/javascript">
+
+			$(function(){
+
+				$( "#models" ).selectmenu({
+					 select: function( event, ui ) {
+						 console.log("Selected a model")
+						 $.ajax({
+							 url:"http://localhost:8080/set_model",
+							 data:{"model":ui.item.value}
+						   }).done( function(response){
+								 console.log("Call successful")
+								 $("#results").empty();
+								 $("#inputField").html(response);
+						 	 }).fail( function(error){
+								 console.error("Call completed with errors:")
+								 console.error(error.responseText);
+								 console.log(error);
+							 });
+					 }
+				 });
+				});
+		</script>
+	</head>
+
+	<body>
+		<div id="header">
+			<select name="models" id="models">
+				<option disabled selected>Please pick a model</option>
+				{% for model in models %}
+	      	<option value={{model}}>{{ model }}</option>
+	    	{% endfor %}
+			</select>
+			<h1 style="text-align: center;">GraphConfRec: Recommender System for Conferences</h1>
+		</div>
+		<div id="inputField"></div>
+		<div id="results"></div>
+	</body>
+
+</html>

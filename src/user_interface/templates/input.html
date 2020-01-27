@@ -1,0 +1,124 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="static/jquery-ui/jquery-ui.css">
+    <link rel="stylesheet" href="static/style.css">
+    <script type="text/javascript" src="static/jquery-3.3.1.min.js"></script>
+    <script type="text/javascript" src="static/jquery-ui/jquery-ui.min.js"></script>
+    <script type="text/javascript">
+
+      $(function(){
+        //Needed for Multiautocomplete
+        function split( val ) {
+          return val.split( /;\s*/ );
+        }
+        function extractLast( term ) {
+          return split( term ).pop();
+        }
+        $("#auto")
+        // don't navigate away from the field on tab when selecting an item
+        .on( "keydown", function( event ) {
+          if ( event.keyCode === $.ui.keyCode.TAB &&
+          $( this ).autocomplete( "instance" ).menu.active ) {
+            event.preventDefault();
+          }
+        })
+        .autocomplete({
+          source: function( request, response ) {
+            $.getJSON( "http://localhost:8080/auto", {
+              model: $("#models").val(),
+              term: extractLast( request.term )
+            }, response );
+          },
+          select: function( event, ui ) {
+            var terms = split( this.value );
+            // remove the current input
+            terms.pop();
+            // add the selected item
+            terms.push( ui.item.value );
+            // add placeholder to get the comma-and-space at the end
+            terms.push( "" );
+            this.value = terms.join( "; " );
+            return false;
+          }
+        });
+
+      $("#recommend-auto").click(function(){
+        console.log("Getting recommendations");
+        $("#results").empty().text("Getting recommendations")
+        $.ajax({
+          url:"http://localhost:8080/recommend_auto",
+          data:{"data":$("#auto").val(), "model":$("#models").val()}
+        }).done(function(data){
+          $("#results").html(data);
+        }).fail(function() {
+          console.error( "Server error" );
+          $("#results").empty().text("Server error, please try again later")
+        })
+      });
+
+      $("#recommend-abstract").click(function(){
+        console.log("Getting recommendations");
+        $("#results").empty().text("Getting recommendations")
+        $.ajax({
+          url:"http://localhost:8080/recommend_abstract",
+          data:{"data":$("#abstract").val(), "model":$("#models").val()}
+        }).done(function(data){
+          $("#results").html(data);
+        }).fail(function() {
+          console.error( "Server error" );
+          $("#results").empty().text("Server error, please try again later")
+        })
+      });
+
+      $("#recommend-ensemble").click(function(){
+        console.log("Getting recommendations");
+        $("#results").empty().text("Getting recommendations")
+        $.ajax({
+          url:"http://localhost:8080/recommend_ensemble",
+          data:{"abstract":$("#abstract").val(), "keywords":$("#auto").val()}
+        }).done(function(data){
+          $("#results").html(data);
+        }).fail(function() {
+          console.error( "Server error" );
+          $("#results").empty().text("Server error, please try again later")
+        })
+      });
+
+      $("#clear").click(function(){
+        $("#auto").val("");
+        $("#abstract").val("");
+        $("#results").empty();
+      });
+    });
+
+    </script>
+  </head>
+  <body>
+    <div class="input-div">
+      {% if model_type == "Ensemble" %}
+        <input class="input" style="margin-bottom: 1em;" multiple placeholder="Tags" id="auto"/>
+        <textarea class="input" id="abstract" rows="4" placeholder="Please insert your abstract here"/>
+        <div class="button-div">
+          <button class="button-style" type="button" id="recommend-ensemble">Recommend</button>
+          <button class="button-style" type="button" id="clear">Clear</button>
+        </div>
+      {% elif model_type =="Abstracts" %}
+        <textarea class="input" id="abstract" rows="4" placeholder="Please insert your abstract here"/>
+        <div class="button-div">
+          <button class="button-style" type="button" id="recommend-abstract">Recommend</button>
+          <button class="button-style" type="button" id="clear">Clear</button>
+        </div>
+      {% else %}
+        {% if model_type=="authors" %}
+          <input class="input" multiple placeholder="Author Name" id="auto"/>
+        {% else %}
+          <input class="input" multiple placeholder="Citations" id="auto"/>
+        {% endif %}
+        <div class="button-div">
+          <button class="button-style" type="button" id="recommend-auto">Recommend</button>
+          <button class="button-style" type="button" id="clear">Clear</button>
+        </div>
+      {% endif %}
+    </div>
+  </body>
+</html>

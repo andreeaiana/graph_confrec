@@ -1,0 +1,149 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="static/jquery-ui/jquery-ui.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css" integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
+    <link rel="stylesheet" href="static/style.css">
+    <script type="text/javascript" src="static/jquery-3.3.1.min.js"></script>
+    <script type="text/javascript" src="static/jquery-ui/jquery-ui.min.js"></script>
+    <script type="text/javascript">
+      var score = 1;
+      var recommendations = {{recommendation[0]|safe}}
+      var confidences = {{recommendation[1]|safe}}
+      $( function() {
+        $( document ).tooltip();
+        /* 1. Visualizing things on Hover - See next part for action on click */
+        $('#stars li').on('mouseover', function(){
+          var onStar = parseInt($(this).data('value'), 10); // The star currently mouse on
+
+          // Now highlight all the stars that's not after the current hovered star
+          $(this).parent().children('li.star').each(function(e){
+            if (e < onStar) {
+              $(this).addClass('hover');
+            }
+            else {
+              $(this).removeClass('hover');
+            }
+          });
+
+          }).on('mouseout', function(){
+            $(this).parent().children('li.star').each(function(e){
+              $(this).removeClass('hover');
+            });
+          });
+
+
+          /* 2. Action to perform on click */
+          $('#stars li').on('click', function(){
+            var onStar = parseInt($(this).data('value'), 10); // The star currently selected
+            score = onStar;
+            var stars = $(this).parent().children('li.star');
+
+            for (i = 0; i < stars.length; i++) {
+              $(stars[i]).removeClass('selected');
+            }
+
+            for (i = 0; i < onStar; i++) {
+              $(stars[i]).addClass('selected');
+            }
+          });
+
+          function getInput() {
+            var inputText = "";
+            if ($("#auto").val()) {
+              inputText += $("#auto").val();
+            }
+            if ($("#abstract").val()) {
+              inputText += "Abstract: " + $("#abstract").val();
+            }
+            return inputText;
+          }
+
+        $("#send").click(function(){
+          console.log("Sending feedback");
+          $.ajax({
+            url:"http://localhost:8080/feedback",
+            data:{
+              "inputText": getInput(),
+              "model":$("#models").val(),
+              "recommendation": recommendations.toString(),
+              "confidence": confidences.toString(),
+              "score": score,
+              "comment": $("#feedback").val()
+            }
+          }).done(function(data){
+            $("#results").html(data);
+          }).fail(function() {
+            console.error( "Server error" );
+            $("#results").empty().text("Server error, please try again later")
+          })
+        });
+      });
+    </script>
+  </head>
+  <body>
+    {% if recommendation == False %}
+      <h1>No recommendations found</h1>
+    {% else %}
+      <div class="result">
+        <h2>Recommendations</h2>
+        <table class="resulttable" align="center">
+          <tr>
+            <th class="tablerow">Rank</th>
+            <th class="tablerow">Conferenceseries</th>
+            <th class="tablerow">Confidence</th>
+            <th class="tablerow"><span title="This information was crawled from WikiCFP.
+              Since there is not always a match for the Scigraph series, this field is only filled if any info is available">Upcoming Date*</span></th>
+			<th class="tablerow"><span title="This information was crawled from Google Scholar Metrics.
+              Since there is not always a match for the Scigraph series, this field is only filled if any info is available">H5 Index*</span></th>
+          </tr>
+          {% for rec in recommendation[0] %}
+            <tr>
+              <td class="tablerow">{{loop.index}}</td>
+              <td class="tablerow">{{recommendation[0][loop.index-1]}}</td>
+              <td class="tablerow">{{recommendation[1][loop.index-1]}}</td>
+              {% if recommendation[2] != None %}
+                <td class="tablerow" style="min-width: 75px;"><a href="{{recommendation[2][loop.index-1]['WikiCFP Link']}}" target="_blank" title="{{recommendation[2][loop.index-1]['Description']}}...">
+                  {{recommendation[2][loop.index-1]['Start Date']}}</a></td>
+              {% else %}
+                <td class="tablerow"></td>
+			  {% endif %}
+			  {% if recommendation[3] != None %}
+                <td class="tablerow">{{recommendation[3][loop.index-1]['H5 Index']}}</td>
+              {% else %}
+                <td class="tablerow"></td>
+              {% endif %}
+            </tr>
+          {% endfor %}
+        </table>
+      </div>
+      {% if feedback_enabled %}
+        <h2>Feedback</h2>
+        <div class="feedback">
+          <h4>How suitable is this recommendation?</h4>
+          <!-- Rating Stars Box -->
+          <div class='rating-stars text-center'>
+            <ul id='stars'>
+              <li class='star' title='Poor' data-value='1'>
+                <i class='fa fa-star fa-fw'></i>
+              </li>
+              <li class='star' title='Fair' data-value='2'>
+                <i class='fa fa-star fa-fw'></i>
+              </li>
+              <li class='star' title='Good' data-value='3'>
+                <i class='fa fa-star fa-fw'></i>
+              </li>
+              <li class='star' title='Excellent' data-value='4'>
+                <i class='fa fa-star fa-fw'></i>
+              </li>
+              <li class='star' title='Perfect' data-value='5'>
+                <i class='fa fa-star fa-fw'></i>
+              </li>
+            </ul>
+          </div>
+          <textarea class="feedback-input" id="feedback" rows="4" placeholder="Comment (optional)"/><br>
+          <button class="button-style" type="button" id="send">Send</button>
+        </div>
+      {% endif %}
+    {% endif %}
+  </body>
+</html>
