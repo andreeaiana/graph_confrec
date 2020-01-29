@@ -30,6 +30,24 @@ def autocomplete():
     return auto
 
 
+@app.route("/auto_authors")
+def autocomplete_authors():
+    term = request.args.get("term")
+    auto = model_loader.autocomplete_authors(term)
+    auto = json.dumps(list(auto))
+    auto = bytearray(auto, "utf-8")
+    return auto
+
+
+@app.route("/auto_citations")
+def autocomplete_citations():
+    term = request.args.get("term")
+    auto = model_loader.autocomplete_citations(term)
+    auto = json.dumps(list(auto))
+    auto = bytearray(auto, "utf-8")
+    return auto
+
+
 @app.route("/set_model")
 def set_model():
     model_name = request.args.get("model")
@@ -37,7 +55,7 @@ def set_model():
     if model_name == "authors":
         model_type = "authors"
     else:
-        model_type = "gat"
+        model_type = "gnn"
     return render_template("input.html", model_type=model_type)
 
 
@@ -47,10 +65,25 @@ def recommend_auto():
     data = request.args.get("data")
     query = data.split("; ")
     print(query)
-    recommendation = model_loader.query(model_name, query)
+    recommendation = model_loader.query_authors(model_name, query)
     print(recommendation[0], recommendation[1])
     return render_template("result.html", recommendation=recommendation,
-                           feedback_enabled=False)
+                           feedback_enabled=True)
+
+
+@app.route("/recommend_gnn")
+def recommend_gnn():
+    model_name = request.args.get("model")
+    title = request.args.get("title")
+    abstract = request.args.get("abstract")
+    citations = request.args.get("citations").split("; ")
+    authors = request.args.get("authors").split("; ")
+    print(title, abstract, citations, authors)
+    recommendation = model_loader.query_gnn(model_name, title, abstract,
+                                            citations, authors)
+    print(recommendation[0], recommendation[1])
+    return render_template("result.html", recommendation=recommendation,
+                           feedback_enabled=True)
 
 
 @app.route("/feedback")
@@ -60,8 +93,8 @@ def feedback():
     recommendation = request.args.get("recommendation")
     confidence = request.args.get("confidence")
     score = request.args.get("score")
-    comment = reuqest.args.get("comment")
-    # Sav it to the DB
+    comment = request.args.get("comment")
+    # Save it to the DB
     feedback = Feedback(model_name=model_name, input_text=input_text,
                         recommendation=recommendation, confidence=confidence,
                         score=score, comment=comment)
@@ -77,22 +110,3 @@ def feedback():
 
 
 app.run(port=8080)
-
-
-#@app.route("/recommend_abstract")
-#def recommend_abstract():
-#    modelName = request.args.get("model")
-#    data = request.args.get("data")
-#    print(data)
-#    recommendation = modelLoader.query(modelName, data)
-#    print(recommendation[0], recommendation[1])
-#    return render_template("result.html", recommendation=recommendation, feedback_enabled=False)
-#
-#@app.route("/recommend_ensemble")
-#def recommend_ensemble():
-#    abstract = request.args.get("abstract")
-#    keywords = request.args.get("keywords").split("; ")
-#    recommendation = modelLoader.query_ensemble(abstract, keywords)
-#    print(recommendation[0], recommendation[1])
-#    return render_template("result.html", recommendation=recommendation, feedback_enabled=False)
-

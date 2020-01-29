@@ -52,8 +52,17 @@
             if ($("#auto").val()) {
               inputText += $("#auto").val();
             }
+			if ($("#auto_authors").val()) {
+              inputText += $("#auto_authors").val();
+            }
+			if ($("#auto_citations").val()) {
+              inputText += $("#auto_citations").val();
+            }
             if ($("#abstract").val()) {
               inputText += "Abstract: " + $("#abstract").val();
+            }
+			if ($("#title").val()) {
+              inputText += "Title: " + $("#title").val();
             }
             return inputText;
           }
@@ -102,13 +111,13 @@
               <td class="tablerow">{{recommendation[0][loop.index-1]}}</td>
               <td class="tablerow">{{recommendation[1][loop.index-1]}}</td>
               {% if recommendation[2] != None %}
-                <td class="tablerow" style="min-width: 75px;"><a href="{{recommendation[2][loop.index-1]['WikiCFP Link']}}" target="_blank" title="{{recommendation[2][loop.index-1]['Description']}}...">
-                  {{recommendation[2][loop.index-1]['Start Date']}}</a></td>
+                <td class="tablerow" style="min-width: 75px;"><a href="{{recommendation[2][loop.index-1]['wikicfp_link']}}" target="_blank" title="{{recommendation[2][loop.index-1]['description']}}...">
+                  {{recommendation[2][loop.index-1]['start_date']}}</a></td>
               {% else %}
                 <td class="tablerow"></td>
 			  {% endif %}
 			  {% if recommendation[3] != None %}
-                <td class="tablerow">{{recommendation[3][loop.index-1]['H5 Index']}}</td>
+                <td class="tablerow">{{recommendation[3][loop.index-1]['h5_index']}}</td>
               {% else %}
                 <td class="tablerow"></td>
               {% endif %}
@@ -117,7 +126,7 @@
         </table>
       </div>
       {% if feedback_enabled %}
-        <h2>Feedback</h2>
+        <h1>Feedback</h1>
         <div class="feedback">
           <h4>How suitable is this recommendation?</h4>
           <!-- Rating Stars Box -->
