@@ -10,7 +10,7 @@ import networkx as nx
 import scipy.sparse as sp
 from collections import defaultdict
 from sklearn.preprocessing import OneHotEncoder
-from process import sample_mask
+from gat_process import sample_mask
 from itertools import combinations
 
 sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "utils"))

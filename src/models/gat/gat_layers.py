@@ -2,7 +2,7 @@
 import numpy as np
 import tensorflow as tf
 
-from attention import attn_head, sp_attn_head
+from gat_attention import attn_head, sp_attn_head
 
 # DISCLAIMER:
 # This code file is derived from https://github.com/PetarV-/GAT,

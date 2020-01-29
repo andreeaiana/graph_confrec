@@ -15,8 +15,8 @@ sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "data"))
 sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "utils"))
 from TimerCounter import Timer
 from AbstractClasses import AbstractModel
-from preprocess_data import Processor
-from model import Model as HAN
+from han_preprocess_data import Processor
+from train_han import HANModelTraining
 from DataLoader import DataLoader
 
 
@@ -31,10 +31,10 @@ class HANModel(AbstractModel):
         self.embedding_type = embedding_type
         self.recs = recs
 
-        self.han_model = HAN(model, self.embedding_type, hid_units, n_heads,
-                             learning_rate, weight_decay, epochs, batch_size,
-                             patience, residual, nonlinearity, ffd_drop,
-                             attn_drop, None)
+        self.han_model = HANModelTraining(
+                model, self.embedding_type, hid_units, n_heads, learning_rate,
+                weight_decay, epochs, batch_size, patience, residual,
+                nonlinearity, ffd_drop, attn_drop, None)
         self.preprocessor = Processor(self.embedding_type, gpu)
         self.training_data = self._load_training_data()
 
@@ -46,7 +46,8 @@ class HANModel(AbstractModel):
 
         Args:
             query (list): The query as needed by the model, is in the form
-            [chapter_title, chapter_abstract, list(chapter_citations)].
+            [chapter_title, chapter_abstract, list(chapter_citations),
+            list(chapter_authors)].
 
         Returns
             list: ids of the conferences
@@ -61,8 +62,8 @@ class HANModel(AbstractModel):
                 [str(i) for i in random.sample(range(0, 10000), 5)])
         authors_df = pd.DataFrame({"author_name": query[3],
                                   "chapter": [query_id]*len(query[3])})
-        return self.query_batch([(query_id, query[0], query[1], query[2])],
-                                authors_df)
+        return self.query_batch((
+                [(query_id, query[0], query[1], query[2])], authors_df))
 
     def query_batch(self, batch):
         """Queries the model and returns a lis of recommendations.

@@ -15,8 +15,8 @@ sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "data"))
 sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "utils"))
 from TimerCounter import Timer
 from AbstractClasses import AbstractModel
-from preprocess_data import Processor
-from model import Model as GAT
+from gat_preprocess_data import Processor
+from train_gat import GATModelTraining
 from DataLoader import DataLoader
 
 
@@ -33,11 +33,11 @@ class GATModel(AbstractModel):
         self.graph_type = graph_type
         self.recs = recs
 
-        self.gat_model = GAT(self.embedding_type, self.dataset,
-                             self.graph_type, hid_units, n_heads,
-                             learning_rate, weight_decay, epochs, batch_size,
-                             patience, residual, nonlinearity, sparse,
-                             ffd_drop, attn_drop, None)
+        self.gat_model = GATModelTraining(
+                self.embedding_type, self.dataset, self.graph_type, hid_units,
+                n_heads, learning_rate, weight_decay, epochs, batch_size,
+                patience, residual, nonlinearity, sparse, ffd_drop, attn_drop,
+                None)
         self.preprocessor = Processor(self.embedding_type, self.dataset,
                                       self.graph_type, threshold, gpu)
         self.training_data = self._load_training_data()
@@ -72,8 +72,8 @@ class GATModel(AbstractModel):
                     [str(i) for i in random.sample(range(0, 10000), 5)])
             authors_df = pd.DataFrame({"author_name": query[3],
                                       "chapter": [query_id]*len(query[3])})
-            return self.query_batch([(query_id, query[0], query[1], query[2])],
-                                    authors_df)
+            return self.query_batch((
+                    [(query_id, query[0], query[1], query[2])], authors_df))
         else:
             raise ValueError("Dataset not recognised.")
 

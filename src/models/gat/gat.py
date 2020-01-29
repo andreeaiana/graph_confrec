@@ -2,7 +2,7 @@
 import numpy as np
 import tensorflow as tf
 
-from layers import inference
+from gat_layers import inference
 
 # DISCLAIMER:
 # This code file is derived from https://github.com/PetarV-/GAT,

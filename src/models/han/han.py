@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import tensorflow as tf
-from layers import HeteGAT_inference, HeteGAT_multi_inference
+from han_layers import HeteGAT_inference, HeteGAT_multi_inference
 
 # DISCLAIMER:
 # This code file is derived from https://github.com/Jhy1993/HAN.

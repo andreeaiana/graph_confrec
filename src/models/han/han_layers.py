@@ -2,7 +2,7 @@
 import numpy as np
 import tensorflow as tf
 
-from attention import sp_attn_head, SimpleAttLayer
+from han_attention import sp_attn_head, SimpleAttLayer
 
 # DISCLAIMER:
 # This code file is derived from https://github.com/Jhy1993/HAN.

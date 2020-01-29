@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, print_function, division
-from __future__ import unicode_literals
+from __future__ import absolute_import, print_function, division, unicode_literals
 
 import os
 import sys
@@ -11,10 +10,10 @@ import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
-import attention
-from han import HAN
-from process import load_data, preprocess_adj_bias
-from layers import HeteGAT_inference, HeteGAT_multi_inference
+from gat import GAT
+from gat_layers import inference
+from gat_process import load_data, preprocess_features
+from gat_process import adj_to_bias, preprocess_adj_bias
 
 from tensorflow.python.ops import control_flow_util
 control_flow_util.ENABLE_CONTROL_FLOW_V2 = True
@@ -23,15 +22,20 @@ sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "utils"))
 from TimerCounter import Timer
 
 # DISCLAIMER:
-# This code file is derived from https://github.com/Jhy1993/HAN.
+# This code file is derived from https://github.com/PetarV-/GAT,
+# which is under an identical MIT license as graph_confrec.
+# Conversion of original code to TF 2.0 is inspired by
+# https://github.com/calciver/Graph-Attention-Networks/blob/master/Tensorflow_2_0_Graph_Attention_Networks_(GAT).ipynb
 
 
-class Model:
-    def __init__(self, model, embedding_type, hid_units=[64], n_heads=[8, 1],
-                 learning_rate=0.005, weight_decay=0, epochs=10000,
-                 batch_size=1, patience=100, residual=False,
-                 nonlinearity=tf.nn.elu, ffd_drop=0.5, attn_drop=0.5,
-                 gpu=None):
+class GATModelTraining:
+
+    def __init__(self, embedding_type, dataset, graph_type="directed",
+                 hid_units=[64], n_heads=[8, 1], learning_rate=0.005,
+                 weight_decay=0, epochs=100000, batch_size=1, patience=100,
+                 residual=False, nonlinearity=tf.nn.elu, sparse=False,
+                 ffd_drop=0.5, attn_drop=0.5, gpu=None):
+
         print("Initiating, using gpu {}.\n".format(gpu))
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         if gpu is not None:
@@ -39,8 +43,9 @@ class Model:
         else:
             os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
-        self.model = model
         self.embedding_type = embedding_type
+        self.dataset = dataset
+        self.graph_type = graph_type
         self.hid_units = hid_units
         self.n_heads = n_heads
         self.learning_rate = learning_rate
@@ -53,13 +58,15 @@ class Model:
             self.nonlinearity = nonlinearity
         else:
             self.nonlinearity = tf.nn.elu
+        self.Sparse = sparse
         self.ffd_drop = ffd_drop
         self.attn_drop = attn_drop
         self.optimizer = tf.keras.optimizers.Adam(lr=self.learning_rate)
         self._get_folder()
 
-        print('Model: {}'.format(model))
-        print("Embedding: {}".format(self.embedding_type))
+        print('Model: ' + str('SpGAT' if self.Sparse else 'GAT'))
+        print("Dataset: {}, Embedding: {}".format(self.dataset,
+              self.embedding_type))
         print("----- Opt. hyperparameters -----")
         print("\tLearning rate: {}".format(self.learning_rate))
         print("\tWeight decay: {}".format(self.weight_decay))
@@ -70,44 +77,43 @@ class Model:
         print("\tResidual: {}".format(self.residual))
         print("\tNonlinearity: {}\n".format(self.nonlinearity))
 
-    def _train(self, model, inputs_list, bias_mat_list, lbl_in, msk_in):
+    def _train(self, model, inputs, bias_mat, lbl_in, msk_in):
         with tf.GradientTape() as tape:
-            logits, embed, att_val, accuracy, loss = model(
-                    inputs_list=inputs_list,
-                    bias_mat_list=bias_mat_list,
-                    lbl_in=lbl_in,
-                    msk_in=msk_in,
-                    training=True)
+            logits, accuracy, loss = model(inputs=inputs,
+                                           bias_mat=bias_mat,
+                                           lbl_in=lbl_in,
+                                           msk_in=msk_in,
+                                           training=True)
         gradients = tape.gradient(loss, model.trainable_variables)
         gradient_variables = zip(gradients, model.trainable_variables)
         self.optimizer.apply_gradients(gradient_variables)
-        return logits, embed, att_val, accuracy, loss
+        return logits, accuracy, loss
 
-    def evaluate(self, model, inputs_list, bias_mat_list, lbl_in, msk_in):
-        logits, embed, att_val, accuracy, loss = model(
-                    inputs_list=inputs_list,
-                    bias_mat_list=bias_mat_list,
-                    lbl_in=lbl_in,
-                    msk_in=msk_in,
-                    training=False)
-        return logits, embed, att_val, accuracy, loss
+    def evaluate(self, model, inputs, bias_mat, lbl_in, msk_in):
+        logits, accuracy, loss = model(inputs=inputs,
+                                       bias_mat=bias_mat,
+                                       lbl_in=lbl_in,
+                                       msk_in=msk_in,
+                                       training=False)
+        return logits, accuracy, loss
 
     def train(self):
         print("Loading data...")
-        adj_list, features_list, y_train, y_val, train_mask, val_mask = load_data(
-                self.embedding_type)
-        print("Loaded.")
+        adj, features, y_train, y_val, train_mask, val_mask = load_data(
+                self.embedding_type, self.dataset, self.graph_type)
+        print("Loaded.\n")
 
-        nb_nodes = features_list[0].shape[0]
-        ft_size = features_list[0].shape[1]
+        features, spars = preprocess_features(features)
+
+        nb_nodes = features.shape[0]
+        ft_size = features.shape[1]
         nb_classes = y_train.shape[1]
 
-        features_list = [features[np.newaxis] for features in features_list]
+        features = features[np.newaxis]
         y_train = y_train[np.newaxis]
         y_val = y_val[np.newaxis]
         train_mask = train_mask[np.newaxis]
         val_mask = val_mask[np.newaxis]
-        biases_list = [preprocess_adj_bias(adj) for adj in adj_list]
 
         print("Training model...")
         timer = Timer()
@@ -116,8 +122,15 @@ class Model:
         print("Parameters: batch size={}, nb_nodes={}, ft_size={}, nb_classes={}\n".format(
                         self.batch_size, nb_nodes, ft_size, nb_classes))
 
-        model = HAN(self.model, self.hid_units, self.n_heads, nb_classes,
-                    nb_nodes, l2_coef=self.weight_decay,
+        if self.Sparse:
+            biases = preprocess_adj_bias(adj)
+        else:
+            adj = adj.todense()
+            adj = adj[np.newaxis]
+            biases = adj_to_bias(adj, [nb_nodes], nhood=1)
+
+        model = GAT(self.hid_units, self.n_heads, nb_classes, nb_nodes,
+                    self.Sparse, l2_coef=self.weight_decay,
                     ffd_drop=self.ffd_drop, attn_drop=self.attn_drop,
                     activation=self.nonlinearity, residual=self.residual)
 
@@ -140,43 +153,46 @@ class Model:
 
             # Training
             tr_step = 0
-            tr_size = features_list[0].shape[0]
+            tr_size = features.shape[0]
             while tr_step * self.batch_size < tr_size:
-                feats_list = [features[tr_step*self.batch_size: (
-                            tr_step+1)*self.batch_size] for features in
-                            features_list]
+                if self.Sparse:
+                    bbias = biases
+                else:
+                    bbias = biases[tr_step*self.batch_size: (
+                            tr_step+1)*self.batch_size]
 
-                _, train_embed, att_val, acc_tr, loss_value_tr = self._train(
+                _, acc_tr, loss_value_tr = self._train(
                         model=model,
-                        inputs_list=feats_list,
-                        bias_mat_list=biases_list,
+                        inputs=features[tr_step*self.batch_size: (
+                                tr_step+1)*self.batch_size],
+                        bias_mat=bbias,
                         lbl_in=y_train[tr_step*self.batch_size: (
                                 tr_step+1)*self.batch_size],
                         msk_in=train_mask[tr_step*self.batch_size: (
                                 tr_step+1)*self.batch_size])
-
                 train_loss_avg += loss_value_tr
                 train_acc_avg += acc_tr
                 tr_step += 1
 
             # Validation
             vl_step = 0
-            vl_size = features_list[0].shape[0]
-
+            vl_size = features.shape[0]
             while vl_step * self.batch_size < vl_size:
-                feats_list = [features[vl_step*self.batch_size: (
-                        vl_step+1)*self.batch_size] for features in
-                        features_list]
+                if self.Sparse:
+                    bbias = biases
+                else:
+                    bbias = biases[vl_step*self.batch_size: (
+                            vl_step+1)*self.batch_size]
 
-                _, val_embed, att_val, acc_vl, loss_value_vl = self.evaluate(
+                _, acc_vl, loss_value_vl = self.evaluate(
                         model=model,
-                        inputs_list=feats_list,
-                        bias_mat_list=biases_list,
+                        inputs=features[vl_step*self.batch_size: (
+                                vl_step+1)*self.batch_size],
+                        bias_mat=bbias,
                         lbl_in=y_val[vl_step*self.batch_size: (
                                 vl_step+1)*self.batch_size],
                         msk_in=val_mask[vl_step*self.batch_size: (
                                 vl_step+1)*self.batch_size])
-
                 val_loss_avg += loss_value_vl
                 val_acc_avg += acc_vl
                 vl_step += 1
@@ -229,29 +245,31 @@ class Model:
                           val_accuracies, training_time)
 
     def test(self, test_data):
-        adj_list, features_list, y_train, y_test, train_mask, test_mask = test_data
-        print(adj_list[0].shape)
-        print(adj_list[1].shape)
+        adj, features, y_train, y_test, train_mask, test_mask = test_data
+        features, spars = preprocess_features(features)
 
-        nb_nodes = features_list[0].shape[0]
-        ft_size = features_list[0].shape[1]
+        nb_nodes = features.shape[0]
+        ft_size = features.shape[1]
         nb_classes = y_train.shape[1]
 
-        features_list = [features[np.newaxis] for features in features_list]
-        y_train = y_train[np.newaxis]
+        features = features[np.newaxis]
         y_test = y_test[np.newaxis]
-        train_mask = train_mask[np.newaxis]
         test_mask = test_mask[np.newaxis]
-
-        biases_list = [preprocess_adj_bias(adj) for adj in adj_list]
 
         print("Parameters: batch size={}, nb_nodes={}, ft_size={}, nb_classes={}".format(
                 self.batch_size, nb_nodes, ft_size, nb_classes))
 
-        model = HAN(self.model, self.hid_units, self.n_heads, nb_classes,
-                    nb_nodes, l2_coef=self.weight_decay,
-                    ffd_drop=self.ffd_drop, attn_drop=self.attn_drop,
-                    activation=self.nonlinearity, residual=self.residual)
+        if self.Sparse:
+            biases = preprocess_adj_bias(adj)
+        else:
+            adj = adj.todense()
+            adj = adj[np.newaxis]
+            biases = adj_to_bias(adj, [nb_nodes], nhood=1)
+
+        model = GAT(self.hid_units, self.n_heads, nb_classes, nb_nodes,
+                    self.Sparse, ffd_drop=self.ffd_drop,
+                    attn_drop=self.attn_drop, activation=self.nonlinearity,
+                    residual=self.residual)
 
         # Restore model weights
         model_weights_file = self.path_persistent + "model_weights"
@@ -280,20 +298,23 @@ class Model:
                 print("Failed loading model weights: {}".format(e))
 
         ts_step = 0
-        ts_size = features_list[0].shape[0]
+        ts_size = features.shape[0]
         ts_loss = 0.0
         ts_acc = 0.0
 
         print("Computing predictions...")
         while ts_step * self.batch_size < ts_size:
-            feats_list = [features[ts_step * self.batch_size:(
-                    ts_step + 1)*self.batch_size] for features in
-                    features_list]
+            if self.Sparse:
+                bbias = biases
+            else:
+                bbias = biases[ts_step*self.batch_size:(
+                        ts_step + 1)*self.batch_size]
 
-            logits, embed, att_val, acc_ts, loss_value_ts = self.evaluate(
-                    model=model,
-                    inputs_list=feats_list,
-                    bias_mat_list=biases_list,
+            logits, acc_ts, loss_value_ts = self.evaluate(
+                    model,
+                    inputs=features[ts_step * self.batch_size:(
+                            ts_step + 1)*self.batch_size],
+                    bias_mat=bbias,
                     lbl_in=y_test[ts_step * self.batch_size:(
                             ts_step + 1)*self.batch_size],
                     msk_in=test_mask[ts_step*self.batch_size:(
@@ -364,13 +385,18 @@ class Model:
     def _get_folder(self):
         self.path_persistent = os.path.join(
                 os.path.dirname(os.path.realpath(__file__)),
-                "..", "..", "..", "data", "processed", "han",
-                self.embedding_type)
+                "..", "..", "..", "data", "processed", "gat",
+                self.embedding_type, self.dataset)
+        if self.Sparse:
+            sp = "sparse"
+        else:
+            sp = "dense"
         hidden_units = "-".join(str(x) for x in self.hid_units)
         heads = "-".join(str(x) for x in self.n_heads)
-        self.path_persistent += "/{model:s}_{hid_units:s}_{n_heads:s}_{lr:0.6f}_{wd:0.6f}/".format(
-                model=self.model, hid_units=hidden_units, n_heads=heads,
-                lr=self.learning_rate, wd=self.weight_decay)
+        self.path_persistent += "/{hid_units:s}_{n_heads:s}_{lr:0.6f}_{wd:0.6f}_{sparse:s}_{gt:s}/".format(
+                hid_units=hidden_units, n_heads=heads,
+                lr=self.learning_rate, wd=self.weight_decay, sparse=sp,
+                gt=self.graph_type)
         if not os.path.exists(self.path_persistent):
             os.makedirs(self.path_persistent)
 
@@ -396,10 +422,7 @@ class Model:
 
     def main():
         parser = argparse.ArgumentParser(
-                description='Arguments for HAN model.')
-        parser.add_argument("model",
-                            choices=["HeteGAT", "HeteGAT_multi"],
-                            help="The type of model used.")
+                description='Arguments for GAT model.')
         parser.add_argument('embedding_type',
                             choices=["AVG_L", "AVG_2L", "AVG_SUM_L4",
                                      "AVG_SUM_ALL", "MAX_2L",
@@ -407,6 +430,14 @@ class Model:
                                      "SUM_L", "SUM_2L"
                                      ],
                             help="Type of embedding.")
+        parser.add_argument('dataset',
+                            help='Name of the object file that stores the '
+                            + 'training data.')
+        parser.add_argument('--graph_type',
+                            choices=["directed", "undirected"],
+                            default="directed",
+                            help='The type of graph used ' +
+                            '(directed vs. undirected).')
         parser.add_argument("--hid_units",
                             type=int,
                             nargs="+",
@@ -428,7 +459,7 @@ class Model:
                             help='Weight decay.')
         parser.add_argument('--epochs',
                             type=int,
-                            default=10000,
+                            default=100000,
                             help='Number of epochs to train.')
         parser.add_argument('--batch_size',
                             type=int,
@@ -442,6 +473,10 @@ class Model:
                             default=False)
         parser.add_argument('--nonlinearity',
                             help="Type of activation used")
+        parser.add_argument('--sparse',
+                            action='store_true',
+                            default=False,
+                            help="Whether to use the sparse model version")
         parser.add_argument('--ffd_drop',
                             type=float,
                             default=0.5)
@@ -454,12 +489,13 @@ class Model:
         args = parser.parse_args()
 
         print("Starting...")
-        from model import Model
-        model = Model(args.model, args.embedding_type, args.hid_units,
-                      args.n_heads, args.learning_rate, args.weight_decay,
-                      args.epochs, args.batch_size, args.patience,
-                      args.residual, args.nonlinearity, args.ffd_drop,
-                      args.attn_drop, args.gpu)
+        from train_gat import GATModelTraining
+        model = GATModelTraining(
+                args.embedding_type, args.dataset, args.graph_type,
+                args.hid_units, args.n_heads, args.learning_rate,
+                args.weight_decay, args.epochs, args.batch_size, args.patience,
+                args.residual, args.nonlinearity, args.sparse, args.ffd_drop,
+                args.attn_drop, args.gpu)
         model.train()
         print("Finished.")
 
