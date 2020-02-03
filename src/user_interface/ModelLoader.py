@@ -14,6 +14,8 @@ sys.path.insert(0, os.path.join(os.getcwd(), "..", "models", "gat"))
 from GATModel import GATModel
 sys.path.insert(0, os.path.join(os.getcwd(), "..", "models", "han"))
 from HANModel import HANModel
+sys.path.insert(0, os.path.join(os.getcwd(), "..", "models", "graphsage_rl"))
+from GraphSAGERLModel import GraphSAGERLModel
 
 
 class ModelLoader():
@@ -25,6 +27,9 @@ class ModelLoader():
                 os.path.realpath(__file__)), "data", "data_authors.pkl")
         with open(authors_file, "rb") as f:
             self.data_authors = pickle.load(f)
+        self.authors = pd.Series(self.data_authors.author_name.unique())
+        self.authors = self.authors.str.decode("unicode_escape")
+
         self.model_authors = AuthorsModel()
         self.model_authors.train(self.data_authors)
         self.models.append("authors")
@@ -46,10 +51,27 @@ class ModelLoader():
                 recs=10)
         self.models.append("heterogeneous-graph-attention-network")
 
+        self.model_graphsage_rl = GraphSAGERLModel(
+                embedding_type="SUM_L",
+                graph_type="citations_authors_het_edges",
+                train_prefix="SUM_L/citations_authors_het_edges/train_val",
+                model_name="mean_concat", nonlinear_sampler=True,
+                fast_ver=True, allhop_rewards=True, model_size="small",
+                learning_rate=0.001, epochs=10, dropout=0.0, weight_decay=0.0,
+                max_degree=100, samples_1=25, samples_2=10, samples_3=0,
+                dim_1=512, dim_2=512, dim_3=0, batch_size=128, sigmoid=False,
+                identity_dim=0,
+                base_log_dir='../../../data/processed/graphsage_rl/',
+                validate_iter=5000, validate_batch_size=128, gpu=None,
+                print_every=5, max_total_steps=10**10,
+                log_device_placement=False, recs=10, threshold=2)
+        self.models.append("graphsage-reinforcement-learning")
+
         data_file = os.path.join(os.path.dirname(
                 os.path.realpath(__file__)), "data", "data.pkl")
         with open(data_file, "rb") as f:
             self.data = pickle.load(f)
+        self.citations = pd.Series(self.data["chapter_title"].unique())
 
         # Load WikiCFP data
         wikicfp_file = os.path.join(os.path.dirname(
@@ -73,6 +95,7 @@ class ModelLoader():
     def query_authors(self, model_name, data):
         print("Querying model: {}".format(model_name))
         names = list()
+        print("Authors in authors model: {}".format(data))
         for name in data:
             names.append(name.lower())
         recommendation = self.model_authors.query_single(names)
@@ -81,16 +104,19 @@ class ModelLoader():
     def query_gnn(self, model_name, title, abstract, citations, authors):
         print("Querying model: {}".format(model_name))
         if model_name == "graph-attention-network":
+            print("Authors: {}".format(authors))
             citations = self._get_citation_id(citations)
-#            author_names = list()
-#            for name in authors:
-#                author_names.append(name.lower())
             recommendation = self.model_gat.query_single(
                     [title, abstract, citations, authors])
             return self._get_series_name(recommendation)
         elif model_name == "heterogeneous-graph-attention-network":
             citations = self._get_citation_id(citations)
             recommendation = self.model_han.query_single(
+                    [title, abstract, citations, authors])
+            return self._get_series_name(recommendation)
+        elif model_name == "graphsage-reinforcement-learning":
+            citations = self._get_citation_id(citations)
+            recommendation = self.model_graphsage_rl.query_single(
                     [title, abstract, citations, authors])
             return self._get_series_name(recommendation)
         else:
@@ -113,12 +139,9 @@ class ModelLoader():
         wikicfp = list()
         h5index = list()
         for i, conf in enumerate(recommendation[0][0]):
-            try:
-                conferenceseries.append(
-                        self.data[self.data.conferenceseries == conf].iloc[0][
-                                  "conferenceseries_name"])
-            except Exception as e:
-                conferenceseries.append(conf)
+            conferenceseries.append(
+                    self.data[self.data.conferenceseries == conf].iloc[0][
+                              "conferenceseries_name"])
             confidence.append(round(recommendation[1][0][i], 2))
             wikicfp.append(self._add_wikicfp(conf))
             h5index.append(self._add_h5index(conf))
@@ -144,18 +167,12 @@ class ModelLoader():
             else:
                 return None
 
-    def autocomplete(self, model_name, data):
-        if model_name == "authors":
-            return self.model_authors.get_author_names(term=data)
-
-    def autocomplete_authors(self, data):
-        authors = pd.Series(self.data_authors.author_name.unique())
-        authors = authors[authors.str.lower().str.startswith(
-                data.lower())][:10]
+    def autocomplete(self, data):
+        authors = self.authors[self.authors.str.lower().str.startswith(
+                  data.lower(), na=False)][:10]
         return authors
 
     def autocomplete_citations(self, data):
-        citations = pd.Series(self.data["chapter_title"].unique())
-        citations = citations[citations.str.lower().str.startswith(
-                data.lower())][:10]
+        citations = self.citations[self.citations.str.lower().str.startswith(
+                    data.lower())][:10]
         return citations

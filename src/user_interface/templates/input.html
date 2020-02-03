@@ -41,33 +41,6 @@
             return false;
           }
         });
-		$("#auto_authors")
-        // don't navigate away from the field on tab when selecting an item
-        .on( "keydown", function( event ) {
-          if ( event.keyCode === $.ui.keyCode.TAB &&
-          $( this ).autocomplete( "instance" ).menu.active ) {
-            event.preventDefault();
-          }
-        })
-        .autocomplete({
-          source: function( request, response ) {
-            $.getJSON( "http://localhost:8080/auto_authors", {
-              model: $("#models").val(),
-              term: extractLast( request.term )
-            }, response );
-          },
-          select: function( event, ui ) {
-            var terms = split( this.value );
-            // remove the current input
-            terms.pop();
-            // add the selected item
-            terms.push( ui.item.value );
-            // add placeholder to get the comma-and-space at the end
-            terms.push( "" );
-            this.value = terms.join( "; " );
-            return false;
-          }
-        });
 		$("#auto_citations")
         // don't navigate away from the field on tab when selecting an item
         .on( "keydown", function( event ) {
@@ -116,7 +89,7 @@
         $("#results").empty().text("Getting recommendations")
         $.ajax({
           url:"http://localhost:8080/recommend_gnn",
-          data:{"model":$("#models").val(), "title":$("#title").val(), "abstract":$("#abstract").val(), "citations":$("#auto_citations").val(), "authors":$("#auto_authors").val()}
+          data:{"model":$("#models").val(), "title":$("#title").val(), "abstract":$("#abstract").val(), "citations":$("#auto_citations").val(), "authors":$("#auto").val()}
         }).done(function(data){
           $("#results").html(data);
         }).fail(function() {
@@ -127,7 +100,6 @@
 
       $("#clear").click(function(){
         $("#auto").val("");
-		$("#auto_authors").val("");
 		$("#auto_citations").val("");
         $("#title").val("");
 		$("#abstract").val("");
@@ -142,8 +114,8 @@
       {% if model_type =="gnn" %}
 		<textarea class="input" id="title" rows="4" placeholder="Please insert your title here"/>
 		<textarea class="input" id="abstract" rows="4" placeholder="Please insert your abstract here"/>	  
-		<input class="input" style="margin-bottom: 1em;" multiple placeholder="Citation(s)" id="auto_citations"/>
-		<input class="input" style="margin-bottom: 1em;" multiple placeholder="Author Name" id="auto_authors"/>
+		<input class="input" multiple placeholder="Citation(s)" id="auto_citations"/>
+		<input class="input" style="margin-bottom: 1em;" multiple placeholder="Author Name" id="auto"/>
         <div class="button-div">
           <button class="button-style" type="button" id="recommend-gnn">Recommend</button>
           <button class="button-style" type="button" id="clear">Clear</button>

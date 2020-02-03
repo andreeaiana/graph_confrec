@@ -23,17 +23,7 @@ def main():
 @app.route("/auto")
 def autocomplete():
     term = request.args.get("term")
-    model_name = request.args.get("model")
-    auto = model_loader.autocomplete(model_name, term)
-    auto = json.dumps(list(auto))
-    auto = bytearray(auto, "utf-8")
-    return auto
-
-
-@app.route("/auto_authors")
-def autocomplete_authors():
-    term = request.args.get("term")
-    auto = model_loader.autocomplete_authors(term)
+    auto = model_loader.autocomplete(term)
     auto = json.dumps(list(auto))
     auto = bytearray(auto, "utf-8")
     return auto

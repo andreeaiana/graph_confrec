@@ -36,15 +36,24 @@ class GraphSAGERLModel(AbstractModel):
         self.recs = recs
 
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-        os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
+        if gpu is not None:
+            os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
+        else:
+            os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
         self.graphsage_model = SupervisedModelRL(
-                train_prefix, model_name, nonlinear_sampler, fast_ver,
-                allhop_rewards, model_size, learning_rate, epochs, dropout,
-                weight_decay, max_degree, samples_1, samples_2, samples_3,
-                dim_1, dim_2, dim_3, batch_size, sigmoid, identity_dim,
-                base_log_dir, validate_iter, validate_batch_size, gpu,
-                print_every, max_total_steps, log_device_placement)
+                train_prefix=train_prefix, model_name=model_name,
+                nonlinear_sampler=nonlinear_sampler, fast_ver=self.fast_ver,
+                allhop_rewards=allhop_rewards, model_size=model_size,
+                learning_rate=learning_rate, epochs=epochs, dropout=dropout,
+                weight_decay=weight_decay, max_degree=max_degree,
+                samples_1=samples_1, samples_2=samples_2, samples_3=samples_3,
+                dim_1=dim_1, dim_2=dim_2, dim_3=dim_3, batch_size=batch_size,
+                sigmoid=sigmoid, identity_dim=identity_dim,
+                base_log_dir=base_log_dir, validate_iter=validate_iter,
+                validate_batch_size=validate_batch_size, gpu=None,
+                print_every=print_every, max_total_steps=max_total_steps,
+                log_device_placement=log_device_placement)
         self.preprocessor = Processor(self.embedding_type, self.graph_type,
                                       threshold, gpu)
 
@@ -86,11 +95,10 @@ class GraphSAGERLModel(AbstractModel):
                                  )
             authors_df = pd.DataFrame({"author_name": query[3],
                                        "chapter": [query_id]*len(query[3])})
-            return self.query_batch([(query_id, query[0], query[1], query[2])],
-                                    authors_df)
+            return self.query_batch(
+                    ([(query_id, query[0], query[1], query[2])], authors_df))
         else:
             raise ValueError("Graph type not recognised.")
-
 
     def query_batch(self, batch):
         """Queries the model and returns a lis of recommendations.

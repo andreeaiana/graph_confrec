@@ -66,6 +66,12 @@ class SupervisedModelRL:
         self.sigmoid = sigmoid
         self.identity_dim = identity_dim
         self.base_log_dir = base_log_dir
+        if base_log_dir == "../../../data/processed/graphsage_rl/":
+            self.base_log_dir = os.path.join(
+                    os.path.dirname(os.path.realpath(__file__)),
+                    "..", "..", "..", "data", "processed", "graphsage_rl")
+        else:
+            self.base_log_dir = base_log_dir
         self.validate_iter = validate_iter
         self.validate_batch_size = validate_batch_size
         self.gpu = gpu
@@ -74,7 +80,10 @@ class SupervisedModelRL:
         self.log_device_placement = log_device_placement
 
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-        os.environ["CUDA_VISIBLE_DEVICES"] = str(self.gpu)
+        if gpu is not None:
+            os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
+        else:
+            os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
         # Set random seed
         seed = 123
@@ -96,7 +105,7 @@ class SupervisedModelRL:
         return hyper_prefix
 
     def _log_dir(self, sampler_model_name):
-        log_dir = self.base_log_dir \
+        log_dir = self.base_log_dir + "/" \
                     + self.train_prefix.rsplit("/", maxsplit=1)[-2] + "-" \
                     + self._model_prefix() + "-" + sampler_model_name
         log_dir += self._hyper_prefix()
@@ -105,7 +114,7 @@ class SupervisedModelRL:
         return log_dir
 
     def _sampler_log_dir(self):
-        log_dir = self.base_log_dir + \
+        log_dir = self.base_log_dir + "/" + \
                   self.train_prefix.rsplit("/", maxsplit=1)[-2] + \
                   '-' + self._model_prefix()
         log_dir += self._hyper_prefix()
@@ -867,6 +876,7 @@ class SupervisedModelRL:
         print("Restoring trained model.")
         checkpoint_file = os.path.join(self._log_dir(sampler_name),
                                        "model.ckpt")
+        print("Checkpoint file: {}".format(checkpoint_file))
         ckpt = tf.compat.v1.train.get_checkpoint_state(checkpoint_file)
         if checkpoint_file:
             saver.restore(sess, checkpoint_file)

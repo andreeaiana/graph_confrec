@@ -52,9 +52,6 @@
             if ($("#auto").val()) {
               inputText += $("#auto").val();
             }
-			if ($("#auto_authors").val()) {
-              inputText += $("#auto_authors").val();
-            }
 			if ($("#auto_citations").val()) {
               inputText += $("#auto_citations").val();
             }
@@ -98,7 +95,7 @@
         <table class="resulttable" align="center">
           <tr>
             <th class="tablerow">Rank</th>
-            <th class="tablerow">Conferenceseries</th>
+            <th class="tablerow">Conference Series</th>
             <th class="tablerow">Confidence</th>
             <th class="tablerow"><span title="This information was crawled from WikiCFP.
               Since there is not always a match for the Scigraph series, this field is only filled if any info is available">Upcoming Date*</span></th>
@@ -116,8 +113,8 @@
               {% else %}
                 <td class="tablerow"></td>
 			  {% endif %}
-			  {% if recommendation[3] != None %}
-                <td class="tablerow">{{recommendation[3][loop.index-1]['h5_index']}}</td>
+			  {% if recommendation[3][loop.index-1] != None %}
+                <td class="tablerow">{{recommendation[3][loop.index-1]}}</td>
               {% else %}
                 <td class="tablerow"></td>
               {% endif %}

@@ -79,24 +79,3 @@ class AuthorsModel(AbstractModel):
         self.data = data.groupby(
                 ["author_name", "conferenceseries"]).count().reset_index()[
                 ["author_name", "conferenceseries", "count"]]
-
-    def get_author_names(self, term="", count=10):
-        """
-        Returns the first 'count' number of author names starting with the
-        string 'term'. If count=0, then all author names starting with 'term'
-        will be returned.
-
-        Args:
-            term (str): String the author name starts with.
-            count (int): The number of authors to return.
-
-        Returns:
-            A list of author names (strings).
-        """
-        authors = pd.Series(self.data.author_name.unique())
-        if count > 0:
-            authors = authors[authors.str.lower().str.startswith(
-                    term.lower())][:count]
-        else:
-            authors = authors[authors.str.lower().str.startswith(term.lower())]
-        return authors
