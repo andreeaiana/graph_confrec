@@ -79,7 +79,7 @@ def recommend_gnn():
 @app.route("/feedback")
 def feedback():
     model_name = request.args.get("model")
-    input_text = request.args.get("input_text")
+    input_text = request.args.get("inputText")
     recommendation = request.args.get("recommendation")
     confidence = request.args.get("confidence")
     score = request.args.get("score")
