@@ -72,6 +72,8 @@ class ARGAModel:
         else:
             self.device = "cpu"
 
+        self.embedding_type = embedding_type
+        self.dataset = dataset
         self.model_name = model_name
         self.n_latent = n_latent
         self.learning_rate = learning_rate
@@ -84,15 +86,17 @@ class ARGAModel:
         # Load training data
         path_data_raw = os.path.join(
                 os.path.dirname(os.path.realpath(__file__)), "..", "..", "..",
-                "data", "interim", "scibert_arga", embedding_type)
-        data = ARGADataset(path_data_raw, embedding_type, dataset)[0]
-        print(data)
-        n_total_features = data.num_features
+                "data", "interim", "scibert_arga", self.embedding_type)
+        self.data = ARGADataset(path_data_raw, self.embedding_type, dataset)[0]
+        n_total_features = self.data.num_features
 
         # Initialize encoder and discriminator
         encoder = Encoder(n_total_features, self.n_latent, self.model_name,
                           self.dropout)
         discriminator = Discriminator(self.n_latent)
+        if self.device is not "cpu":
+            encoder.to(self.device)
+            discriminator.to(self.device)
 
         # Choose and initialize model
         if self.model_name == "ARGA":
@@ -102,10 +106,10 @@ class ARGAModel:
             self.model = ARGVA(encoder=encoder, discriminator=discriminator,
                                decoder=None)
         if self.device is not "cpu":
-            self.model.to(torch.device("cuda:" + str(gpu)))
+            self.model.to(self.device)
 
         print("Preprocessing data...")
-        self.data = self.split_edges(data)
+        self.data = self.split_edges(self.data)
         print("Data preprocessed.\n")
         print(self.data, "\n")
 
@@ -114,11 +118,12 @@ class ARGAModel:
                 weight_decay=self.weight_decay)
 
         # Set model file
-        self.model_dir = self._model_dir(embedding_type, dataset)
+        self.model_dir = self._model_dir()
         self.model_file = f'{self.model_name}_{self.n_latent}_{self.learning_rate}_{self.weight_decay}_{self.dropout}.pt'
 
         print('Model: ' + self.model_name)
-        print("\tEmbedding: {}, Dataset: {}".format(embedding_type, dataset))
+        print("\tEmbedding: {}, Dataset: {}".format(
+                self.embedding_type, self.dataset))
         print("\tHidden units: {}".format(self.n_latent))
         print("\tLearning rate: {}".format(self.learning_rate))
         print("\tWeight decay: {}".format(self.weight_decay))
@@ -194,15 +199,17 @@ class ARGAModel:
         print("Loading model...")
         model_path = os.path.join(self.model_dir, self.model_file)
         try:
-            self.model.load_state_dict(torch.load(
-                   ))
+            self.model.load_state_dict(torch.load(model_path))
             print("Loaded.\n")
         except Exception as e:
             print("Could not load model from {} ({})".format(model_path, e))
         self.model.eval()
         print("Computing embeddings...")
+        x = data.x.to(self.device)
+        train_pos_edge_index = data.train_pos_edge_index.to(self.device)
         with torch.no_grad():
-            z = self.model.encode(self.data.x, self.data.train_pos_edge_index)
+            z = self.model.encode(x, train_pos_edge_index)
+            z = z.cpu().detach().numpy()
         print("Computed.\n")
         return z
 
@@ -254,31 +261,31 @@ class ARGAModel:
         return data
 
     def _embeddings_file(self):
-        file = f'{dataset}_{self.model_name}_embeddings_{self.n_latent}_{self.learning_rate}_{self.weight_decay}_{self.dropout}.pt'
+        file = f'{self.dataset}_{self.model_name}_embeddings_{self.n_latent}_{self.learning_rate}_{self.weight_decay}_{self.dropout}.pkl'
         path = os.path.join(
                 os.path.dirname(os.path.realpath(__file__)),
                 "..", "..", "..", "data", "interim", "scibert_arga",
                 self.embedding_type, file)
         return path
 
-    def _save_embeddings(self, embeddings):
+    def save_embeddings(self, embeddings):
         print("Saving embeddings to disk...")
         file_embeddings = self._embeddings_file()
         with open(file_embeddings, "wb") as f:
             pickle.dump(embeddings, f)
         print("Saved.")
 
-    def _load_embeddings(self):
+    def load_embeddings(self):
         file_embeddings = self._embeddings_file()
-        with open(embeddings_file, "rb") as f:
+        with open(file_embeddings, "rb") as f:
             embeddings = pickle.load(f)
         return embeddings
 
-    def _model_dir(self, embedding_type, dataset):
+    def _model_dir(self):
         model_dir = os.path.join(
                 os.path.dirname(os.path.realpath(__file__)),
                 "..", "..", "..", "data", "processed", "scibert_arga",
-                embedding_type, dataset)
+                self.embedding_type, self.dataset)
         if not os.path.exists(model_dir):
             os.makedirs(model_dir)
         return model_dir
