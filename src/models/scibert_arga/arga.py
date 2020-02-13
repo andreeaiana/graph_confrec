@@ -60,8 +60,8 @@ class Discriminator(nn.Module):
 
 
 class ARGAModel:
-    def __init__(self, embedding_type, dataset, model_name, n_latent=16,
-                 learning_rate=0.001, weight_decay=0, dropout=0,
+    def __init__(self, embedding_type, dataset, model_name, mode="train",
+                 n_latent=16, learning_rate=0.001, weight_decay=0, dropout=0,
                  dis_loss_para=1, reg_loss_para=1, epochs=200, gpu=None):
 
         # Set device
@@ -108,10 +108,10 @@ class ARGAModel:
         if self.device is not "cpu":
             self.model.to(self.device)
 
-        print("Preprocessing data...")
-        self.data = self.split_edges(self.data)
-        print("Data preprocessed.\n")
-        print(self.data, "\n")
+        if mode == "train":
+            print("Preprocessing data...")
+            self.data = self.split_edges(self.data)
+            print("Data preprocessed.\n")
 
         self.optimizer = torch.optim.Adam(
                 self.model.parameters(), lr=self.learning_rate,
@@ -195,7 +195,11 @@ class ARGAModel:
         self._print_stats(train_losses, val_losses, val_rocs, val_avg_precs,
                           training_time)
 
-    def test(self, data):
+    def test(self, test_data):
+        print("Splitting edges...")
+        data = self._split_edges_test(test_data)
+        print("Finished splitting edges.")
+
         print("Loading model...")
         model_path = os.path.join(self.model_dir, self.model_file)
         try:
@@ -203,7 +207,9 @@ class ARGAModel:
             print("Loaded.\n")
         except Exception as e:
             print("Could not load model from {} ({})".format(model_path, e))
+
         self.model.eval()
+
         print("Computing embeddings...")
         x = data.x.to(self.device)
         train_pos_edge_index = data.train_pos_edge_index.to(self.device)
@@ -211,6 +217,7 @@ class ARGAModel:
             z = self.model.encode(x, train_pos_edge_index)
             z = z.cpu().detach().numpy()
         print("Computed.\n")
+
         return z
 
     # This method implementation is based on
@@ -255,8 +262,62 @@ class ARGAModel:
         neg_adj_mask[neg_row, neg_col] = 0
         data.train_neg_adj_mask = neg_adj_mask
 
-        row, col = neg_row[:n_val], neg_col[:n_val]
+        row, col = neg_row[n_train:n_train+n_val], neg_col[
+                n_train:n_train+n_val]
         data.val_neg_edge_index = torch.stack([row, col], dim=0)
+
+        return data
+
+    def _split_edges_test(self, data):
+        assert "batch" not in data
+
+        row, col = data.edge_index
+        data.edge_index = None
+
+        # Return upper triangular portion
+        mask = row < col
+        row, col = row[mask], col[mask]
+
+        n_train = len(np.where(data.train_mask == True)[0])
+        n_val = len(np.where(data.val_mask == True)[0])
+        n_test = len(np.where(data.test_mask == True)[0])
+
+        # Positive edges
+        perm = torch.randperm(row.size(0))
+        row, col = row[perm], col[perm]
+
+        r, c = row[n_train:n_train+n_val], col[n_train:n_train+n_val]
+        data.val_pos_edge_index = torch.stack([r, c], dim=0)
+
+        r, c = row[n_train+n_val:], col[n_train+n_val:]
+        data.test_pos_edge_index = torch.stack([r, c], dim=0)
+
+        r, c = row[:n_train], col[:n_train]
+        data.train_pos_edge_index = torch.stack([r, c], dim=0)
+        data.train_pos_edge_index = to_undirected(data.train_pos_edge_index)
+
+        # Negative edges
+        num_nodes = data.num_nodes
+        neg_adj_mask = torch.ones(num_nodes, num_nodes, dtype=torch.uint8)
+        neg_adj_mask = neg_adj_mask.triu(diagonal=1).to(torch.bool)
+        neg_adj_mask[row, col] = 0
+
+        neg_row, neg_col = neg_adj_mask.nonzero().t()
+        perm = random.sample(range(neg_row.size(0)),
+                             min(n_val+n_test, neg_row.size(0)))
+        perm = torch.tensor(perm)
+        perm = perm.to(torch.long)
+        neg_row, neg_col = neg_row[perm], neg_col[perm]
+
+        neg_adj_mask[neg_row, neg_col] = 0
+        data.train_neg_adj_mask = neg_adj_mask
+
+        row, col = neg_row[n_train:n_train+n_val], neg_col[
+                n_train:n_train+n_val]
+        data.val_neg_edge_index = torch.stack([row, col], dim=0)
+
+        row, col = neg_row[n_train+n_val:], neg_col[n_train+n_val:]
+        data.test_neg_edge_index = torch.stack([row, col], dim=0)
 
         return data
 
@@ -350,6 +411,10 @@ class ARGAModel:
         parser.add_argument('model_name',
                             choices=["ARGA", "ARGVA"],
                             help="Type of model.")
+        parser.add_argument('--mode',
+                            choices=["train", "test"],
+                            default="train",
+                            help="Whether to set the net to training mode.")
         parser.add_argument("--n_latent",
                             type=int,
                             default=16,
@@ -384,9 +449,9 @@ class ARGAModel:
         print("Starting...\n")
         from arga import ARGAModel
         model = ARGAModel(args.embedding_type, args.dataset, args.model_name,
-                          args.n_latent, args.learning_rate, args.weight_decay,
-                          args.dropout, args.dis_loss_para, args.reg_loss_para,
-                          args.epochs, args.gpu)
+                          args.mode, args.n_latent, args.learning_rate,
+                          args.weight_decay, args.dropout, args.dis_loss_para,
+                          args.reg_loss_para, args.epochs, args.gpu)
         model.train()
         print("Finished.\n")
 

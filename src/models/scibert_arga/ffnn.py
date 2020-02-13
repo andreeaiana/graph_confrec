@@ -149,7 +149,7 @@ class FFNNModel:
         # Preprocessing test data
         scibert_emb = torch.FloatTensor(scibert_emb)
         arga_emb = torch.FloatTensor(arga_emb)
-        test_data = torch.cat((scibert_emb, scibert_emb), dim=1)
+        test_data = torch.cat((scibert_emb, arga_emb), dim=1)
 
         print("Loading model...")
         try:
@@ -158,13 +158,16 @@ class FFNNModel:
         except Exception as e:
             print("Could not load model from {} ({})".format(
                     self.model_path, e))
+
         self.model.eval()
+
         print("Computing predictions...")
         test_data = test_data.to(self.device)
         with torch.no_grad():
             predictions = self.model.forward(test_data)
-            predictions = z.cpu().detach().numpy()
+            predictions = predictions.cpu().detach().numpy()
         print("Computed.")
+
         return predictions
 
     def _load_training_data(self):

@@ -16,8 +16,8 @@ from arga import ARGAModel
 
 class Processor:
 
-    def __init__(self, embedding_type, dataset, arga_model_name, n_latent=16,
-                 learning_rate=0.001, weight_decay=0, dropout=0,
+    def __init__(self, embedding_type, dataset, arga_model_name, mode,
+                 n_latent=16, learning_rate=0.001, weight_decay=0, dropout=0,
                  dis_loss_para=1, reg_loss_para=1, epochs=200, gpu=None):
 
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -26,7 +26,7 @@ class Processor:
         self.embedding_type = embedding_type
         self.embeddings_parser = EmbeddingsParser(gpu)
         self.arga_model = ARGAModel(
-                self.embedding_type, dataset, arga_model_name, n_latent,
+                self.embedding_type, dataset, arga_model_name, mode, n_latent,
                 learning_rate, weight_decay, dropout, dis_loss_para,
                 reg_loss_para, epochs, gpu)
 
@@ -93,6 +93,11 @@ class Processor:
         parser.add_argument('model_name',
                             choices=["ARGA", "ARGVA"],
                             help="Type of model.")
+        parser.add_argument('--mode',
+                            choices=["train", "test"],
+                            default="train",
+                            help="Whether to set the ARGA net to " +
+                            "training mode.")
         parser.add_argument("--n_latent",
                             type=int,
                             default=16,
