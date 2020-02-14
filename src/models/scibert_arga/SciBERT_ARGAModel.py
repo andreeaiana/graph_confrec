@@ -28,28 +28,31 @@ from ffnn import FFNNModel
 
 class SciBERT_ARGAModel(AbstractModel):
 
-    def __init__(self, embedding_type, dataset, arga_model_name, n_latent=16,
-                 learning_rate=0.001, weight_decay=0, dropout=0,
-                 dis_loss_para=1, reg_loss_para=1, epochs=200, gpu=None,
-                 ffnn_hidden_dim=100):
+    def __init__(self, embedding_type, dataset, arga_model_name,
+                 graph_type="directed", n_latent=16, learning_rate=0.001,
+                 weight_decay=0, dropout=0, dis_loss_para=1, reg_loss_para=1,
+                 epochs=200, gpu=None, ffnn_hidden_dim=100, recs=10):
 
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
 
         self.embedding_type = embedding_type
         self.dataset = dataset
+        self.graph_type = graph_type
+        self.recs = recs
 
-        self.gat_preprocessor = GATProcessor(self.embedding_type, self.dataset,
-                                             "undirected", threshold=2,
-                                             gpu=gpu)
+        self.gat_preprocessor = GATProcessor(
+                self.embedding_type, self.dataset, self.graph_type,
+                threshold=2, gpu=gpu)
         self.processor = Processor(
-                self.embedding_type, self.dataset, arga_model_name, "test",
-                n_latent, learning_rate, weight_decay, dropout, dis_loss_para,
-                reg_loss_para, epochs, gpu)
-        self.ffnn_model = FFNNModel(embedding_type, dataset, arga_model_name,
-                                    n_latent, learning_rate, weight_decay,
-                                    dropout, dis_loss_para, reg_loss_para,
-                                    epochs, gpu, ffnn_hidden_dim)
+                self.embedding_type, self.dataset, self.graph_type,
+                arga_model_name, "test", n_latent, learning_rate, weight_decay,
+                dropout, dis_loss_para, reg_loss_para, epochs, gpu)
+        self.ffnn_model = FFNNModel(
+                self.embedding_type, self.dataset, self.arga_model_name,
+                self.graph_type, n_latent, learning_rate, weight_decay,
+                dropout, dis_loss_para, reg_loss_para, epochs, gpu,
+                ffnn_hidden_dim)
 
         self.training_data = self._load_training_data()
 
@@ -72,8 +75,7 @@ class SciBERT_ARGAModel(AbstractModel):
                 raise ValueError("The input does not contain enough data; " +
                                  "chapter title, chapter abstract, and " +
                                  "chapter citations are required.")
-            return self.query_batch(query)
-#            return self.query_batch([(query[0], query[1], query[2])])
+            return self.query_batch([(query[0], query[1], query[2])])
         elif self.dataset == "citations_authors_het_edges":
             if len(query) < 4:
                 raise ValueError("The input does not contain enough data; " +
@@ -197,13 +199,21 @@ class SciBERT_ARGAModel(AbstractModel):
         # Update graph with test data
         print("Updating graph information...")
         if self.dataset == "citations":
-            graph = self.gat_preprocessor._update_undirected_graph(
-                    graph, train_val_data, df_test)
+            if self.graph_type == "directed":
+                graph = self.gat_preprocessor._update_directed_graph(
+                        graph, train_val_data, df_test)
+            else:
+                graph = self._update_undirected_graph(
+                        graph, train_val_data, df_test)
         if self.dataset == "citations_authors_het_edges":
             data_authors = authors_df.groupby("author_name")["chapter"].agg(
                     list).reset_index()
-            graph = self.self.gat_preprocessor._update_heterogeneous_directed_graph(
+            if self.graph_type == "directed":
+                graph = self.gat_preprocessor._update_heterogeneous_directed_graph(
                         graph, train_val_data, df_test, data_authors)
+            else:
+                raise ValueError("Graph type incompatible. Only directed " +
+                                 "graph is suported.")
         print("Updated.")
 
         # Create feature vectors of test instances
@@ -286,7 +296,10 @@ class SciBERT_ARGAModel(AbstractModel):
                 os.path.dirname(os.path.realpath(__file__)),
                 "..", "..", "..", "data", "interim", "gat",
                 self.embedding_type, self.dataset)
-        names = ['x', 'y', 'allx', 'ally', 'graph']
+        if self.graph_type == "directed":
+            names = ['x', 'y', 'allx', 'ally', 'graph_directed']
+        else:
+            names = ['x', 'y', 'allx', 'ally', 'graph']
         objects = []
         for i in range(len(names)):
             with open(path_persistent + "/ind.{}.{}".format(

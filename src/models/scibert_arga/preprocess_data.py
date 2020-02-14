@@ -16,8 +16,9 @@ from arga import ARGAModel
 
 class Processor:
 
-    def __init__(self, embedding_type, dataset, arga_model_name, mode,
-                 n_latent=16, learning_rate=0.001, weight_decay=0, dropout=0,
+    def __init__(self, embedding_type, dataset, arga_model_name,
+                 graph_type="directed", mode="train", n_latent=16,
+                 learning_rate=0.001, weight_decay=0, dropout=0,
                  dis_loss_para=1, reg_loss_para=1, epochs=200, gpu=None):
 
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -26,9 +27,9 @@ class Processor:
         self.embedding_type = embedding_type
         self.embeddings_parser = EmbeddingsParser(gpu)
         self.arga_model = ARGAModel(
-                self.embedding_type, dataset, arga_model_name, mode, n_latent,
-                learning_rate, weight_decay, dropout, dis_loss_para,
-                reg_loss_para, epochs, gpu)
+                self.embedding_type, dataset, arga_model_name, graph_type,
+                mode, n_latent, learning_rate, weight_decay, dropout,
+                dis_loss_para, reg_loss_para, epochs, gpu)
 
         self.path_persistent = os.path.join(
                 os.path.dirname(os.path.realpath(__file__)),
@@ -90,9 +91,14 @@ class Processor:
         parser.add_argument('dataset',
                             help='Name of the object file that stores the '
                             + 'training data.')
-        parser.add_argument('model_name',
+        parser.add_argument('arga_model_name',
                             choices=["ARGA", "ARGVA"],
                             help="Type of model.")
+        parser.add_argument('--graph_type',
+                            choices=["directed", "undirected"],
+                            default="directed",
+                            help='The type of graph used ' +
+                            '(directed vs. undirected).')
         parser.add_argument('--mode',
                             choices=["train", "test"],
                             default="train",
@@ -131,10 +137,10 @@ class Processor:
         print("Starting...")
         from preprocess_data import Processor
         processor = Processor(
-                args.embedding_type, args.dataset, args.model_name,
-                args.n_latent, args.learning_rate, args.weight_decay,
-                args.dropout, args.dis_loss_para, args.reg_loss_para,
-                args.epochs, args.gpu)
+                args.embedding_type, args.dataset, args.arga_model_name,
+                args.graph_type, args.n_latent, args.learning_rate,
+                args.weight_decay, rgs.dropout, args.dis_loss_para,
+                args.reg_loss_para, args.epochs, args.gpu)
         processor.training_data_scibert()
         processor.training_data_arga()
         print("Finished.")

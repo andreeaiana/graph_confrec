@@ -17,10 +17,10 @@ from SciBERT_ARGAModel import SciBERT_ARGAModel
 
 class SciBERT_ARGAModelEvaluation:
 
-    def __init__(self, embedding_type, dataset, arga_model_name, n_latent=16,
-                 learning_rate=0.001, weight_decay=0, dropout=0,
-                 dis_loss_para=1, reg_loss_para=1, epochs=200, gpu=None,
-                 ffnn_hidden_dim=100):
+    def __init__(self, embedding_type, dataset, arga_model_name,
+                 graph_type="directed", n_latent=16, learning_rate=0.001,
+                 weight_decay=0, dropout=0, dis_loss_para=1, reg_loss_para=1,
+                 epochs=200, gpu=None, ffnn_hidden_dim=100, recs=10):
 
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
@@ -32,9 +32,9 @@ class SciBERT_ARGAModelEvaluation:
             self.d_authors = DataLoader()
 
         self.model = SciBERT_ARGAModel(
-                embedding_type, dataset, arga_model_name, n_latent,
+                embedding_type, dataset, arga_model_name, graph_type, n_latent,
                 learning_rate, weight_decay, dropout, dis_loss_para,
-                reg_loss_para, epochs, gpu, ffnn_hidden_dim)
+                reg_loss_para, epochs, gpu, ffnn_hidden_dim, recs)
 
     def evaluate(self):
         if self.dataset == "citations":
@@ -75,6 +75,11 @@ class SciBERT_ARGAModelEvaluation:
         parser.add_argument('model_name',
                             choices=["ARGA", "ARGVA"],
                             help="Type of model.")
+        parser.add_argument('--graph_type',
+                            choices=["directed", "undirected"],
+                            default="directed",
+                            help='The type of graph used ' +
+                            '(directed vs. undirected).')
         parser.add_argument("--n_latent",
                             type=int,
                             default=16,
@@ -109,14 +114,19 @@ class SciBERT_ARGAModelEvaluation:
                             default=100,
                             help="Number of units in hidden layer of the FFNN."
                             )
+        parser.add_argument('--recs',
+                            type=int,
+                            default=10,
+                            help='Number of recommendations.')
         args = parser.parse_args()
         print("Starting...")
         from SciBERT_ARGAModelEvaluation import SciBERT_ARGAModelEvaluation
         model = SciBERT_ARGAModelEvaluation(
                 args.embedding_type, args.dataset, args.model_name,
-                args.n_latent, args.learning_rate, args.weight_decay,
-                args.dropout, args.dis_loss_para, args.reg_loss_para,
-                args.epochs, args.gpu, args.ffnn_hidden_dim)
+                args.graph_type,  args.n_latent, args.learning_rate,
+                args.weight_decay, args.dropout, args.dis_loss_para,
+                args.reg_loss_para, args.epochs, args.gpu, args.ffnn_hidden_dim
+                )
         model.evaluate()
         print("Finished.")
 

@@ -60,8 +60,9 @@ class Discriminator(nn.Module):
 
 
 class ARGAModel:
-    def __init__(self, embedding_type, dataset, model_name, mode="train",
-                 n_latent=16, learning_rate=0.001, weight_decay=0, dropout=0,
+    def __init__(self, embedding_type, dataset, model_name,
+                 graph_type="directed", mode="train", n_latent=16,
+                 learning_rate=0.001, weight_decay=0, dropout=0,
                  dis_loss_para=1, reg_loss_para=1, epochs=200, gpu=None):
 
         # Set device
@@ -75,6 +76,7 @@ class ARGAModel:
         self.embedding_type = embedding_type
         self.dataset = dataset
         self.model_name = model_name
+        self.graph_type = graph_type
         self.n_latent = n_latent
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
@@ -87,7 +89,8 @@ class ARGAModel:
         path_data_raw = os.path.join(
                 os.path.dirname(os.path.realpath(__file__)), "..", "..", "..",
                 "data", "interim", "scibert_arga", self.embedding_type)
-        self.data = ARGADataset(path_data_raw, self.embedding_type, dataset)[0]
+        self.data = ARGADataset(path_data_raw, self.embedding_type, dataset,
+                                self.graph_type)[0]
         n_total_features = self.data.num_features
 
         # Initialize encoder and discriminator
@@ -122,8 +125,8 @@ class ARGAModel:
         self.model_file = f'{self.model_name}_{self.n_latent}_{self.learning_rate}_{self.weight_decay}_{self.dropout}.pt'
 
         print('Model: ' + self.model_name)
-        print("\tEmbedding: {}, Dataset: {}".format(
-                self.embedding_type, self.dataset))
+        print("\tEmbedding: {}, Dataset: {}, Graph type: {}".format(
+                self.embedding_type, self.dataset, self.graph_type))
         print("\tHidden units: {}".format(self.n_latent))
         print("\tLearning rate: {}".format(self.learning_rate))
         print("\tWeight decay: {}".format(self.weight_decay))
@@ -322,7 +325,7 @@ class ARGAModel:
         return data
 
     def _embeddings_file(self):
-        file = f'{self.dataset}_{self.model_name}_embeddings_{self.n_latent}_{self.learning_rate}_{self.weight_decay}_{self.dropout}.pkl'
+        file = f'{self.dataset}_{self.graph_type}_{self.model_name}_embeddings_{self.n_latent}_{self.learning_rate}_{self.weight_decay}_{self.dropout}.pkl'
         path = os.path.join(
                 os.path.dirname(os.path.realpath(__file__)),
                 "..", "..", "..", "data", "interim", "scibert_arga",
@@ -346,7 +349,7 @@ class ARGAModel:
         model_dir = os.path.join(
                 os.path.dirname(os.path.realpath(__file__)),
                 "..", "..", "..", "data", "processed", "scibert_arga",
-                self.embedding_type, self.dataset)
+                self.embedding_type, self.dataset, self.graph_type)
         if not os.path.exists(model_dir):
             os.makedirs(model_dir)
         return model_dir
@@ -411,6 +414,11 @@ class ARGAModel:
         parser.add_argument('model_name',
                             choices=["ARGA", "ARGVA"],
                             help="Type of model.")
+        parser.add_argument('--graph_type',
+                            choices=["directed", "undirected"],
+                            default="directed",
+                            help='The type of graph used ' +
+                            '(directed vs. undirected).')
         parser.add_argument('--mode',
                             choices=["train", "test"],
                             default="train",
@@ -449,9 +457,10 @@ class ARGAModel:
         print("Starting...\n")
         from arga import ARGAModel
         model = ARGAModel(args.embedding_type, args.dataset, args.model_name,
-                          args.mode, args.n_latent, args.learning_rate,
-                          args.weight_decay, args.dropout, args.dis_loss_para,
-                          args.reg_loss_para, args.epochs, args.gpu)
+                          args.graph_type, args.mode, args.n_latent,
+                          args.learning_rate, args.weight_decay, args.dropout,
+                          args.dis_loss_para, args.reg_loss_para, args.epochs,
+                          args.gpu)
         model.train()
         print("Finished.\n")
 

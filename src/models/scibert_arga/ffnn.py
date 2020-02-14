@@ -32,13 +32,14 @@ class FeedfowardNeuralNetwork(nn.Module):
 
 class FFNNModel:
 
-    def __init__(self, embedding_type, dataset, arga_model_name, n_latent=16,
-                 learning_rate=0.001, weight_decay=0, dropout=0,
-                 dis_loss_para=1, reg_loss_para=1, epochs=200, gpu=None,
-                 ffnn_hidden_dim=100):
+    def __init__(self, embedding_type, dataset, arga_model_name,
+                 graph_type="directed", n_latent=16, learning_rate=0.001,
+                 weight_decay=0, dropout=0, dis_loss_para=1, reg_loss_para=1,
+                 epochs=200, gpu=None, ffnn_hidden_dim=100):
 
         self.embedding_type = embedding_type
         self.dataset = dataset
+        self.graph_type = graph_type
         self.arga_model_name = arga_model_name
         self.n_latent = n_latent
         self.learning_rate = learning_rate
@@ -59,7 +60,7 @@ class FFNNModel:
         self.model_dir = os.path.join(
                 os.path.dirname(os.path.realpath(__file__)),
                 "..", "..", "..", "data", "processed", "scibert_arga",
-                self.embedding_type, self.dataset)
+                self.embedding_type, self.dataset, self.graph_type)
         if not os.path.exists(self.model_dir):
             os.makedirs(self.model_dir)
         model_file = f'SciBERT_{arga_model_name}_{n_latent}_{learning_rate}_{weight_decay}_{dropout}.pt'
@@ -219,7 +220,7 @@ class FFNNModel:
             return scibert_embeddings
 
     def _load_arga_embeddings(self):
-        filename = f'{self.dataset}_{self.arga_model_name}_embeddings_{self.n_latent}_{self.learning_rate}_{self.weight_decay}_{self.dropout}.pkl'
+        filename = f'{self.dataset}_{self.graph_type}_{self.arga_model_name}_embeddings_{self.n_latent}_{self.learning_rate}_{self.weight_decay}_{self.dropout}.pkl'
         embeddings_file = os.path.join(
                 os.path.dirname(os.path.realpath(__file__)),
                 "..", "..", "..", "data", "interim", "scibert_arga",
@@ -306,6 +307,11 @@ class FFNNModel:
         parser.add_argument('model_name',
                             choices=["ARGA", "ARGVA"],
                             help="Type of model.")
+        parser.add_argument('--graph_type',
+                            choices=["directed", "undirected"],
+                            default="directed",
+                            help='The type of graph used ' +
+                            '(directed vs. undirected).')
         parser.add_argument("--n_latent",
                             type=int,
                             default=16,
@@ -345,9 +351,10 @@ class FFNNModel:
         from ffnn import FFNNModel
         model = FFNNModel(
                 args.embedding_type, args.dataset, args.model_name,
-                args.n_latent, args.learning_rate, args.weight_decay,
-                args.dropout, args.dis_loss_para, args.reg_loss_para,
-                args.epochs, args.gpu, args.ffnn_hidden_dim)
+                args.graph_type, args.n_latent, args.learning_rate,
+                args.weight_decay, args.dropout, args.dis_loss_para,
+                args.reg_loss_para, args.epochs, args.gpu, args.ffnn_hidden_dim
+                )
         model.train()
         print("Finished.")
 
