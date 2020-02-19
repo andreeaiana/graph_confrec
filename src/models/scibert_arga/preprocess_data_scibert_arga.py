@@ -135,11 +135,11 @@ class Processor:
                             help='Which gpu to use.')
         args = parser.parse_args()
         print("Starting...")
-        from preprocess_data import Processor
+        from preprocess_data_scibert_arga import Processor
         processor = Processor(
                 args.embedding_type, args.dataset, args.arga_model_name,
-                args.graph_type, args.n_latent, args.learning_rate,
-                args.weight_decay, rgs.dropout, args.dis_loss_para,
+                args.graph_type, args.mode, args.n_latent, args.learning_rate,
+                args.weight_decay, args.dropout, args.dis_loss_para,
                 args.reg_loss_para, args.epochs, args.gpu)
         processor.training_data_scibert()
         processor.training_data_arga()

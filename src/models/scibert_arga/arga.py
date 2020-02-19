@@ -84,6 +84,7 @@ class ARGAModel:
         self.dis_loss_para = dis_loss_para
         self.reg_loss_para = reg_loss_para
         self.epochs = epochs
+        self.mode = mode
 
         # Load training data
         path_data_raw = os.path.join(
@@ -111,7 +112,7 @@ class ARGAModel:
         if self.device is not "cpu":
             self.model.to(self.device)
 
-        if mode == "train":
+        if self.mode == "train":
             print("Preprocessing data...")
             self.data = self.split_edges(self.data)
             print("Data preprocessed.\n")
@@ -136,8 +137,6 @@ class ARGAModel:
     def train(self):
         train_losses = []
         val_losses = []
-        val_rocs = []
-        val_avg_precs = []
         model_path = os.path.join(self.model_dir, self.model_file)
 
         print("Training model...\n")
@@ -177,31 +176,26 @@ class ARGAModel:
                             )
                 val_loss += self.dis_loss_para * self.model.discriminator_loss(
                         z) + self.reg_loss_para * self.model.reg_loss(z)
-
-                val_roc, val_avg_prec = self.model.test(
-                        z, val_pos_edge_index, val_neg_edge_index)
-                val_rocs.append(val_roc)
-                val_avg_precs.append(val_avg_prec)
                 val_losses.append(val_loss.cpu().detach().numpy())
                 if val_losses[-1] == min(val_losses):
                     print("\tSaving model...")
                     torch.save(self.model.state_dict(), model_path)
                     print("\tSaved.")
                 print("\ttrain_loss=", "{:.5f}".format(loss),
-                      "val_loss=", "{:.5f}".format(val_loss),
-                      "val_roc=", "{:.5f}".format(val_roc),
-                      "val_avg_prec=", "{:.5f}".format(val_avg_prec))
+                      "val_loss=", "{:.5f}".format(val_loss))
 
         print("Finished training.\n")
         training_time = timer.toc()
         self._plot_losses(train_losses, val_losses)
-        self._print_stats(train_losses, val_losses, val_rocs, val_avg_precs,
-                          training_time)
+        self._print_stats(train_losses, val_losses, training_time)
 
     def test(self, test_data):
-        print("Splitting edges...")
-        data = self._split_edges_test(test_data)
-        print("Finished splitting edges.")
+        if self.mode == "test":
+            print("Splitting edges...")
+            data = self._split_edges_test(test_data)
+            print("Finished splitting edges.")
+        else:
+            data = test_data
 
         print("Loading model...")
         model_path = os.path.join(self.model_dir, self.model_file)
@@ -223,6 +217,12 @@ class ARGAModel:
 
         return z
 
+    def _filter_labels(self, data, labels):
+        mapping = torch.ones(data.size()).byte()
+        for label in labels:
+            mapping = mapping & (~ data.eq(label)).byte()
+        return mapping
+
     # This method implementation is based on
     # https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/nn/models/autoencoder.html#split_edges
     def split_edges(self, data):
@@ -238,14 +238,26 @@ class ARGAModel:
         n_train = len(np.where(data.train_mask == True)[0])
         n_val = len(np.where(data.val_mask == True)[0])
 
+        train_labels_mask = range(n_train)
+        val_labels_mask = range(n_train, n_train + n_val)
+
         # Positive edges
         perm = torch.randperm(row.size(0))
         row, col = row[perm], col[perm]
 
-        r, c = row[n_train:n_train+n_val], col[n_train:n_train+n_val]
+        row_map = self._filter_labels(row, val_labels_mask)
+        col_map = self._filter_labels(col, val_labels_mask)
+        map_intersection = row_map * col_map
+        r = row[map_intersection]
+        c = col[map_intersection]
         data.val_pos_edge_index = torch.stack([r, c], dim=0)
 
-        r, c = row[:n_train], col[:n_train]
+        row_map = self._filter_labels(row, train_labels_mask)
+        col_map = self._filter_labels(col, train_labels_mask)
+        map_intersection = row_map * col_map
+        r = row[map_intersection]
+        c = col[map_intersection]
+
         data.train_pos_edge_index = torch.stack([r, c], dim=0)
         data.train_pos_edge_index = to_undirected(data.train_pos_edge_index)
 
@@ -258,6 +270,7 @@ class ARGAModel:
         neg_row, neg_col = neg_adj_mask.nonzero().t()
         perm = random.sample(range(neg_row.size(0)),
                              min(n_val, neg_row.size(0)))
+
         perm = torch.tensor(perm)
         perm = perm.to(torch.long)
         neg_row, neg_col = neg_row[perm], neg_col[perm]
@@ -265,8 +278,11 @@ class ARGAModel:
         neg_adj_mask[neg_row, neg_col] = 0
         data.train_neg_adj_mask = neg_adj_mask
 
-        row, col = neg_row[n_train:n_train+n_val], neg_col[
-                n_train:n_train+n_val]
+        neg_row_map = self._filter_labels(neg_row, val_labels_mask)
+        neg_col_map = self._filter_labels(neg_col, val_labels_mask)
+        map_intersection = neg_row_map * neg_col_map
+        row = neg_row_map[map_intersection]
+        col = neg_col_map[map_intersection]
         data.val_neg_edge_index = torch.stack([row, col], dim=0)
 
         return data
@@ -279,23 +295,41 @@ class ARGAModel:
 
         # Return upper triangular portion
         mask = row < col
+        if len(np.where(mask == True)[0]) == 0:
+            mask = col < row
         row, col = row[mask], col[mask]
 
         n_train = len(np.where(data.train_mask == True)[0])
         n_val = len(np.where(data.val_mask == True)[0])
         n_test = len(np.where(data.test_mask == True)[0])
 
+        train_labels_mask = range(n_train)
+        val_labels_mask = range(n_train, n_train + n_val)
+        test_labels_mask = range(n_train + n_val, n_train + n_val + n_test)
+
         # Positive edges
         perm = torch.randperm(row.size(0))
         row, col = row[perm], col[perm]
 
-        r, c = row[n_train:n_train+n_val], col[n_train:n_train+n_val]
+        row_map = self._filter_labels(row, val_labels_mask)
+        col_map = self._filter_labels(col, val_labels_mask)
+        map_intersection = row_map * col_map
+        r = row[map_intersection]
+        c = col[map_intersection]
         data.val_pos_edge_index = torch.stack([r, c], dim=0)
 
-        r, c = row[n_train+n_val:], col[n_train+n_val:]
+        row_map = self._filter_labels(row, test_labels_mask)
+        col_map = self._filter_labels(col, test_labels_mask)
+        map_intersection = row_map * col_map
+        r = row[map_intersection]
+        c = col[map_intersection]
         data.test_pos_edge_index = torch.stack([r, c], dim=0)
 
-        r, c = row[:n_train], col[:n_train]
+        row_map = self._filter_labels(row, train_labels_mask)
+        col_map = self._filter_labels(col, train_labels_mask)
+        map_intersection = row_map * col_map
+        r = row[map_intersection]
+        c = col[map_intersection]
         data.train_pos_edge_index = torch.stack([r, c], dim=0)
         data.train_pos_edge_index = to_undirected(data.train_pos_edge_index)
 
@@ -315,11 +349,18 @@ class ARGAModel:
         neg_adj_mask[neg_row, neg_col] = 0
         data.train_neg_adj_mask = neg_adj_mask
 
-        row, col = neg_row[n_train:n_train+n_val], neg_col[
-                n_train:n_train+n_val]
+        neg_row_map = self._filter_labels(neg_row, val_labels_mask)
+        neg_col_map = self._filter_labels(neg_col, val_labels_mask)
+        map_intersection = neg_row_map * neg_col_map
+        row = neg_row_map[map_intersection]
+        col = neg_col_map[map_intersection]
         data.val_neg_edge_index = torch.stack([row, col], dim=0)
 
-        row, col = neg_row[n_train+n_val:], neg_col[n_train+n_val:]
+        neg_row_map = self._filter_labels(neg_row, test_labels_mask)
+        neg_col_map = self._filter_labels(neg_col, test_labels_mask)
+        map_intersection = neg_row_map * neg_col_map
+        row = neg_row_map[map_intersection]
+        col = neg_col_map[map_intersection]
         data.test_neg_edge_index = torch.stack([row, col], dim=0)
 
         return data
@@ -368,14 +409,10 @@ class ARGAModel:
         plt.savefig(os.path.join(self.model_dir, "losses.png"),
                     bbox_inches="tight")
 
-    def _print_stats(self, train_losses, validation_losses,
-                     validation_rocs, validation_avg_precs, training_time):
+    def _print_stats(self, train_losses, validation_losses, training_time):
         epochs = len(train_losses)
         time_per_epoch = training_time/epochs
         epoch_min_val = validation_losses.index(min(validation_losses))
-        epoch_max_roc = validation_rocs.index(max(validation_rocs))
-        epoch_max_avg_prec = validation_avg_precs.index(max(
-                validation_avg_precs))
 
         stats_file = os.path.join(self.model_dir, "stats.txt")
         with open(stats_file, "w") as f:
@@ -385,15 +422,10 @@ class ARGAModel:
                     round(training_time/60, 4)), f)
             self._print("Lowest validation loss at epoch {} = {}.\n".format(
                     epoch_min_val, validation_losses[epoch_min_val]), f)
-            self._print("Highest validation ROC at epoch {} = {}.\n".format(
-                    epoch_max_roc, validation_rocs[epoch_max_roc]), f)
-            self._print("Highest average precision score at epoch {} = {}.\n".format(
-                    epoch_max_avg_prec, validation_avg_precs[epoch_max_avg_prec]), f)
             f.write("\n\n")
             for epoch in range(epochs):
-                f.write('Epoch: %.f | Training: loss = %.5f | Val: loss = %.5f, roc = %.5f, avg_prec = %.5f\n' %
-                        (epoch, train_losses[epoch], validation_losses[epoch],
-                         validation_rocs[epoch], validation_avg_precs[epoch]))
+                f.write('Epoch: %.f | Training: loss = %.5f | Val: loss = %.5f\n' %
+                        (epoch, train_losses[epoch], validation_losses[epoch]))
 
     def _print(self, text, f):
         print(text)

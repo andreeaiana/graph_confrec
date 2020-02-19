@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "data"))
 sys.path.insert(0, os.path.join(os.getcwd(), "..", "..", "utils"))
 from TimerCounter import Timer
 from AbstractClasses import AbstractModel
-from preprocess_data import Processor
+from preprocess_data_scibert_arga import Processor
 from gat_preprocess_data import Processor as GATProcessor
 from DataLoader import DataLoader
 from ffnn import FFNNModel
@@ -45,11 +45,11 @@ class SciBERT_ARGAModel(AbstractModel):
                 self.embedding_type, self.dataset, self.graph_type,
                 threshold=2, gpu=gpu)
         self.processor = Processor(
-                self.embedding_type, self.dataset, self.graph_type,
-                arga_model_name, "test", n_latent, learning_rate, weight_decay,
+                self.embedding_type, self.dataset, arga_model_name,
+                self.graph_type, "test", n_latent, learning_rate, weight_decay,
                 dropout, dis_loss_para, reg_loss_para, epochs, gpu)
         self.ffnn_model = FFNNModel(
-                self.embedding_type, self.dataset, self.arga_model_name,
+                self.embedding_type, self.dataset, arga_model_name,
                 self.graph_type, n_latent, learning_rate, weight_decay,
                 dropout, dis_loss_para, reg_loss_para, epochs, gpu,
                 ffnn_hidden_dim)
@@ -140,7 +140,7 @@ class SciBERT_ARGAModel(AbstractModel):
             raise ValueError("Dataset not recognised.")
 
         # Preprocess data
-        test_data = self._preprocess_test_data(df_test)
+        test_data = self._preprocess_test_data(df_test, authors_df)
         allx = test_data[2]
         arga_test_data = self._create_arga_test_dataset(test_data)[0]
 
@@ -171,7 +171,7 @@ class SciBERT_ARGAModel(AbstractModel):
         results = [conferences, confidences]
         return results
 
-    def _preprocess_test_data(self, df_test):
+    def _preprocess_test_data(self, df_test, authors_df):
         # Load training data in GAT format
         x, y, allx, ally, graph = self.training_data
 
@@ -203,7 +203,7 @@ class SciBERT_ARGAModel(AbstractModel):
                 graph = self.gat_preprocessor._update_directed_graph(
                         graph, train_val_data, df_test)
             else:
-                graph = self._update_undirected_graph(
+                graph = self.gat_preprocessor._update_undirected_graph(
                         graph, train_val_data, df_test)
         if self.dataset == "citations_authors_het_edges":
             data_authors = authors_df.groupby("author_name")["chapter"].agg(
