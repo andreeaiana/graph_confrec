@@ -85,7 +85,7 @@
       });
 
       $("#recommend-gnn").click(function(){
-        console.log("Getting recommendations");
+        console.log("Getting recommendations.");
         $("#results").empty().text("Getting recommendations")
         $.ajax({
           url:"http://localhost:8080/recommend_gnn",
