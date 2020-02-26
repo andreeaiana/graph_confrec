@@ -55,7 +55,12 @@ class SupervisedModel:
         self.batch_size = batch_size
         self.sigmoid = sigmoid
         self.identity_dim = identity_dim
-        self.base_log_dir = base_log_dir
+        if base_log_dir == "../../../data/processed/graphsage/":
+            self.base_log_dir = os.path.join(
+                    os.path.dirname(os.path.realpath(__file__)),
+                    "..", "..", "..", "data", "processed", "graphsage")
+        else:
+            self.base_log_dir = base_log_dir
         self.validate_iter = validate_iter
         self.validate_batch_size = validate_batch_size
         self.gpu = gpu
