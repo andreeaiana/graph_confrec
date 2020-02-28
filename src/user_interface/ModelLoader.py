@@ -14,13 +14,14 @@ sys.path.insert(0, os.path.join(os.getcwd(), "..", "models", "gat"))
 from GATModel import GATModel
 sys.path.insert(0, os.path.join(os.getcwd(), "..", "models", "han"))
 from HANModel import HANModel
-sys.path.insert(0, os.path.join(os.getcwd(), "..", "models", "graphsage_rl"))
-from GraphSAGERLModel import GraphSAGERLModel
+sys.path.insert(0, os.path.join(os.getcwd(), "..", "models", "scibert_arga"))
+from SciBERT_ARGAModel import SciBERT_ARGAModel
 
 
 class ModelLoader():
 
     def __init__(self):
+        os.environ["CUDA_VISIBLE_DEVICES"] = ""
         self.models = []
         print("Preparing models.")
         authors_file = os.path.join(os.path.dirname(
@@ -51,21 +52,13 @@ class ModelLoader():
                 recs=10)
         self.models.append("heterogeneous-graph-attention-network")
 
-        self.model_graphsage_rl = GraphSAGERLModel(
-                embedding_type="SUM_L",
-                graph_type="citations_authors_het_edges",
-                train_prefix="SUM_L/citations_authors_het_edges/train_val",
-                model_name="mean_concat", nonlinear_sampler=True,
-                fast_ver=True, allhop_rewards=True, model_size="small",
-                learning_rate=0.001, epochs=10, dropout=0.0, weight_decay=0.0,
-                max_degree=100, samples_1=25, samples_2=10, samples_3=0,
-                dim_1=512, dim_2=512, dim_3=0, batch_size=128, sigmoid=False,
-                identity_dim=0,
-                base_log_dir='../../../data/processed/graphsage_rl/',
-                validate_iter=5000, validate_batch_size=128, gpu=None,
-                print_every=5, max_total_steps=10**10,
-                log_device_placement=False, recs=10, threshold=2)
-        self.models.append("graphsage-reinforcement-learning")
+        self.model_scibert_arga = SciBERT_ARGAModel(
+                embedding_type="AVG_2L", dataset="citations",
+                arga_model_name="ARGVA", graph_type="directed", n_latent=16,
+                learning_rate=0.001, weight_decay=0, dropout=0,
+                dis_loss_para=1, reg_loss_para=1, epochs=200, gpu=None,
+                ffnn_hidden_dim=500, recs=10)
+        self.models.append("scibert_arga")
 
         data_file = os.path.join(os.path.dirname(
                 os.path.realpath(__file__)), "data", "data.pkl")
@@ -99,24 +92,34 @@ class ModelLoader():
         for name in data:
             names.append(name.lower())
         recommendation = self.model_authors.query_single(names)
+        if len(recommendation[0]) == 1 and recommendation[0][0] is None:
+            return False
         return self._get_series_name(recommendation)
 
-    def query_gnn(self, model_name, title, abstract, citations, authors):
+    def query_gnn_citations(self, model_name, title, abstract, citations):
+        print("Querying model: {}".format(model_name))
+        if model_name == "scibert_arga":
+            citations = self._get_citation_id(citations)
+            recommendation = self.model_scibert_arga.query_single(
+                    [title, abstract, citations])
+            return self._get_series_name(recommendation)
+        else:
+            print("Model not found. Please select a different model.")
+            return False
+
+    def query_gnn_heterogeneous(self, model_name, title, abstract, citations,
+                                authors):
         print("Querying model: {}".format(model_name))
         if model_name == "graph-attention-network":
-            print("Authors: {}".format(authors))
+            tf.compat.v1.enable_eager_execution()
             citations = self._get_citation_id(citations)
             recommendation = self.model_gat.query_single(
                     [title, abstract, citations, authors])
             return self._get_series_name(recommendation)
         elif model_name == "heterogeneous-graph-attention-network":
+            tf.compat.v1.enable_eager_execution()
             citations = self._get_citation_id(citations)
             recommendation = self.model_han.query_single(
-                    [title, abstract, citations, authors])
-            return self._get_series_name(recommendation)
-        elif model_name == "graphsage-reinforcement-learning":
-            citations = self._get_citation_id(citations)
-            recommendation = self.model_graphsage_rl.query_single(
                     [title, abstract, citations, authors])
             return self._get_series_name(recommendation)
         else:

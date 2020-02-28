@@ -75,7 +75,7 @@ class SciBERT_ARGAModel(AbstractModel):
                 raise ValueError("The input does not contain enough data; " +
                                  "chapter title, chapter abstract, and " +
                                  "chapter citations are required.")
-            return self.query_batch([(query[0], query[1], query[2])])
+            return self.query_batch([query[0], query[1], query[2]])
         elif self.dataset == "citations_authors_het_edges":
             if len(query) < 4:
                 raise ValueError("The input does not contain enough data; " +
