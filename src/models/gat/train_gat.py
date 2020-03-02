@@ -36,6 +36,7 @@ class GATModelTraining:
                  residual=False, nonlinearity=tf.nn.elu, sparse=False,
                  ffd_drop=0.5, attn_drop=0.5, gpu=None):
 
+        tf.compat.v1.enable_eager_execution()
         print("Initiating, using gpu {}.\n".format(gpu))
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         if gpu is not None:

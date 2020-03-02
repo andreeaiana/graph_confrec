@@ -14,8 +14,6 @@ sys.path.insert(0, os.path.join(os.getcwd(), "..", "models", "gat"))
 from GATModel import GATModel
 sys.path.insert(0, os.path.join(os.getcwd(), "..", "models", "han"))
 from HANModel import HANModel
-sys.path.insert(0, os.path.join(os.getcwd(), "..", "models", "scibert_arga"))
-from SciBERT_ARGAModel import SciBERT_ARGAModel
 
 
 class ModelLoader():
@@ -51,14 +49,6 @@ class ModelLoader():
                 nonlinearity=tf.nn.elu, ffd_drop=0.5, attn_drop=0.5, gpu=0,
                 recs=10)
         self.models.append("heterogeneous-graph-attention-network")
-
-        self.model_scibert_arga = SciBERT_ARGAModel(
-                embedding_type="AVG_2L", dataset="citations",
-                arga_model_name="ARGVA", graph_type="directed", n_latent=16,
-                learning_rate=0.001, weight_decay=0, dropout=0,
-                dis_loss_para=1, reg_loss_para=1, epochs=200, gpu=None,
-                ffnn_hidden_dim=500, recs=10)
-        self.models.append("scibert_arga")
 
         data_file = os.path.join(os.path.dirname(
                 os.path.realpath(__file__)), "data", "data.pkl")
@@ -96,19 +86,7 @@ class ModelLoader():
             return False
         return self._get_series_name(recommendation)
 
-    def query_gnn_citations(self, model_name, title, abstract, citations):
-        print("Querying model: {}".format(model_name))
-        if model_name == "scibert_arga":
-            citations = self._get_citation_id(citations)
-            recommendation = self.model_scibert_arga.query_single(
-                    [title, abstract, citations])
-            return self._get_series_name(recommendation)
-        else:
-            print("Model not found. Please select a different model.")
-            return False
-
-    def query_gnn_heterogeneous(self, model_name, title, abstract, citations,
-                                authors):
+    def query_gnn(self, model_name, title, abstract, citations, authors):
         print("Querying model: {}".format(model_name))
         if model_name == "graph-attention-network":
             tf.compat.v1.enable_eager_execution()

@@ -90,6 +90,7 @@ class SupervisedModelRL:
         np.random.seed(seed)
         tf.compat.v1.set_random_seed(seed)
         tf.compat.v1.disable_eager_execution()
+        print("GraphSAGERL Model intialized.")
 
     def _model_prefix(self):
         model_prefix = 'f' + str(self.dim_1) + '_' + str(self.dim_2) + '_' + \
@@ -821,6 +822,7 @@ class SupervisedModelRL:
 
     def inference(self, test_data, sampler_name):
         print("Inference...")
+        tf.compat.v1.reset_default_graph()
         timer = Timer()
         timer.tic()
 
@@ -920,6 +922,7 @@ class SupervisedModelRL:
         test_preds = val_preds[[test_preds_ids[id] for id in test_nodes]]
         timer.toc()
         sess.close()
+
         return test_nodes, test_preds
 
     def _sampler_model_path(self):

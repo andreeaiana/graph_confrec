@@ -44,10 +44,8 @@ def set_model():
     print("model_name")
     if model_name == "authors":
         model_type = "authors"
-    elif model_name == "scibert_arga":
-        model_type = "gnn_citations"
     else:
-        model_type = "gnn_heterogeneous"
+        model_type = "gnn"
     return render_template("input.html", model_type=model_type)
 
 
@@ -64,29 +62,15 @@ def recommend_auto():
                            feedback_enabled=True)
 
 
-@app.route("/recommend_gnn_citations")
-def recommend_gnn_citations():
-    model_name = request.args.get("model")
-    title = request.args.get("title")
-    abstract = request.args.get("abstract")
-    citations = request.args.get("citations").split("; ")
-    print(title, abstract, citations)
-    recommendation = model_loader.query_gnn_citations(
-            model_name, title, abstract, citations)
-    print(recommendation[0], recommendation[1])
-    return render_template("result.html", recommendation=recommendation,
-                           feedback_enabled=True)
-
-
-@app.route("/recommend_gnn_heterogeneous")
-def recommend_gnn_heterogeneous():
+@app.route("/recommend_gnn")
+def recommend_gnn():
     model_name = request.args.get("model")
     title = request.args.get("title")
     abstract = request.args.get("abstract")
     citations = request.args.get("citations").split("; ")
     authors = request.args.get("authors").split("; ")
     print(title, abstract, citations, authors)
-    recommendation = model_loader.query_gnn_heterogeneous(
+    recommendation = model_loader.query_gnn(
             model_name, title, abstract, citations, authors)
     print(recommendation[0], recommendation[1])
     return render_template("result.html", recommendation=recommendation,
