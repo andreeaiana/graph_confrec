@@ -34,13 +34,22 @@ class ModelLoader():
         self.models.append("authors")
 
         self.model_gat = GATModel(
-                embedding_type="SUM_2L", dataset="citations_authors_het_edges",
+                embedding_type="AVG_L", dataset="citations",
                 graph_type="directed", hid_units=[64], n_heads=[8, 1],
                 learning_rate=0.005, weight_decay=0, epochs=100000,
                 batch_size=1, patience=100, residual=True,
                 nonlinearity=tf.nn.elu, sparse=True, ffd_drop=0.5,
                 attn_drop=0.5, gpu=0, recs=10, threshold=2)
         self.models.append("graph-attention-network")
+
+        self.model_gat_het = GATModel(
+                embedding_type="SUM_2L", dataset="citations_authors_het_edges",
+                graph_type="directed", hid_units=[64], n_heads=[8, 1],
+                learning_rate=0.005, weight_decay=0, epochs=100000,
+                batch_size=1, patience=100, residual=True,
+                nonlinearity=tf.nn.elu, sparse=True, ffd_drop=0.5,
+                attn_drop=0.5, gpu=0, recs=10, threshold=2)
+        self.models.append("graph-attention-network-with-authors")
 
         self.model_han = HANModel(
                 model="HeteGAT_multi", embedding_type="AVG_L", hid_units=[128],
@@ -86,18 +95,28 @@ class ModelLoader():
             return False
         return self._get_series_name(recommendation)
 
-    def query_gnn(self, model_name, title, abstract, citations, authors):
+    def query_gnn_citations(self, model_name, title, abstract, citations):
         print("Querying model: {}".format(model_name))
         if model_name == "graph-attention-network":
-            tf.compat.v1.enable_eager_execution()
             citations = self._get_citation_id(citations)
             recommendation = self.model_gat.query_single(
-                    [title, abstract, citations, authors])
+                    [title, abstract, citations])
             return self._get_series_name(recommendation)
-        elif model_name == "heterogeneous-graph-attention-network":
-            tf.compat.v1.enable_eager_execution()
+        else:
+            print("Model not found. Please select a different model.")
+            return False
+
+    def query_gnn_heterogeneous(self, model_name, title, abstract, citations,
+                                authors):
+        print("Querying model: {}".format(model_name))
+        if model_name == "heterogeneous-graph-attention-network":
             citations = self._get_citation_id(citations)
             recommendation = self.model_han.query_single(
+                    [title, abstract, citations, authors])
+            return self._get_series_name(recommendation)
+        elif model_name == "graph-attention-network-with-authors":
+            citations = self._get_citation_id(citations)
+            recommendation = self.model_gat_het.query_single(
                     [title, abstract, citations, authors])
             return self._get_series_name(recommendation)
         else:

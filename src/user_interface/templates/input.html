@@ -83,12 +83,27 @@
           $("#results").empty().text("Server error, please try again later!")
         })
       });
-
-      $("#recommend-gnn").click(function(){
+	  
+	  $("#recommend-gnn-citations").click(function(){
         console.log("Getting recommendations...");
         $("#results").empty().text("Getting recommendations. This might take a few minutes...")
         $.ajax({
-          url:"http://localhost:8080/recommend_gnn",
+          url:"http://localhost:8080/recommend_gnn_citations",
+          data:{"model":$("#models").val(), "title":$("#title").val(), "abstract":$("#abstract").val(), "citations":$("#auto_citations").val()}
+        }).done(function(data){
+          $("#results").html(data);
+        }).fail(function() {
+          console.error( "Server error" );
+          $("#results").empty().text("Server error, please try again later!")
+        })
+      });
+
+
+      $("#recommend-gnn-heterogeneous").click(function(){
+        console.log("Getting recommendations...");
+        $("#results").empty().text("Getting recommendations. This might take a few minutes...")
+        $.ajax({
+          url:"http://localhost:8080/recommend_gnn_heterogeneous",
           data:{"model":$("#models").val(), "title":$("#title").val(), "abstract":$("#abstract").val(), "citations":$("#auto_citations").val(), "authors":$("#auto").val()}
         }).done(function(data){
           $("#results").html(data);
@@ -111,13 +126,21 @@
   </head>
   <body>
     <div class="input-div">
-      {% if model_type =="gnn" %}
+      {% if model_type =="gnn_heterogeneous" %}
 		<textarea class="input" id="title" rows="4" placeholder="Please insert your title here"/>
 		<textarea class="input" id="abstract" rows="4" placeholder="Please insert your abstract here"/>
 		<input class="input" multiple placeholder="Citation(s)" id="auto_citations"/>
 		<input class="input" style="margin-bottom: 1em;" multiple placeholder="Author(s) Name(s)" id="auto"/>
         <div class="button-div">
-          <button class="button-style" type="button" id="recommend-gnn">Recommend</button>
+          <button class="button-style" type="button" id="recommend-gnn-heterogeneous">Recommend</button>
+          <button class="button-style" type="button" id="clear">Clear</button>
+        </div>
+	  {% elif model_type =="gnn_citations" %}
+		<textarea class="input" id="title" rows="4" placeholder="Please insert your title here"/>
+		<textarea class="input" id="abstract" rows="4" placeholder="Please insert your abstract here"/>
+		<input class="input" multiple placeholder="Citation(s)" id="auto_citations"/>
+		<div class="button-div">
+          <button class="button-style" type="button" id="recommend-gnn-citations">Recommend</button>
           <button class="button-style" type="button" id="clear">Clear</button>
         </div>
       {% else %}

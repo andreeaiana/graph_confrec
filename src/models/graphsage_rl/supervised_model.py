@@ -90,7 +90,6 @@ class SupervisedModelRL:
         np.random.seed(seed)
         tf.compat.v1.set_random_seed(seed)
         tf.compat.v1.disable_eager_execution()
-        print("GraphSAGERL Model intialized.")
 
     def _model_prefix(self):
         model_prefix = 'f' + str(self.dim_1) + '_' + str(self.dim_2) + '_' + \
