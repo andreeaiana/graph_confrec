@@ -13,7 +13,7 @@
 					 select: function( event, ui ) {
 						 console.log("Selected a model")
 						 $.ajax({
-							 url:"http://localhost:8080/set_model",
+							 url:"http://westpoort.informatik.uni-mannheim.de:80/set_model",
 							 data:{"model":ui.item.value}
 						   }).done( function(response){
 								 console.log("Call successful")

@@ -67,7 +67,7 @@
         $("#send").click(function(){
           console.log("Sending feedback");
           $.ajax({
-            url:"http://localhost:8080/feedback",
+            url:"http://westpoort.informatik.uni-mannheim.de:80/feedback",
             data:{
               "inputText": getInput(),
               "model":$("#models").val(),

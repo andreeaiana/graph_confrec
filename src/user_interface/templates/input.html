@@ -24,7 +24,7 @@
         })
         .autocomplete({
           source: function( request, response ) {
-            $.getJSON( "http://localhost:8080/auto", {
+            $.getJSON( "http://westpoort.informatik.uni-mannheim.de:80/auto", {
               model: $("#models").val(),
               term: extractLast( request.term )
             }, response );
@@ -51,7 +51,7 @@
         })
         .autocomplete({
           source: function( request, response ) {
-            $.getJSON( "http://localhost:8080/auto_citations", {
+            $.getJSON( "http://westpoort.informatik.uni-mannheim.de:80/auto_citations", {
               model: $("#models").val(),
               term: extractLast( request.term )
             }, response );
@@ -74,7 +74,7 @@
         console.log("Getting recommendations...");
         $("#results").empty().text("Getting recommendations...")
         $.ajax({
-          url:"http://localhost:8080/recommend_auto",
+          url:"http://westpoort.informatik.uni-mannheim.de:80/recommend_auto",
           data:{"data":$("#auto").val(), "model":$("#models").val()}
         }).done(function(data){
           $("#results").html(data);
@@ -88,7 +88,7 @@
         console.log("Getting recommendations...");
         $("#results").empty().text("Getting recommendations. This might take a few minutes...")
         $.ajax({
-          url:"http://localhost:8080/recommend_gnn_citations",
+          url:"http://westpoort.informatik.uni-mannheim.de:80/recommend_gnn_citations",
           data:{"model":$("#models").val(), "title":$("#title").val(), "abstract":$("#abstract").val(), "citations":$("#auto_citations").val()}
         }).done(function(data){
           $("#results").html(data);
@@ -103,7 +103,7 @@
         console.log("Getting recommendations...");
         $("#results").empty().text("Getting recommendations. This might take a few minutes...")
         $.ajax({
-          url:"http://localhost:8080/recommend_gnn_heterogeneous",
+          url:"http://westpoort.informatik.uni-mannheim.de:80/recommend_gnn_heterogeneous",
           data:{"model":$("#models").val(), "title":$("#title").val(), "abstract":$("#abstract").val(), "citations":$("#auto_citations").val(), "authors":$("#auto").val()}
         }).done(function(data){
           $("#results").html(data);
