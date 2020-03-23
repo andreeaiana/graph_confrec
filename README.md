@@ -1,4 +1,3 @@
 # graph_confrec
 
-Conference recommender system based on graph neural networks
-(Master thesis at Uni Mannheim, October 2019 - March 2020)
+The source code for the paper "GraphConfRec: A Graph Neural Network Approach to Generating Conference Recommendations"
