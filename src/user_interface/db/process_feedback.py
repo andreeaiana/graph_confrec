@@ -34,6 +34,11 @@ class FeedbackProcessor:
                     citations = np.NaN
                     abstract = np.NaN
                     title = np.NaN
+                elif model == "graph-attention-network":
+                    authors = np.NaN
+                    citations = self._get_citations(line.input_text)
+                    abstract = self._get_abstract(line.input_text)
+                    title = self._get_title(line.input_text)
                 else:
                     authors = self._get_authors(line.input_text)
                     citations = self._get_citations(line.input_text)
@@ -64,9 +69,16 @@ class FeedbackProcessor:
         return confidences
 
     def _get_authors(self, line):
-        authors = line.split("Authors: ")[-1].split("Citations: ")[0].split(
-                "; ")
-        authors = [author for author in authors if author is not ""]
+        if "Authors: " in line:
+            if "Citations: " in line:
+                authors = line.split("Authors: ")[-1].split("Citations: ")[
+                        0].split("; ")
+            else:
+                authors = line.split("Authors: ")[-1].split("Abstract: ")[
+                        0].split("; ")
+            authors = [author for author in authors if author is not ""]
+        else:
+            authors = np.NaN
         return authors
 
     def _get_citations(self, line):

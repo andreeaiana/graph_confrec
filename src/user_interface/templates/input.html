@@ -127,25 +127,25 @@
   <body>
     <div class="input-div">
       {% if model_type =="gnn_heterogeneous" %}
-		<textarea class="input" id="title" rows="4" placeholder="Please insert your title here"/>
-		<textarea class="input" id="abstract" rows="4" placeholder="Please insert your abstract here"/>
-		<input class="input" multiple placeholder="Citation(s)" id="auto_citations"/>
-		<input class="input" style="margin-bottom: 1em;" multiple placeholder="Author(s) Name(s)" id="auto"/>
+		<textarea class="input" id="title" rows="4" placeholder="Please insert your title here (mandatory field)"/>
+		<textarea class="input" id="abstract" rows="4" placeholder="Please insert your abstract here (mandatory field)"/>
+		<input class="input" multiple placeholder="Citation(s) (i.e. title of the cited paper)" id="auto_citations"/>
+		<input class="input" style="margin-bottom: 1em;" multiple placeholder="Author(s) Name(s) (format required: last name first name)" id="auto"/>
         <div class="button-div">
           <button class="button-style" type="button" id="recommend-gnn-heterogeneous">Recommend</button>
           <button class="button-style" type="button" id="clear">Clear</button>
         </div>
 	  {% elif model_type =="gnn_citations" %}
-		<textarea class="input" id="title" rows="4" placeholder="Please insert your title here"/>
-		<textarea class="input" id="abstract" rows="4" placeholder="Please insert your abstract here"/>
-		<input class="input" multiple placeholder="Citation(s)" id="auto_citations"/>
+		<textarea class="input" id="title" rows="4" placeholder="Please insert your title here (mandatory field)"/>
+		<textarea class="input" id="abstract" rows="4" placeholder="Please insert your abstract here (mandatory field)"/>
+		<input class="input" multiple placeholder="Citation(s) (i.e. title of the cited paper)" id="auto_citations"/>
 		<div class="button-div">
           <button class="button-style" type="button" id="recommend-gnn-citations">Recommend</button>
           <button class="button-style" type="button" id="clear">Clear</button>
         </div>
       {% else %}
         {% if model_type=="authors" %}
-          <input class="input" multiple placeholder="Author(s) Name(s)" id="auto"/>
+          <input class="input" multiple placeholder="Author(s) Name(s) (format required: last name first name)" id="auto"/>
         {% endif %}
         <div class="button-div">
           <button class="button-style" type="button" id="recommend-auto">Recommend</button>
