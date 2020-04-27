@@ -1,0 +1,21 @@
+conferenceseries,publication,category,subcategory,h5_index,h5_median
+<http://scigraph.springernature.com/things/conference-series/1e4a3d180d3336c60ec74e77f6ef1b8a>,International Conference in Swarm Intelligence,,,,
+<http://scigraph.springernature.com/things/conference-series/4ee86c9ff03e5530443b8915e7057071>,Brazilian Symposium on Artificial Intelligence,,,,
+<http://scigraph.springernature.com/things/conference-series/b02ea6fdadf64adbc6d95ddb5dca530b>,International Semantic Web Conference,Engineering & Computer Science,Databases & Information Systems,37,59
+<http://scigraph.springernature.com/things/conference-series/17b3fdf393d3480f61dd30a125c9489a>,European Conference on Computer Vision,Engineering & Computer Science,Computer Vision & Pattern Recognition,137,263
+<http://scigraph.springernature.com/things/conference-series/8322b82d4eae4a154a779379c4341dc3>,International Conference on Information Processing and Management of Uncertainty in Knowledge-Based Systems,Engineering & Computer Science,Fuzzy Systems,12,16
+<http://scigraph.springernature.com/things/conference-series/6026af0620d13f044cee281652328d09>,International Joint Conference on Artificial Intelligence (IJCAI)	,Engineering & Computer Science,Artifficial Intelligence,67,100
+<http://scigraph.springernature.com/things/conference-series/e53a015075b530964c8f90c96aabb624>,International Conference on Intelligent Text Processing and Computational Linguistics,Engineering & Computer Science,Computational Linguistics,20,32
+<http://scigraph.springernature.com/things/conference-series/d3b54b7bf280343d847746390503f0d0>,Ad Hoc Networks,Engineering & Computer Science,Computer Networks & Wireless Communication,54,79
+<http://scigraph.springernature.com/things/conference-series/dc03b439f2d841b21c42334ca5c6ad99>,Theory of Cryptography,Engineering & Computer Science,Computer Security & Cryptography,37,56
+<http://scigraph.springernature.com/things/conference-series/8ff59a7d0c12d15ff01d38cd13447599>,International Conference on Web and Internet Economics,Engineering & Computer Science,Game Theory and Decision Science,18,21
+<http://scigraph.springernature.com/things/conference-series/d1c96e4e4e79ba53e2bcabdc2a9bc077>,International Conference on Financial Cryptography and Data Security,Engineering & Computer Science,Computer Security & Cryptography,43,74
+<http://scigraph.springernature.com/things/conference-series/5d4120ac31be507aabd200490b5d076e>,International Conference on Parallel Problem Solving from Nature,Engineering & Computer Science,Evolutionary Computation,19,22
+<http://scigraph.springernature.com/things/conference-series/b02d823f1fd3fdc0fbe24dc4201b014a>,International Conference on Natural Computation,Engineering & Computer Science,Evolutionary Computation,14,20
+<http://scigraph.springernature.com/things/conference-series/ce4a4d8bd6dc2671bb7b1e1ea2456278>,"International Conference on Computer Safety, Reliability, and Security",Engineering & Computer Science,Quality & Reliability,16,21
+<http://scigraph.springernature.com/things/conference-series/e77f0864948346cab903b7fca8e500a3>,European Symposium on Algorithms,Engineering & Computer Science,Theoretical Computer Science,24,29
+<http://scigraph.springernature.com/things/conference-series/157cb7db1db5ca1ed9acd084485107cf>,International Conference on Information and Knowledge Management,Engineering & Computer Science,Databases & Information Systems,48,76
+<http://scigraph.springernature.com/things/conference-series/aa108c4768903f58ac9bdd4b006a786f>,International Symposium on Computer Architecture (ISCA),Engineering & Computer Science,Computing Systems,56,98
+<http://scigraph.springernature.com/things/conference-series/8ff59a7d0c12d15ff01d38cd13447599>,International Conference on Web and Internet Economics,"Business, Economics & Management",Game Theory and Decision Science,18,21
+<http://scigraph.springernature.com/things/conference-series/f0b09489d32d9a1d1678049b2a49a6a6>,International Conference on Research in Computational Molecular Biology,Engineering & Computer Science,Bioinformatics & Computational Biology,23,43
+<http://scigraph.springernature.com/things/conference-series/d895faf9e492baa442e9e163eb0b57a8>,"International Colloquium on Automata, Languages and Programming (ICALP)",Engineering & Computer Science,Theoretical Computer Science,32,42
