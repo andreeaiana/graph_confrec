@@ -16,7 +16,7 @@ This directory is organised as follows:
 	- `graphsage/`: folder for trained _GraphSAGE_-based recommendation models
 	- `graphsage_rl/`: folder for trained _GraphSAGE_RL_-based recommendation models
 	- `han/`: folder for trained _HAN_-based recommendation models
-	- `scibert_arga/`:	folder for trained _SciBERT+ARGA_-based recommendation models
+	- `scibert_arga/`:	folder for trained _SciBERT + ARGA_-based recommendation models
  - `raw/`: contains the raw SciGraph datasets
  
 ### Downloading the raw datasets
@@ -28,4 +28,6 @@ The _books_ and _conferences_ dataset files **2018 Q1 SciGraph release** can be 
 ### Pre-trained SciBERT model
 
 In our experiments, we used the **scibert-scivocab-uncased** model for PyTorch HuggingFace.
-To replicate the experiments with the same pre-trained SciBERT model, download it from https://github.com/allenai/scibert and unzip it in `external/scibert_scivocab_uncased`.
+
+To replicate the experiments with the same pre-trained SciBERT model, download it from https://github.com/allenai/scibert and unzip it in `external/scibert_scivocab_uncased`. 
+The _config.json_ file should be renamed to _bert_config.json_.
