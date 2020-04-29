@@ -17,16 +17,16 @@ Further instructions on obtaining and preprocessing the raw data, as well as on 
 We implemented the following recommendation models:
 
 | **Base Model** | **Recommendation model** | 
-| :---------: | :---------------------: | 
-|   Authors   |      -     |  
-|   Unsupervised GraphSAGE  |  GraphSAGE Neighbour, GraphSAGE Classifier (citations graph), GraphSAGE Classifier (co-authorship graph), GraphSAGE Concat  |     
-|   Supervised GraphSAGE   |   GraphSAGE supervised (citations graph),  GraphSAGE supervised (heterogeneous graph)   |  
-|   Unsupervised GraphSAGE_RL   |    GraphSAGE_RL Classifier (citations graph)    |   
-|   Supervised GraphSAGE_RL    |    GraphSAGE_RL supervised (citations graph),  GraphSAGE_RL supervised (heterogeneous graph)    |  
-|   ASGCN   |      -     | 
-|   GAT     | GAT (citations graph), GAT (heterogeneous graph) |
-|   HAN   |      -     | 
-|   SciBERT + ARGA     | SciBERT + ARGA (citations graph), SciBERT + ARGA (heterogeneous graph) |
+| :-------------------------: | :-------------------------------------------: | 
+| Authors                     |  Authors   |  
+| Unsupervised GraphSAGE      |  GraphSAGE Neighbour, GraphSAGE Classifier (citations graph), GraphSAGE Classifier (co-authorship graph), GraphSAGE Concat  |     
+| Supervised GraphSAGE        |  GraphSAGE supervised (citations graph),  GraphSAGE supervised (heterogeneous graph)   |  
+| Unsupervised GraphSAGE_RL   |  GraphSAGE_RL Classifier (citations graph)    |   
+| Supervised GraphSAGE_RL     |  GraphSAGE_RL supervised (citations graph),  GraphSAGE_RL supervised (heterogeneous graph)    |  
+| ASGCN   					  |  ASGCN     | 
+| GAT     					  |  GAT (citations graph), GAT (heterogeneous graph) |
+| HAN   					  |  HAN     | 
+| SciBERT + ARGA    		  |  SciBERT + ARGA (citations graph), SciBERT + ARGA (heterogeneous graph) |
   
 
 ## Dependencies
