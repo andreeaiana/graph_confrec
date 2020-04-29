@@ -1,4 +1,4 @@
-# Data
+# Exploration Notebooks
 
 This directory contains several Jupyter Notebooks used to explore the datasets used in GraphConfRec, as follows:
  - **_Exploration General Authors_**: exploration of the authors in the SciGraph dataset
