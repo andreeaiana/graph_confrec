@@ -22,23 +22,6 @@ class DataLoader:
         papers, abstracts or citations
 
     Calls are left merges, so the order of the calls matter.
-
-    Examples
-    ------------------------------------
-        import DataLoader
-        d = DataLoader.DataLoader()
-
-        Abstracts in 2016:
-            d.abstracts(["2016"])
-        All Conferences:
-            d.conferences()
-        Papers in 2015 with conferences:
-            d.papers(["2015"]).conferences()
-        Papers in 2015, 2016 with abstracts, citations, conferences and
-        conferenceseries
-            d.papers(
-            ["2015","2016"]
-            ).abstracts().contributions().conferences().conferenceseries()
     """
 
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
