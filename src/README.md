@@ -2,7 +2,7 @@
 
 This directory is organised as follows:
  - `data/`: contains scripts for preprocessing the data, crawling the WikiCfP and H5Index datasets and linking them to the SciGraph datasets
- - `models/`contains the implementation of the recommendation models and evaluation scripts
+ - `models/`: contains the implementation of the recommendation models and evaluation scripts
 	- `AbstractClasses.py`: abstract classes to supervise models' querying and evaluation
 	- `evaluation/`: contains implementation of evaluation metrics
 	-  _one folder per model_ with:
