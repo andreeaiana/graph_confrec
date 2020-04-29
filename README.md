@@ -6,9 +6,9 @@ The source code for the paper "GraphConfRec: A Graph-Neural-Network-Based Confer
 
 This directory contains the code necessary to run GraphConfRec. We provide the implementation of various recommendation models, along with evaluation scripts. 
 The repository is organised as follows:
- - `data/`: contains the necessary raw and processed dataset files for GraphConfRec.
- - `notebooks/`: contains Jupyter Notebooks for exporing the SciGraph, WikiCfP, and Google H5 Index datasets. 
- - `src/`: contains the implementation of the recommendation models, evaluation and data preprocessing scripts.
+ - `data/`: contains the necessary raw dataset files for GraphConfRec and stores the processed data, including trained models
+ - `notebooks/`: contains Jupyter Notebooks for exporing the SciGraph, WikiCfP, and Google H5 Index datasets
+ - `src/`: contains the implementation of the recommendation models, evaluation and data preprocessing scripts
 
 Further instructions on obtaining and preprocessing the raw data, as well as on running the code, can be found in the respective folders.
 
@@ -48,4 +48,5 @@ Parts of the code were originally forked from:
  - [AS-GCN in Tensorflow](https://github.com/huangwb/AS-GCN/) 
  - [Graph Attention Networks](https://github.com/PetarV-/GAT)
  - [Heterogeneous Graph Neural Network](https://github.com/Jhy1993/HAN) 
+
 We owe many thanks to the authors of the different models for making their codes available.
