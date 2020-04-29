@@ -9,12 +9,12 @@ To parse the raw SciGraph data:
 import FileParser
 
 parser = FileParser.FileParser()
-parser.get_data(process = #DATASET) #parses data as specified by process
+parser.get_data(process = #DATASET) # parses data as specified by process
 
 ```
-| **Parameter** | **Description** | **Default** | **Options** | 
-| :-----------: | :------------- | :---------: | :--------- |
-| process | The datasets to be parsed | - | old_books, old_books_new_books, old_books_conferences, conferences, conferences_name, conferences_acronym, conferences_city, conferences_country, conferences_year, conferences_datestart, conferences_dateend, conferences_conferenceseries, conferenceseries, conferenceseries_name, books, isbn_books, authors_name, chapters, chapters_title, chapters_year, chapters_language, chapters_abstract, chapters_authors, chapters_authors_name, chapters_all_citations, chapters_keywords, chapters_books_isbns |
+| **Parameter** | **Description** | **Options** | 
+| :-----------: | :------------- | :--------- |
+| process | The datasets to be parsed | old_books, old_books_new_books, old_books_conferences, conferences, conferences_name, conferences_acronym, conferences_city, conferences_country, conferences_year, conferences_datestart, conferences_dateend, conferences_conferenceseries, conferenceseries, conferenceseries_name, books, isbn_books, authors_name, chapters, chapters_title, chapters_year, chapters_language, chapters_abstract, chapters_authors, chapters_authors_name, chapters_all_citations, chapters_keywords, chapters_books_isbns |
 
 To map files from the two SciGraph releases and further process the parsed raw data:
 
@@ -23,13 +23,13 @@ To map files from the two SciGraph releases and further process the parsed raw d
 import DatasetsParser
 
 parser = DatasetsParser.DatasetsParser()
-parser.get_data(process = #DATASETS) #parses data as specified by process
+parser.get_data(process = #DATASETS) # parses data as specified by process
 
 ```
 
-| **Parameter** | **Description** | **Default** | **Options** | 
-| :-----------: | :------------- | :---------: | :--------- |
-| process | The datasets to be parsed | - | chapters_books, chapters_all_scigraph_citations, chapters_confproc_scigraph_citations, books_conferences, author_id_chapters,  author_name_chapters, confproc_scigraph_citations_chapters|
+| **Parameter** | **Description** | **Options** | 
+| :-----------: | :------------- | :--------- |
+| process | The datasets to be parsed | chapters_books, chapters_all_scigraph_citations, chapters_confproc_scigraph_citations, books_conferences, author_id_chapters,  author_name_chapters, confproc_scigraph_citations_chapters|
 
 
 
@@ -41,8 +41,8 @@ import DataLoader
 
 loader = DataLoader.DataLoader()
 loader.papers(years="2016") # loads all conference proceedings from 2016
-loader.papers(years="2016").conferences().conferenceseries() #loads all conference proceedings, with corresponding conferences and conference series from 2016
-loader.training_data_with_abstracts_citations() #loads training data, including abstracts and citations
+loader.papers(years="2016").conferences().conferenceseries() # loads all conference proceedings, with corresponding conferences and conference series from 2016
+loader.training_data_with_abstracts_citations() # loads training data, including abstracts and citations
 ```
 
 
