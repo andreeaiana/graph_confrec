@@ -13,11 +13,8 @@ parser.get_data(process = #DATASET) #parses data as specified by process
 
 ```
 | **Parameter** | **Description** | **Default** | **Options** | 
-| :-----------: | :-------------: | :---------: | :---------: |
-| process | The datasets to be parsed | - | old_books, old_books_new_books, old_books_conferences, conferences, conferences_name, conferences_acronym, conferences_city, 
-conferences_country, conferences_year, conferences_datestart, conferences_dateend, conferences_conferenceseries, conferenceseries, conferenceseries_name, books, isbn_books,
-authors_name, chapters, chapters_title, chapters_year, chapters_language, chapters_abstract, chapters_authors, chapters_authors_name, chapters_all_citations, 
-chapters_keywords, chapters_books_isbns |
+| :-----------: | :------------- | :---------: | :--------- |
+| process | The datasets to be parsed | - | old_books, old_books_new_books, old_books_conferences, conferences, conferences_name, conferences_acronym, conferences_city, conferences_country, conferences_year, conferences_datestart, conferences_dateend, conferences_conferenceseries, conferenceseries, conferenceseries_name, books, isbn_books, authors_name, chapters, chapters_title, chapters_year, chapters_language, chapters_abstract, chapters_authors, chapters_authors_name, chapters_all_citations, chapters_keywords, chapters_books_isbns |
 
 To map files from the two SciGraph releases and further process the parsed raw data:
 
@@ -31,9 +28,8 @@ parser.get_data(process = #DATASETS) #parses data as specified by process
 ```
 
 | **Parameter** | **Description** | **Default** | **Options** | 
-| :-----------: | :-------------: | :---------: | :---------: |
-| process | The datasets to be parsed | - | chapters_books, chapters_all_scigraph_citations, chapters_confproc_scigraph_citations, books_conferences, author_id_chapters, 
-author_name_chapters, confproc_scigraph_citations_chapters|
+| :-----------: | :------------- | :---------: | :--------- |
+| process | The datasets to be parsed | - | chapters_books, chapters_all_scigraph_citations, chapters_confproc_scigraph_citations, books_conferences, author_id_chapters,  author_name_chapters, confproc_scigraph_citations_chapters|
 
 
 
@@ -59,12 +55,12 @@ loader.training_data_with_abstracts_citations() #loads training data, including 
 
 
 | **Parameter** | **Description** | **Default** | **Options** | **Mandatory** |
-| :-----------: | :-------------: | :---------: | :---------: | :-----------: |
-| start_eventid | The event ID from which to start crawling. | - | integer value | <ul><li>- [x] |
-| end_eventid | he event ID at which to stop crawling | - | integer value | <ul><li>- [x] |
-| similarity_metric | The similarity metric used | damerau_levenshtein |  levenshtein, damerau_levenshtein, jaro, jaro_winkler |  |
-| match_threshold | The similarity threshold to matching two entities | 0.9 | continuous value in (0,1) | |
-| remove_stopwords | Whether to remove stopwords | True | boolean | |
+| :-----------: | :------------- | :---------: | :--------- | :-----------: |
+| start_eventid | The event ID from which to start crawling. | - | integer value | Yes |
+| end_eventid | he event ID at which to stop crawling | - | integer value | Yes |
+| similarity_metric | The similarity metric used | damerau_levenshtein |  levenshtein, damerau_levenshtein, jaro, jaro_winkler | No |
+| match_threshold | The similarity threshold to matching two entities | 0.9 | continuous value in (0,1) | No |
+| remove_stopwords | Whether to remove stopwords | True | boolean | No|
 
 
 ## H5Index
@@ -74,6 +70,6 @@ loader.training_data_with_abstracts_citations() #loads training data, including 
 3. Evaluating the linking: `python H5IndexLinkerEvaluation.py --similarity_metric $SIMILARITY_METRIC --threshold $THRESHOLD`
 
 | **Parameter** | **Description** |**Default** | **Options** | **Mandatory** |
-| :-----------: | :-------------: | :--------: | :---------: | :-----------: |
-| similarity_metric | The similarity metric used | damerau_levenshtein |  levenshtein, damerau_levenshtein, jaro, jaro_winkler |  |
-| threshold | 0.9 | The similarity threshold to matching two entities | continuous value in (0,1) | |
+| :-----------: | :------------- | :--------: | :--------- | :-----------: |
+| similarity_metric | The similarity metric used | damerau_levenshtein |  levenshtein, damerau_levenshtein, jaro, jaro_winkler | No |
+| threshold | 0.9 | The similarity threshold to matching two entities | continuous value in (0,1) | No |
