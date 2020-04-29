@@ -16,7 +16,7 @@ Further instructions on obtaining and preprocessing the raw data, as well as on 
 
 We implemented the following recommendation models:
 
-| **Base Model** | **Recommendation model** | 
+| **Base model** | **Recommendation model** | 
 | :-------------------------: | :-------------------------------------------: | 
 | Authors                     |  Authors   |  
 | Unsupervised GraphSAGE      |  GraphSAGE Neighbour, GraphSAGE Classifier (citations graph), GraphSAGE Classifier (co-authorship graph), GraphSAGE Concat  |     
