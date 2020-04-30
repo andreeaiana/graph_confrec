@@ -12,7 +12,7 @@ python preprocess_data.py embedding_type $EMBEDDING_TYPE dataset $DATASET --gpu 
 | **Parameter** | **Description** | **Default** | **Options** | **Mandatory** |
 | :-----------: | :------------- | :----------: | :---------- | :---------: |
 | embedding_type | Type of SciBERT embedding | - | AVG_L, AVG_2L, AVG_SUM_ALL, AVG_SUM_L4, CONC_AVG_MAX_2L, CONC_AVG_MAX_SUM_L4, MAX_2L, SUM_2L, SUM_L | Yes |
-| dataset | Name of the object file that stores the training data | 0 | integer value | citations | Yes |
+| dataset | Name of the object file that stores the training data | - | citations | Yes |
 | gpu | Which gpu to use | 0 | integer value | No |
 
 #### _GraphSAGE_ and _GraphSAGE_RL_-based recommendation models
