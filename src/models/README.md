@@ -548,7 +548,7 @@ python GraphSAGERLModelEvaluation.py embedding_type $EMBEDDING_TYPE graph_type $
 | samples_3 | Number of samples in layer 3 (Only for mean model) | 0 | integer value | No |
 | dim_1 | Size of output dim (final is 2x this, if using concat) | 512 | integer value | No |
 | dim_2 | Size of output dim (final is 2x this, if using concat) | 512 | integer value | No |
-| dim_2 | Size of output dim (final is 2x this, if using concat) | 0 | integer value | No |
+| dim_3 | Size of output dim (final is 2x this, if using concat) | 0 | integer value | No |
 | neg_sample_size | Number of negative samples | 20 | integer value | No |
 | batch_size | Minibatch size | 128 | integer value | No |
 | validate_iter | How often to run a validation minibatch | 5000 | integer value | No |
