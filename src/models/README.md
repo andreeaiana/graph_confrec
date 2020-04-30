@@ -2,7 +2,7 @@
 
 ## Create training data
 
-### _ASGCN_-based recommendation models
+#### _ASGCN_-based recommendation models
 
 ```
 cd as_gcn
@@ -15,7 +15,7 @@ python preprocess_data.py embedding_type $EMBEDDING_TYPE dataset $DATASET --gpu 
 | dataset | Name of the object file that stores the training data | 0 | integer value | citations | Yes |
 | gpu | Which gpu to use | 0 | integer value | No |
 
-### GraphSAGE and GraphSAGE_RL-based recommendation models
+#### _GraphSAGE_ and _GraphSAGE_RL_-based recommendation models
 
 ```
 cd graphsage OR cd graphsage_rl
@@ -29,7 +29,7 @@ python preprocess_data.py embedding_type $EMBEDDING_TYPE dataset $DATASET --thre
 | threshold | Threshold for edge weights in heterogeneous graph | 2| integer value | No |
 | gpu | Which gpu to use | 0 | integer value | No |
 
-### GAT-based recommendation models, run:
+#### _GAT_-based recommendation models
 
 ```
 cd gat
@@ -45,7 +45,7 @@ python gat_preprocess_data.py embedding_type $EMBEDDING_TYPE dataset $DATASET --
 | gpu | Which gpu to use | 0 | integer value | No |
 
 
-For _HAN_-based recommendation models, run:
+#### _HAN_-based recommendation models
 
 ```
 cd han
@@ -57,9 +57,11 @@ python han_preprocess_data.py embedding_type $EMBEDDING_TYPE --gpu $GPU
 | embedding_type | Type of SciBERT embedding | - | AVG_L, AVG_2L, AVG_SUM_ALL, AVG_SUM_L4, CONC_AVG_MAX_2L, CONC_AVG_MAX_SUM_L4, MAX_2L, SUM_2L, SUM_L | Yes |
 | gpu | Which gpu to use | 0 | integer value | No |
 
+#### _SciBERT + ARGA_-based recommendation models
+
 To preprocess the training data for the ARGA models, first preprocess data for the _GAT_-based recommendation models.
 
-For _SciBERT + ARGA_-based recommendation models, run:
+Then, run:
 
 ```
 cd scibert_arga
@@ -83,7 +85,7 @@ python preprocess_data_scibert_arga.py embedding_type $EMBEDDING_TYPE dataset $D
 
 ## Training 
 
-For _ASGCN_-based recommendation models:
+#### _ASGCN_-based recommendation models
 
 ```
 cd as_gcn
@@ -107,7 +109,9 @@ python model.py embedding_type $EMBEDDING_TYPE dataset #DATASET model_name #MODE
 | sampler_device | The device for sampling | cpu | cpu, gpu | No |
 | gpu | Which gpu to use | 0 | integer value | No |
 
-To train an _unsupervised GraphSAGE_ GNN model, run:
+#### _GraphSAGE_-based recommendation models
+
+To train an _unsupervised GraphSAGE__ GNN model, run:
 
 ```
 cd graphsage
@@ -169,6 +173,7 @@ python supervised_model.py train_prefix #TRAIN_PREFIX model_name $MODEL_NAME --m
 | max_total_steps | Maximum total number of iterations | 10<sup>10</sup>  | integer value | No |
 
 
+#### _GraphSAGE_RL_-based recommendation models
 
 To train an _unsupervised GraphSAGE_RL_ GNN model, run:
 
@@ -239,7 +244,7 @@ python supervised_model.py train_prefix #TRAIN_PREFIX model_name $MODEL_NAME --n
 
 
 
-For _GAT_-based recommendation models, run:
+##### _GAT_-based recommendation models
 
 ```
 cd gat
@@ -262,7 +267,7 @@ python train_gat.py embedding_type $EMBEDDING_TYPE dataset #DATASET --graph_type
 | attn_drop | Dropout rate for the normalized attention coefficients | 0.5 | float value | No |
 | gpu | Which gpu to use | None | integer value | No |
 
-For _HAN_-based recommendation models, run:
+#### _HAN_-based recommendation models
 
 ```
 cd han 
@@ -283,6 +288,9 @@ python train_han.py model $MODEL embedding_type $EMBEDDING_TYPE --hid_units #HID
 | ffd_drop | Dropout rate layers' inputs | 0.5 | float value | No |
 | attn_drop | Dropout rate for the normalized attention coefficients | 0.5 | float value | No |
 | gpu | Which gpu to use | None | integer value | No |
+
+
+#### _SciBERT + ARGA_-based recommendation models
 
 To train the _ARGA_ GNN model, run:
 ```
@@ -306,7 +314,7 @@ python arga.py embedding_type $EMBEDDING_TYPE dataset #DATASET model_name $MODEL
 | gpu | Which gpu to use | None | integer value | No |
 
 
-To train the FFNN of the _SciBERT + ARGA_-based recommendation model, run: 
+To train the FFNN, run: 
 
 ```
 cd scibert_arga
@@ -334,9 +342,11 @@ python ffnn.py embedding_type $EMBEDDING_TYPE dataset #DATASET model_name $MODEL
 
 All the evaluation scripts take as final parameter _recs = the number of recommendations generated (default: 10)_.
 
-To evaluate the _ASGCN_, _GAT_, _HAN_, _SciBERT + ARGA_-based recommendation models, run: `python <model_name>ModelEvaluation.py` with the same parameters used for training the model (see above).
+#### _ASGCN_, _GAT_, _HAN_, _SciBERT + ARGA_-based recommendation models
+To evaluate, run: `python <model_name>ModelEvaluation.py` with the same parameters used for training the model (see above).
 
 
+#### _GraphSAGE_-based recommendation models
 To train and evaluate the _GraphSAGE Neighbour_-based recommendation models:
 
 ```
@@ -476,6 +486,7 @@ python GraphSAGEModelEvaluation.py embedding_type $EMBEDDING_TYPE graph_type $GR
 | threshold | Threshold for edge weights in heterogeneous graph | 2| integer value | No |
 
 
+#### _GraphSAGE_RL_-based recommendation models
 
 To train and evaluate the _GraphSAGE_RL Classifier-based recommendation models:
 ```
@@ -546,7 +557,6 @@ python GraphSAGERLModelEvaluation.py embedding_type $EMBEDDING_TYPE graph_type $
 | print_every | How often to print training info | 5 | integer value | No |
 | max_total_steps | Maximum total number of iterations | 10<sup>10</sup>  | integer value | No |
 | threshold | Threshold for edge weights in heterogeneous graph | 2| integer value | No |
-
 
 
 ## Querying
