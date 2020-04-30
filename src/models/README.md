@@ -342,7 +342,7 @@ python ffnn.py embedding_type $EMBEDDING_TYPE dataset #DATASET model_name $MODEL
 
 All the evaluation scripts take as final parameter _recs = the number of recommendations generated (default: 10)_.
 
-#### _ASGCN_, _GAT_, _HAN_, _SciBERT + ARGA_-based recommendation models
+#### _Authors_, _ASGCN_, _GAT_, _HAN_, _SciBERT + ARGA_-based recommendation models
 To evaluate, run: `python <model_name>ModelEvaluation.py` with the same parameters used for training the model (see above).
 
 
