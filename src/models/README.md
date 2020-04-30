@@ -306,11 +306,11 @@ python arga.py embedding_type $EMBEDDING_TYPE dataset #DATASET model_name $MODEL
 | model_name | Type of model | - | ARGA, ARGVA | Yes |
 | graph_type | The type of graph used | directed | directed, undirected | No |
 | mode | Whether to set the net to training mode | train | train, test | No |
-| n_latent | Number of units in ARGA hidden layer | 16 | integer value | No |
+| n_latent | Number of units in the hidden layer | 16 | integer value | No |
 | learning_rate | Initial learning rate | 0.001 | float value | No |
 | weight_decay | Weight for L2 loss on embedding matrix | 0 | float value | No |
 | dropout | Dropout rate (1 - keep probability) | 0 | float value | No |
-| epochs | Number of epochs for the ARGA model | 200 | integer value | No |
+| epochs | Number of epochs to train | 200 | integer value | No |
 | gpu | Which gpu to use | None | integer value | No |
 
 
