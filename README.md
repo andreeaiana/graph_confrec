@@ -7,7 +7,7 @@ The source code for the paper "GraphConfRec: A Graph-Neural-Network-Based Confer
 This directory contains the code necessary to run GraphConfRec. We provide the implementation of various recommendation models, along with evaluation scripts. 
 The repository is organised as follows:
  - `data/`: contains the necessary raw dataset files for GraphConfRec and stores the processed data, including trained models
- - `notebooks/`: contains Jupyter Notebooks for exporing the SciGraph, WikiCfP, and Google H5 Index datasets
+ - `notebooks/`: contains Jupyter Notebooks for exporing the SciGraph, WikiCfP, and H5 Index datasets
  - `src/`: contains the implementation of the recommendation models, evaluation and data preprocessing scripts
 
 Further instructions on obtaining and preprocessing the raw data, as well as on running the code, can be found in the respective folders.
@@ -19,7 +19,7 @@ We implemented the following recommendation models:
 | **Base model** | **Recommendation model** | 
 | :-------------------------: | :-------------------------------------------: | 
 | Authors                     |  Authors   |  
-| Unsupervised GraphSAGE      |  GraphSAGE Neighbour, GraphSAGE Classifier (citations graph), GraphSAGE Classifier (co-authorship graph), GraphSAGE Concat  |     
+| Unsupervised GraphSAGE      |  GraphSAGE Neighbour, GraphSAGE Classifier (citations graph), GraphSAGE Classifier (co-authorship graph), GraphSAGE Classifier Concat  |     
 | Supervised GraphSAGE        |  GraphSAGE supervised (citations graph),  GraphSAGE supervised (heterogeneous graph)   |  
 | Unsupervised GraphSAGE_RL   |  GraphSAGE_RL Classifier (citations graph)    |   
 | Supervised GraphSAGE_RL     |  GraphSAGE_RL supervised (citations graph),  GraphSAGE_RL supervised (heterogeneous graph)    |  
