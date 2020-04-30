@@ -5,6 +5,7 @@
 For _ASGCN_-based recommendation models, run:
 
 ```
+cd as_gcn
 python preprocess_data.py embedding_type $EMBEDDING_TYPE dataset $DATASET --gpu $GPU
 ```
 
@@ -17,6 +18,7 @@ python preprocess_data.py embedding_type $EMBEDDING_TYPE dataset $DATASET --gpu 
 For _GraphSAGE_ and _GraphSAGE_RL_-based recommendation models, run:
 
 ```
+cd graphsage OR cd graphsage_rl
 python preprocess_data.py embedding_type $EMBEDDING_TYPE dataset $DATASET --threshold $THRESHOLD --gpu $GPU
 ```
 
@@ -30,6 +32,7 @@ python preprocess_data.py embedding_type $EMBEDDING_TYPE dataset $DATASET --thre
 For _GAT_-based recommendation models, run:
 
 ```
+cd gat
 python gat_preprocess_data.py embedding_type $EMBEDDING_TYPE dataset $DATASET --graph_type $GRAPH_TYPE --threshold $THRESHOLD --gpu $GPU
 ```
 
@@ -45,6 +48,7 @@ python gat_preprocess_data.py embedding_type $EMBEDDING_TYPE dataset $DATASET --
 For _HAN_-based recommendation models, run:
 
 ```
+cd han
 python han_preprocess_data.py embedding_type $EMBEDDING_TYPE --gpu $GPU
 ```
 
@@ -58,6 +62,7 @@ To preprocess the training data for the ARGA models, first preprocess data for t
 For _SciBERT + ARGA_-based recommendation models, run:
 
 ```
+cd scibert_arga
 python preprocess_data_scibert_arga.py embedding_type $EMBEDDING_TYPE dataset $DATASET --arga_model_name $ARGA_MODEL_NAME --graph_type $GRAPH_TYPE --mode $MODE --n_latent $N_LATENT --learning_rate $LEARNING_RATE --weight_decay $WEIGHT_DECAY --dropout $DROPOUT --epochs $EPOCHS --gpu $GPU
 ```
 
@@ -78,9 +83,10 @@ python preprocess_data_scibert_arga.py embedding_type $EMBEDDING_TYPE dataset $D
 
 ## Training 
 
-For _ASGCN_-based recommendation models, run:
+For _ASGCN_-based recommendation models:
 
 ```
+cd as_gcn
 python model.py embedding_type $EMBEDDING_TYPE dataset #DATASET model_name #MODEL_NAME --max_degree $MAX_DEGREE --learning_rate $LEARNING_RATE --weight_decay $WEIGHT_DECAY --dropout #DROPOUT --epochs $EPOCHS --early_stopping $EARLY_STOPPING --hidden1 $HIDDEN1 --rank $RANK --var $VAR --sampler_device $SAMPLER_DEVICE --gpu $GPU
 ```
 
@@ -104,6 +110,7 @@ python model.py embedding_type $EMBEDDING_TYPE dataset #DATASET model_name #MODE
 To train an _unsupervised GraphSAGE_ GNN model, run:
 
 ```
+cd graphsage
 python unsupervised_model.py train_prefix #TRAIN_PREFIX model_name $MODEL_NAME --model_size $MODEL_SIZE --learning_rate $LEARNING_RATE --epochs $EPOCHS --dropout $DROPOUT --weight_decay $WEIGHT_DECAY --max_degree $MAX_DEGREE --samples_1 $SAMPLES_1 --samples_2 $SAMPLES_2 --dim_1 $DIM_1 --dim_2 $DIM_2 --neg_sample_size $NEG_SAMPLE_SIZE --batch_size $BATCH_SIZE --save_embeddings #SAVE_EMBEDDINGS --validate_iter $VALIDATE_ITER --validate_batch_size $VALIDATE_BATCH_SIZE --gpu $GPU --print_every $PRINT_EVERY --max_total_steps $MAX_TOTAL_STEPS
 ```
 
@@ -134,6 +141,7 @@ python unsupervised_model.py train_prefix #TRAIN_PREFIX model_name $MODEL_NAME -
 To train a _supervised GraphSAGE_ GNN model, run:
 
 ```
+cd graphsage
 python supervised_model.py train_prefix #TRAIN_PREFIX model_name $MODEL_NAME --model_size $MODEL_SIZE --learning_rate $LEARNING_RATE --epochs $EPOCHS --dropout $DROPOUT --weight_decay $WEIGHT_DECAY --max_degree $MAX_DEGREE --samples_1 $SAMPLES_1 --samples_2 $SAMPLES_2 --samples_3 $SAMPLES_3 --dim_1 $DIM_1 --dim_2 $DIM_2 --neg_sample_size $NEG_SAMPLE_SIZE --batch_size $BATCH_SIZE --validate_iter $VALIDATE_ITER --validate_batch_size $VALIDATE_BATCH_SIZE --gpu $GPU --print_every $PRINT_EVERY --max_total_steps $MAX_TOTAL_STEPS
 ```
 
@@ -165,7 +173,8 @@ python supervised_model.py train_prefix #TRAIN_PREFIX model_name $MODEL_NAME --m
 To train an _unsupervised GraphSAGE_RL_ GNN model, run:
 
 ```
-python unsupervised_model.py train_prefix #TRAIN_PREFIX model_name $MODEL_NAME --nonlinear_sampler $NONLINEAR_SAMPLER --uniform_ratio $UNIFORM_RATIO --model_size $MODEL_SIZE --learning_rate $LEARNING_RATE --epochs $EPOCHS --dropout $DROPOUT --weight_decay $WEIGHT_DECAY --max_degree $MAX_DEGREE --samples_1 $SAMPLES_1 --samples_2 $SAMPLES_2 --dim_1 $DIM_1 --dim_2 $DIM_2 --neg_sample_size $NEG_SAMPLE_SIZE --batch_size $BATCH_SIZE --save_embeddings #SAVE_EMBEDDINGS --validate_iter $VALIDATE_ITER --validate_batch_size $VALIDATE_BATCH_SIZE --gpu $GPU --print_every $PRINT_EVERY --max_total_steps $MAX_TOTAL_STEPS
+1. cd graphsage_rl
+2. python unsupervised_model.py train_prefix #TRAIN_PREFIX model_name $MODEL_NAME --nonlinear_sampler $NONLINEAR_SAMPLER --uniform_ratio $UNIFORM_RATIO --model_size $MODEL_SIZE --learning_rate $LEARNING_RATE --epochs $EPOCHS --dropout $DROPOUT --weight_decay $WEIGHT_DECAY --max_degree $MAX_DEGREE --samples_1 $SAMPLES_1 --samples_2 $SAMPLES_2 --dim_1 $DIM_1 --dim_2 $DIM_2 --neg_sample_size $NEG_SAMPLE_SIZE --batch_size $BATCH_SIZE --save_embeddings #SAVE_EMBEDDINGS --validate_iter $VALIDATE_ITER --validate_batch_size $VALIDATE_BATCH_SIZE --gpu $GPU --print_every $PRINT_EVERY --max_total_steps $MAX_TOTAL_STEPS
 ```
 
 | **Parameter** | **Description** | **Default** | **Options** | **Mandatory** |
@@ -198,6 +207,7 @@ python unsupervised_model.py train_prefix #TRAIN_PREFIX model_name $MODEL_NAME -
 To train a _supervised GraphSAGE_RL_ GNN model, run:
 
 ```
+cd graphsage_rl
 python supervised_model.py train_prefix #TRAIN_PREFIX model_name $MODEL_NAME --nonlinear_sampler $NONLINEAR_SAMPLER --allhop_rewards $ALLHOP_REWARDS --model_size $MODEL_SIZE --learning_rate $LEARNING_RATE --epochs $EPOCHS --dropout $DROPOUT --weight_decay $WEIGHT_DECAY --max_degree $MAX_DEGREE --samples_1 $SAMPLES_1 --samples_2 $SAMPLES_2 --samples_3 $SAMPLES_3 --dim_1 $DIM_1 --dim_2 $DIM_2 --dim_3 $DIM_3 --neg_sample_size $NEG_SAMPLE_SIZE --batch_size $BATCH_SIZE --save_embeddings #SAVE_EMBEDDINGS --validate_iter $VALIDATE_ITER --validate_batch_size $VALIDATE_BATCH_SIZE --gpu $GPU --print_every $PRINT_EVERY --max_total_steps $MAX_TOTAL_STEPS
 ```
 
@@ -229,17 +239,10 @@ python supervised_model.py train_prefix #TRAIN_PREFIX model_name $MODEL_NAME --n
 
 
 
-
-
-
-
-
-
-
-
 For _GAT_-based recommendation models, run:
 
 ```
+cd gat
 python train_gat.py embedding_type $EMBEDDING_TYPE dataset #DATASET --graph_type $GRAPH_TYPE --hid_units #HID_UNITS --n_heads $N_HEADS --learning_rate $LEARNING_RATE --weight_decay $WEIGHT_DECAY --epochs $EPOCHS --patience $PATIENCE --residual $RESIDUAL --ffd_drop $FFD_DROP --attn_drop $ATTN_DROP --gpu $GPU
 ```
 
@@ -262,6 +265,7 @@ python train_gat.py embedding_type $EMBEDDING_TYPE dataset #DATASET --graph_type
 For _HAN_-based recommendation models, run:
 
 ```
+cd han 
 python train_han.py model $MODEL embedding_type $EMBEDDING_TYPE --hid_units #HID_UNITS --n_heads $N_HEADS --learning_rate $LEARNING_RATE --weight_decay $WEIGHT_DECAY --epochs $EPOCHS --patience $PATIENCE --residual $RESIDUAL --ffd_drop $FFD_DROP --attn_drop $ATTN_DROP --gpu $GPU
 ```
 
@@ -282,6 +286,7 @@ python train_han.py model $MODEL embedding_type $EMBEDDING_TYPE --hid_units #HID
 
 To train the _ARGA_ GNN model, run:
 ```
+cd scibert_arga
 python arga.py embedding_type $EMBEDDING_TYPE dataset #DATASET model_name $MODEL_NAME model $MODEL --mode $MODE --n_latent $N_LATENT --learning_rate $LEARNING_RATE --weight_decay $WEIGHT_DECAY --dropout $DROPOUT --epochs $EPOCHS --gpu $GPU
 
 ```
@@ -304,6 +309,7 @@ python arga.py embedding_type $EMBEDDING_TYPE dataset #DATASET model_name $MODEL
 To train the FFNN of the _SciBERT + ARGA_-based recommendation model, run: 
 
 ```
+cd scibert_arga
 python ffnn.py embedding_type $EMBEDDING_TYPE dataset #DATASET model_name $MODEL_NAME model $MODEL --mode $MODE --n_latent $N_LATENT --learning_rate $LEARNING_RATE --weight_decay $WEIGHT_DECAY --dropout $DROPOUT --epochs $EPOCHS --gpu $GPU --ffnn_hidden_dim $FFNN_HIDDEN_DIM
 
 ```
