@@ -2,7 +2,7 @@
 
 ## Create training data
 
-For _ASGCN_-based recommendation models, run:
+### _ASGCN_-based recommendation models
 
 ```
 cd as_gcn
@@ -15,7 +15,7 @@ python preprocess_data.py embedding_type $EMBEDDING_TYPE dataset $DATASET --gpu 
 | dataset | Name of the object file that stores the training data | 0 | integer value | citations | Yes |
 | gpu | Which gpu to use | 0 | integer value | No |
 
-For _GraphSAGE_ and _GraphSAGE_RL_-based recommendation models, run:
+### GraphSAGE and GraphSAGE_RL-based recommendation models
 
 ```
 cd graphsage OR cd graphsage_rl
@@ -29,7 +29,7 @@ python preprocess_data.py embedding_type $EMBEDDING_TYPE dataset $DATASET --thre
 | threshold | Threshold for edge weights in heterogeneous graph | 2| integer value | No |
 | gpu | Which gpu to use | 0 | integer value | No |
 
-For _GAT_-based recommendation models, run:
+### GAT-based recommendation models, run:
 
 ```
 cd gat
