@@ -111,7 +111,7 @@ python model.py embedding_type $EMBEDDING_TYPE dataset #DATASET model_name #MODE
 
 #### _GraphSAGE_-based recommendation models
 
-To train an _unsupervised GraphSAGE__ GNN model, run:
+To train an _unsupervised GraphSAGE_ GNN model, run:
 
 ```
 cd graphsage
@@ -130,8 +130,8 @@ python unsupervised_model.py train_prefix #TRAIN_PREFIX model_name $MODEL_NAME -
 | max_degree | Maximum node degree | 100 | integer value | No |
 | samples_1 | Number of samples in layer 1 | 25 | integer value | No |
 | samples_2 | Number of samples in layer 2 | 10 | integer value | No |
-| dim_1 | 'Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
-| dim_2 | 'Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
+| dim_1 | Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
+| dim_2 | Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
 | neg_sample_size | Number of negative samples | 20 | integer value | No |
 | batch_size | Minibatch size | 512 | integer value | No |
 | save_embeddings | Whether to save embeddings for all nodes after training | True | boolean value | No |
@@ -162,8 +162,8 @@ python supervised_model.py train_prefix #TRAIN_PREFIX model_name $MODEL_NAME --m
 | samples_1 | Number of samples in layer 1 | 25 | integer value | No |
 | samples_2 | Number of samples in layer 2 | 10 | integer value | No |
 | samples_3 | Number of samples in layer 3 (Only for mean model) | 0 | integer value | No |
-| dim_1 | 'Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
-| dim_2 | 'Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
+| dim_1 | Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
+| dim_2 | Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
 | neg_sample_size | Number of negative samples | 20 | integer value | No |
 | batch_size | Minibatch size | 512 | integer value | No |
 | validate_iter | How often to run a validation minibatch | 5000 | integer value | No |
@@ -196,8 +196,8 @@ To train an _unsupervised GraphSAGE_RL_ GNN model, run:
 | max_degree | Maximum node degree | 100 | integer value | No |
 | samples_1 | Number of samples in layer 1 | 25 | integer value | No |
 | samples_2 | Number of samples in layer 2 | 10 | integer value | No |
-| dim_1 | 'Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
-| dim_2 | 'Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
+| dim_1 | Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
+| dim_2 | Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
 | neg_sample_size | Number of negative samples | 20 | integer value | No |
 | batch_size | Minibatch size | 512 | integer value | No |
 | save_embeddings | Whether to save embeddings for all nodes after training | True | boolean value | No |
@@ -231,9 +231,9 @@ python supervised_model.py train_prefix #TRAIN_PREFIX model_name $MODEL_NAME --n
 | samples_1 | Number of samples in layer 1 | 25 | integer value | No |
 | samples_2 | Number of samples in layer 2 | 10 | integer value | No |
 | samples_3 | Number of samples in layer 3 (Only for mean model) | 0 | integer value | No |
-| dim_1 | 'Size of output dim (final is 2x this, if using concat) | 512 | integer value | No |
-| dim_2 | 'Size of output dim (final is 2x this, if using concat) | 512 | integer value | No |
-| dim_2 | 'Size of output dim (final is 2x this, if using concat) | 0 | integer value | No |
+| dim_1 | Size of output dim (final is 2x this, if using concat) | 512 | integer value | No |
+| dim_2 | Size of output dim (final is 2x this, if using concat) | 512 | integer value | No |
+| dim_2 | Size of output dim (final is 2x this, if using concat) | 0 | integer value | No |
 | neg_sample_size | Number of negative samples | 20 | integer value | No |
 | batch_size | Minibatch size | 128 | integer value | No |
 | validate_iter | How often to run a validation minibatch | 5000 | integer value | No |
@@ -256,8 +256,8 @@ python train_gat.py embedding_type $EMBEDDING_TYPE dataset #DATASET --graph_type
 | embedding_type | Type of SciBERT embedding | - | AVG_L, AVG_2L, AVG_SUM_ALL, AVG_SUM_L4, CONC_AVG_MAX_2L, CONC_AVG_MAX_SUM_L4, MAX_2L, SUM_2L, SUM_L | Yes |
 | dataset | Name of the object file that stores the training data | - | citations | Yes |
 | graph_type | The type of graph used | directed | directed, undirected | No |
-| hid_units | Number of hidden units per each attention head in each layer | [64] | (multiple) integer values | No |
-| n_heads | Additional entry for the output layer | [8, 1] | (multiple) integer values | No |
+| hid_units | Number of hidden units per each attention head in each layer | [64] | (multiple) integer values as list | No |
+| n_heads | Additional entry for the output layer | [8, 1] | (multiple) integer values as list | No |
 | learning_rate | Learning rate | 0.005 | float value | No |
 | weight_decay | Weight decay | 0 | float value | No |
 | epochs | Number of epochs to train | 100000 | integer value | No |
@@ -278,8 +278,8 @@ python train_han.py model $MODEL embedding_type $EMBEDDING_TYPE --hid_units #HID
 | :-----------: | :------------- | :----------: | :---------- | :---------: |
 | model | The type of model used | - | HeteGAT, HeteGAT_multi | Yes |
 | embedding_type | Type of SciBERT embedding | - | AVG_L, AVG_2L, AVG_SUM_ALL, AVG_SUM_L4, CONC_AVG_MAX_2L, CONC_AVG_MAX_SUM_L4, MAX_2L, SUM_2L, SUM_L | Yes |
-| hid_units | Number of hidden units per each attention head in each layer | [64] | (multiple) integer values | No |
-| n_heads | Additional entry for the output layer | [8, 1] | (multiple) integer values | No |
+| hid_units | Number of hidden units per each attention head in each layer | [64] | (multiple) integer values as list| No |
+| n_heads | Additional entry for the output layer | [8, 1] | (multiple) integer values as list | No |
 | learning_rate | Learning rate | 0.005 | float value | No |
 | weight_decay | Weight decay | 0 | float value | No |
 | epochs | Number of epochs to train | 10000 | integer value | No |
@@ -404,8 +404,8 @@ python GraphSAGEClassifierModelEvaluation.py classifier_name $CLASSIFIER_NAME  e
 | max_degree | Maximum node degree | 100 | integer value | No |
 | samples_1 | Number of samples in layer 1 | 25 | integer value | No |
 | samples_2 | Number of samples in layer 2 | 10 | integer value | No |
-| dim_1 | 'Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
-| dim_2 | 'Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
+| dim_1 | Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
+| dim_2 | Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
 | neg_sample_size | Number of negative samples | 20 | integer value | No |
 | batch_size | Minibatch size | 512 | integer value | No |
 | save_embeddings | Whether to save embeddings for all nodes after training | False | boolean value | No |
@@ -440,8 +440,8 @@ python GraphSAGEClassifierConcatEvaluation.py classifier_name $CLASSIFIER_NAME  
 | max_degree | Maximum node degree | 100 | integer value | No |
 | samples_1 | Number of samples in layer 1 | 25 | integer value | No |
 | samples_2 | Number of samples in layer 2 | 10 | integer value | No |
-| dim_1 | 'Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
-| dim_2 | 'Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
+| dim_1 | Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
+| dim_2 | Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
 | neg_sample_size | Number of negative samples | 20 | integer value | No |
 | batch_size | Minibatch size | 512 | integer value | No |
 | save_embeddings | Whether to save embeddings for all nodes after training | False | boolean value | No |
@@ -474,8 +474,8 @@ python GraphSAGEModelEvaluation.py embedding_type $EMBEDDING_TYPE graph_type $GR
 | samples_1 | Number of samples in layer 1 | 25 | integer value | No |
 | samples_2 | Number of samples in layer 2 | 10 | integer value | No |
 | samples_3 | Number of samples in layer 3 (Only for mean model) | 0 | integer value | No |
-| dim_1 | 'Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
-| dim_2 | 'Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
+| dim_1 | Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
+| dim_2 | Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
 | neg_sample_size | Number of negative samples | 20 | integer value | No |
 | batch_size | Minibatch size | 512 | integer value | No |
 | validate_iter | How often to run a validation minibatch | 5000 | integer value | No |
@@ -512,8 +512,8 @@ python GraphSAGERLClassifierModelEvaluation.py classifier_name $CLASSIFIER_NAME 
 | max_degree | Maximum node degree | 100 | integer value | No |
 | samples_1 | Number of samples in layer 1 | 25 | integer value | No |
 | samples_2 | Number of samples in layer 2 | 10 | integer value | No |
-| dim_1 | 'Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
-| dim_2 | 'Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
+| dim_1 | Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
+| dim_2 | Size of output dim (final is 2x this, if using concat) | 128 | integer value | No |
 | neg_sample_size | Number of negative samples | 20 | integer value | No |
 | batch_size | Minibatch size | 512 | integer value | No |
 | save_embeddings | Whether to save embeddings for all nodes after training | False | boolean value | No |
@@ -546,9 +546,9 @@ python GraphSAGERLModelEvaluation.py embedding_type $EMBEDDING_TYPE graph_type $
 | samples_1 | Number of samples in layer 1 | 25 | integer value | No |
 | samples_2 | Number of samples in layer 2 | 10 | integer value | No |
 | samples_3 | Number of samples in layer 3 (Only for mean model) | 0 | integer value | No |
-| dim_1 | 'Size of output dim (final is 2x this, if using concat) | 512 | integer value | No |
-| dim_2 | 'Size of output dim (final is 2x this, if using concat) | 512 | integer value | No |
-| dim_2 | 'Size of output dim (final is 2x this, if using concat) | 0 | integer value | No |
+| dim_1 | Size of output dim (final is 2x this, if using concat) | 512 | integer value | No |
+| dim_2 | Size of output dim (final is 2x this, if using concat) | 512 | integer value | No |
+| dim_2 | Size of output dim (final is 2x this, if using concat) | 0 | integer value | No |
 | neg_sample_size | Number of negative samples | 20 | integer value | No |
 | batch_size | Minibatch size | 128 | integer value | No |
 | validate_iter | How often to run a validation minibatch | 5000 | integer value | No |
