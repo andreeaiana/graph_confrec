@@ -57,10 +57,10 @@ loader.training_data_with_abstracts_citations() # loads training data, including
 | **Parameter** | **Description** | **Default** | **Options** | **Mandatory** |
 | :-----------: | :------------- | :---------: | :--------- | :-----------: |
 | start_eventid | The event ID from which to start crawling. | - | integer value | Yes |
-| end_eventid | he event ID at which to stop crawling | - | integer value | Yes |
+| end_eventid | The event ID at which to stop crawling | - | integer value | Yes |
 | similarity_metric | The similarity metric used | damerau_levenshtein |  levenshtein, damerau_levenshtein, jaro, jaro_winkler | No |
-| match_threshold | The similarity threshold to matching two entities | 0.9 | continuous value in (0,1) | No |
-| remove_stopwords | Whether to remove stopwords | True | boolean | No|
+| match_threshold | The similarity threshold for matching two entities | 0.9 | continuous value in (0,1) | No |
+| remove_stopwords | Whether to remove stopwords | True | boolean value | No|
 
 
 ## H5Index
@@ -72,4 +72,4 @@ loader.training_data_with_abstracts_citations() # loads training data, including
 | **Parameter** | **Description** |**Default** | **Options** | **Mandatory** |
 | :-----------: | :------------- | :--------: | :--------- | :-----------: |
 | similarity_metric | The similarity metric used | damerau_levenshtein |  levenshtein, damerau_levenshtein, jaro, jaro_winkler | No |
-| threshold | 0.9 | The similarity threshold to matching two entities | continuous value in (0,1) | No |
+| threshold | The similarity threshold to matching two entities | 0.9 | continuous value in (0,1) | No |
