@@ -9,13 +9,13 @@ This directory is organised as follows:
 		- classes implementing different parts of the base GNN models
 		- script for training the base GNN model
 		- `<model_name>Model.py`: implements the _query_single_ and _query_batch_ methods
-		- `<model_name>ModelEvaluation.py`: evaluated the recommendation model on the test set
+		- `<model_name>ModelEvaluation.py`: evaluates the recommendation model on the test set
  - `user_interface/`: contains the implementation of the user interface and corresponding data
  - `utils/`: contains `TimerCounter.py`, implements a timer to be used when training the models
  
 # Running the code
 
-1. [Datasets](./data/README.md)
+1. [Data](./data/README.md)
 2. [Models](./models/README.md)
 3. [User Interface](./user_interface/README.md)
 

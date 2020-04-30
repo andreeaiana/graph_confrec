@@ -9,7 +9,7 @@ To parse the raw SciGraph data:
 import FileParser
 
 parser = FileParser.FileParser()
-parser.get_data(process = #DATASET) # parses data as specified by process
+parser.get_data(process = $DATASET) # parses data as specified by process
 
 ```
 | **Parameter** | **Description** | **Options** | 
@@ -23,7 +23,7 @@ To map files from the two SciGraph releases and further process the parsed raw d
 import DatasetsParser
 
 parser = DatasetsParser.DatasetsParser()
-parser.get_data(process = #DATASETS) # parses data as specified by process
+parser.get_data(process = $DATASETS) # parses data as specified by process
 
 ```
 
@@ -50,8 +50,8 @@ loader.training_data_with_abstracts_citations() # loads training data, including
 ## WikiCfP 
 
 1. Crawling the WikiCfP dataset: `python WikiCFPCrawler.py start_eventid $START_EVENTID end_eventid $END_EVENTID`
-2. Linking the dataset to SciGraph: `python WikiCFPLinker.py --similarity_metric $SIMILARITY_METRIC --match_threshold $MATCH_THRESHOLD --remove_stopwords $REMOVE_STOPWORDS
-3. Evaluating the linking: `python WikiCFPLinkerEvaluation.py --similarity_metric $SIMILARITY_METRIC --match_threshold $MATCH_THRESHOLD --remove_stopwords $REMOVE_STOPWORDS
+2. Linking the dataset to SciGraph: `python WikiCFPLinker.py --similarity_metric $SIMILARITY_METRIC --match_threshold $MATCH_THRESHOLD --remove_stopwords $REMOVE_STOPWORDS`
+3. Evaluating the linking: `python WikiCFPLinkerEvaluation.py --similarity_metric $SIMILARITY_METRIC --match_threshold $MATCH_THRESHOLD --remove_stopwords $REMOVE_STOPWORDS`
 
 
 | **Parameter** | **Description** | **Default** | **Options** | **Mandatory** |
