@@ -499,7 +499,7 @@ python GraphSAGERLClassifierModelEvaluation.py classifier_name $CLASSIFIER_NAME 
 | classifier_name | The name of the classifier | - | KNN, MLP, MultinomialLogisticRegression | Yes |
 | embedding_type | Type of SciBERT embedding | - | AVG_L, AVG_2L, AVG_SUM_ALL, AVG_SUM_L4, CONC_AVG_MAX_2L, CONC_AVG_MAX_SUM_L4, MAX_2L, SUM_2L, SUM_L | Yes |
 | graph_type | The type of graph used | - | citations, citations_authors_het_edges | Yes |
-| model_checkpoint | Name of the GraphSAGE model checkpoint to be reloaded | - | string value | Yes |
+| model_checkpoint | Name of the GraphSAGE_RL model checkpoint to be reloaded | - | string value | Yes |
 | train_prefix | Name of the object file that stores the training data | - | embedding_type/graph_type/train_val (e.g. AVG_2L/citations/train_val) | Yes |
 | model_name | Model names | - | mean_concat, mean_add, gcn, graphsage_seq, graphsage_maxpool, graphsage_meanpool | Yes |
 | nonlinear_sampler | Where to use nonlinear sampler o.w. linear sampler | False | boolean value | No |
