@@ -10,7 +10,10 @@ The repository is organised as follows:
  - `notebooks/`: contains Jupyter Notebooks for exporing the SciGraph, WikiCfP, and H5 Index datasets
  - `src/`: contains the implementation of the recommendation models, evaluation and data preprocessing scripts
 
-Further instructions on obtaining and preprocessing the raw data, as well as on running the code, can be found in the respective folders.
+## Running the code
+1. Download the raw data files (see [Datasets](./data/README.md)).
+2. Preprocess the raw data files and crawl external datasets (see [Data preprocessing](./src/data/README.md)).
+3. Preprocess training data, train and evaluate recommendation models (see [Models](./src/models/README.md).
 
 ## Recommendation Models
 
