@@ -13,7 +13,7 @@ The repository is organised as follows:
 ## Running the code
 1. Download the raw data files (see [Datasets](./data/README.md)).
 2. Preprocess the raw data files and crawl external datasets (see [Data preprocessing](./src/data/README.md)).
-3. Preprocess training data, train and evaluate recommendation models (see [Models](./src/models/README.md).
+3. Preprocess training data, train and evaluate recommendation models (see [Models](./src/models/README.md)).
 
 ## Recommendation Models
 
