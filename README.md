@@ -1,6 +1,6 @@
 # graph_confrec
 
-The source code for the paper "GraphConfRec: A Graph Neural Network-Based Conference Recommender System"
+The source code for the paper [GraphConfRec: A Graph Neural Network-Based Conference Recommender System](https://arxiv.org/pdf/2106.12340.pdf)
 
 ## Overview
 
@@ -70,3 +70,17 @@ Parts of the code were originally forked from:
  - [Heterogeneous Graph Neural Network](https://github.com/Jhy1993/HAN) 
 
 We owe many thanks to the authors of the different models for making their codes available.
+
+## Citation
+If you use this code in your research, please cite the paper as follows:
+
+```
+@misc{iana2021graphconfrec,
+      title={GraphConfRec: A Graph Neural Network-Based Conference Recommender System}, 
+      author={Andreea Iana and Heiko Paulheim},
+      year={2021},
+      eprint={2106.12340},
+      archivePrefix={arXiv},
+      primaryClass={cs.IR}
+}
+```
