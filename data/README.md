@@ -23,7 +23,7 @@ This directory is organised as follows:
 
 The _books_, _chapters_, and _persons_ dataset files from the **2019 Q1 SciGraph release** can be downloaded from https://sn-scigraph.figshare.com/ 
 
-The _books_ and _conferences_ dataset files **2018 Q1 SciGraph release** can be downloaded from https://drive.google.com/drive/folders/10gH12snkWsbPQaE3R4P6CMFTzaxzHtqq?usp=sharing 
+The _books_ and _conferences_ dataset files from the **2018 Q1 SciGraph release** can be downloaded from https://drive.google.com/drive/folders/10gH12snkWsbPQaE3R4P6CMFTzaxzHtqq?usp=sharing 
 
 ### Pre-trained SciBERT model
 
